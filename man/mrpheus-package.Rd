@@ -6,11 +6,14 @@
 \alias{mrpheus-package}
 \title{mrpheus: Polysomnography Signal Analysis for Sleep Research}
 \description{
+\if{html}{\figure{logo.svg}{options: style='float: right' alt='logo' width='120'}}
+
 Raw polysomnography (PSG) signal analysis for sleep and circadian research. Provides EDF/EDF+ ingestion, artefact detection, spectral analysis, sleep event detection (spindles, slow oscillations), automatic AASM sleep staging via a pre-trained LightGBM model (ported from YASA; Vallat & Walker, 2021), and respiratory and cardiac metrics. Exports staged hypnograms directly to hypnor and PSG-derived metrics to syncR. Part of the Circadia Lab R ecosystem.
 }
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://mrpheus.circadia-lab.uk}
   \item \url{https://github.com/circadia-bio/mrpheus}
   \item Report bugs at \url{https://github.com/circadia-bio/mrpheus/issues}
 }

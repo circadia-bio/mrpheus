@@ -2,7 +2,7 @@
 % Please edit documentation in R/export_hypnogram.R
 \name{export_hypnogram}
 \alias{export_hypnogram}
-\title{Export a staged hypnogram to hypnor}
+\title{Export a staged hypnogram for use with hypnor}
 \usage{
 export_hypnogram(
   staging,
@@ -25,15 +25,17 @@ clock-time axes in \code{hypnor} plots. If \code{NULL}, epochs are indexed from 
 to \code{hypnor} and \code{syncR}.}
 }
 \value{
-An object of class \code{hypnor_hypnogram} (defined in \code{hypnor}).
-If \code{hypnor} is not installed, returns the staging tibble invisibly with a
-message.
+A tibble of class \code{mrpheus_hypnogram} with columns \code{epoch}, \code{stage},
+and any probability columns from the staging model. Metadata (\code{epoch_s},
+\code{start_time}, \code{participant_id}, \code{source}, \code{resolution}) are attached as
+attributes and forwarded to \code{hypnor::new_hypnogram()} when \code{hypnor} is
+available.
 }
 \description{
-Converts the staging tibble produced by \code{\link[=stage_epochs]{stage_epochs()}} into a
-\code{hypnor_hypnogram} object ready for architecture metric computation and
-visualisation in the \code{hypnor} package. This is the primary handoff between
-\code{mrpheus} and the rest of the Circadia Lab ecosystem.
+Prepares the staging tibble produced by \code{\link[=stage_epochs]{stage_epochs()}} for
+downstream use with the \code{hypnor} package. Attaches recording metadata as
+attributes and returns a tibble of class \code{mrpheus_hypnogram}, which
+\code{hypnor::new_hypnogram()} accepts directly once \code{hypnor} is installed.
 }
 \seealso{
 \code{\link[=stage_epochs]{stage_epochs()}}

@@ -19,7 +19,6 @@ Description: Raw polysomnography (PSG) signal analysis for sleep and
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
 URL: https://mrpheus.circadia-lab.uk, https://github.com/circadia-bio/mrpheus
 BugReports: https://github.com/circadia-bio/mrpheus/issues
 Depends:
@@ -42,3 +41,4 @@ Suggests:
     withr
 Config/testthat/edition: 3
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.0.0
