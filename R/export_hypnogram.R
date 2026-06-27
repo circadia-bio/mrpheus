@@ -1,9 +1,9 @@
-#' Export a staged hypnogram to hypnor
+#' Export a staged hypnogram for use with hypnor
 #'
-#' Converts the staging tibble produced by [mrpheus::stage_epochs()] into a
-#' `hypnor_hypnogram` object ready for architecture metric computation and
-#' visualisation in the `hypnor` package. This is the primary handoff between
-#' `mrpheus` and the rest of the Circadia Lab ecosystem.
+#' Prepares the staging tibble produced by [mrpheus::stage_epochs()] for
+#' downstream use with the `hypnor` package. Attaches recording metadata as
+#' attributes and returns a tibble of class `mrpheus_hypnogram`, which
+#' `hypnor::new_hypnogram()` accepts directly once `hypnor` is installed.
 #'
 #' @param staging A tibble from [mrpheus::stage_epochs()] with columns `epoch`,
 #'   `stage`, and optional probability columns.
@@ -14,9 +14,11 @@
 #' @param participant_id Character or `NULL`. Optional identifier passed through
 #'   to `hypnor` and `syncR`.
 #'
-#' @return An object of class `hypnor_hypnogram` (defined in `hypnor`).
-#'   If `hypnor` is not installed, returns the staging tibble invisibly with a
-#'   message.
+#' @return A tibble of class `mrpheus_hypnogram` with columns `epoch`, `stage`,
+#'   and any probability columns from the staging model. Metadata (`epoch_s`,
+#'   `start_time`, `participant_id`, `source`, `resolution`) are attached as
+#'   attributes and forwarded to `hypnor::new_hypnogram()` when `hypnor` is
+#'   available.
 #'
 #' @seealso [mrpheus::stage_epochs()]
 #'
@@ -29,19 +31,30 @@ export_hypnogram <- function(staging,
     cli::cli_abort("`staging` must be a tibble from `stage_epochs()`.")
   }
 
-  if (!requireNamespace("hypnor", quietly = TRUE)) {
-    cli::cli_alert_warning(
-      "{.pkg hypnor} is not installed. Returning staging tibble as-is."
-    )
-    return(invisible(staging))
-  }
+  out <- staging
+  attr(out, "epoch_s")        <- epoch_s
+  attr(out, "start_time")     <- start_time
+  attr(out, "participant_id") <- participant_id
+  attr(out, "source")         <- "mrpheus"
+  attr(out, "resolution")     <- "AASM"
+  class(out) <- c("mrpheus_hypnogram", class(out))
 
-  hypnor::new_hypnogram(
-    stages         = staging$stage,
-    epoch_s        = epoch_s,
-    start_time     = start_time,
-    participant_id = participant_id,
-    source         = "mrpheus",
-    resolution     = "AASM"
+  cli::cli_alert_success(
+    "Hypnogram ready: {nrow(out)} epochs. \\
+    Pass to {.code hypnor::new_hypnogram()} once {.pkg hypnor} is available."
   )
+  out
+}
+
+#' @export
+print.mrpheus_hypnogram <- function(x, ...) {
+  cli::cli_h1("mrpheus hypnogram")
+  cli::cli_inform(c(
+    "i" = "Epochs: {nrow(x)}",
+    "i" = "Epoch length: {attr(x, 'epoch_s')} s",
+    "i" = "Participant: {attr(x, 'participant_id') %||% 'unset'}",
+    "i" = "Source: {attr(x, 'source')} / {attr(x, 'resolution')}"
+  ))
+  NextMethod()
+  invisible(x)
 }
