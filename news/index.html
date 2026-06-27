@@ -131,12 +131,10 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="development version" id="mrpheus-development-version">mrpheus (development version)<a class="anchor" aria-label="anchor" href="#mrpheus-development-version"></a></h2>
-<div class="section level3">
-<h3 id="initial-scaffolding-development-version">Initial scaffolding<a class="anchor" aria-label="anchor" href="#initial-scaffolding-development-version"></a></h3>
-<ul><li>Package scaffolded with full PSG analysis pipeline.</li>
+<h2 class="pkg-version" data-toc-text="0.1.0" id="mrpheus-010">mrpheus 0.1.0<a class="anchor" aria-label="anchor" href="#mrpheus-010"></a></h2>
+<ul><li>Initial release. Package scaffolded with full PSG analysis pipeline.</li>
 <li>
-<code><a href="../reference/read_edf.html">read_edf()</a></code> / <code><a href="../reference/prepare_psg.html">prepare_psg()</a></code> — EDF/EDF+ ingestion, channel inventory, epoch segmentation, bad-channel flagging.</li>
+<code><a href="../reference/read_edf.html">read_edf()</a></code> / <code><a href="../reference/prepare_psg.html">prepare_psg()</a></code> — EDF/EDF+ ingestion, channel inventory, epoch segmentation, and bad-channel flagging.</li>
 <li>
 <code><a href="../reference/detect_artifacts.html">detect_artifacts()</a></code> — amplitude and high-frequency artefact detection.</li>
 <li>
@@ -148,21 +146,19 @@
 <li>
 <code><a href="../reference/compute_slow_oscillations.html">compute_slow_oscillations()</a></code> — zero-crossing SO detection (Mölle et al., 2002).</li>
 <li>
-<code><a href="../reference/stage_epochs.html">stage_epochs()</a></code> — automatic AASM staging via pre-trained LightGBM model (ported from YASA; Vallat &amp; Walker, 2021). Feature extraction parity with the Python pipeline is in progress.</li>
+<code><a href="../reference/stage_epochs.html">stage_epochs()</a></code> — automatic AASM staging via pre-trained LightGBM model ported from YASA (Vallat &amp; Walker, 2021). Feature extraction parity with the Python pipeline is in progress.</li>
 <li>
-<code><a href="../reference/export_hypnogram.html">export_hypnogram()</a></code> — handoff to <code>hypnor</code>.</li>
+<code><a href="../reference/export_hypnogram.html">export_hypnogram()</a></code> — returns a <code>mrpheus_hypnogram</code> object ready for <code>hypnor::new_hypnogram()</code> once <code>hypnor</code> is available.</li>
 <li>
-<code><a href="../reference/detect_apneas.html">detect_apneas()</a></code>, <code><a href="../reference/compute_ahi.html">compute_ahi()</a></code>, <code><a href="../reference/compute_odi.html">compute_odi()</a></code> — respiratory stubs.</li>
+<code><a href="../reference/detect_apneas.html">detect_apneas()</a></code>, <code><a href="../reference/compute_ahi.html">compute_ahi()</a></code>, <code><a href="../reference/compute_odi.html">compute_odi()</a></code> — respiratory stubs, full implementation pending.</li>
 <li>
-<code><a href="../reference/compute_hrv_sleep.html">compute_hrv_sleep()</a></code> — HRV stub.</li>
+<code><a href="../reference/compute_hrv_sleep.html">compute_hrv_sleep()</a></code> — HRV stub, full implementation pending.</li>
 <li>
 <code>palette_orpheus</code> — 8-colour palette extracted from the Roman mosaic <em>Orpheus Charming the Animals</em> (3rd century AD, Palermo Archaeological Museum).</li>
 <li>Hex sticker: olive background, ivory lyre, ochre motion lines, vermillion border.</li>
 <li>pkgdown site deploying via Netlify at <code>mrpheus.circadia-lab.uk</code>.</li>
 </ul></div>
-</div>
-  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
-    </nav></aside></div>
+  </main></div>
 
 
     <footer><div class="pkgdown-footer-left">

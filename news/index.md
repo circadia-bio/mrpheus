@@ -1,14 +1,12 @@
 # Changelog
 
-## mrpheus (development version)
+## mrpheus 0.1.0
 
-### Initial scaffolding
-
-- Package scaffolded with full PSG analysis pipeline.
+- Initial release. Package scaffolded with full PSG analysis pipeline.
 - [`read_edf()`](https://mrpheus.circadia-lab.uk/reference/read_edf.md)
   /
   [`prepare_psg()`](https://mrpheus.circadia-lab.uk/reference/prepare_psg.md)
-  — EDF/EDF+ ingestion, channel inventory, epoch segmentation,
+  — EDF/EDF+ ingestion, channel inventory, epoch segmentation, and
   bad-channel flagging.
 - [`detect_artifacts()`](https://mrpheus.circadia-lab.uk/reference/detect_artifacts.md)
   — amplitude and high-frequency artefact detection.
@@ -21,17 +19,18 @@
 - [`compute_slow_oscillations()`](https://mrpheus.circadia-lab.uk/reference/compute_slow_oscillations.md)
   — zero-crossing SO detection (Mölle et al., 2002).
 - [`stage_epochs()`](https://mrpheus.circadia-lab.uk/reference/stage_epochs.md)
-  — automatic AASM staging via pre-trained LightGBM model (ported from
-  YASA; Vallat & Walker, 2021). Feature extraction parity with the
+  — automatic AASM staging via pre-trained LightGBM model ported from
+  YASA (Vallat & Walker, 2021). Feature extraction parity with the
   Python pipeline is in progress.
 - [`export_hypnogram()`](https://mrpheus.circadia-lab.uk/reference/export_hypnogram.md)
-  — handoff to `hypnor`.
+  — returns a `mrpheus_hypnogram` object ready for
+  `hypnor::new_hypnogram()` once `hypnor` is available.
 - [`detect_apneas()`](https://mrpheus.circadia-lab.uk/reference/detect_apneas.md),
   [`compute_ahi()`](https://mrpheus.circadia-lab.uk/reference/compute_ahi.md),
   [`compute_odi()`](https://mrpheus.circadia-lab.uk/reference/compute_odi.md)
-  — respiratory stubs.
+  — respiratory stubs, full implementation pending.
 - [`compute_hrv_sleep()`](https://mrpheus.circadia-lab.uk/reference/compute_hrv_sleep.md)
-  — HRV stub.
+  — HRV stub, full implementation pending.
 - `palette_orpheus` — 8-colour palette extracted from the Roman mosaic
   *Orpheus Charming the Animals* (3rd century AD, Palermo Archaeological
   Museum).
