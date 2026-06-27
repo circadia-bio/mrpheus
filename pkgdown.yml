@@ -1,0 +1,9 @@
+pandoc: 3.8.3
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles:
+  getting-started: getting-started.html
+last_built: 2026-06-27T14:22Z
+urls:
+  reference: https://mrpheus.circadia-lab.uk/reference
+  article: https://mrpheus.circadia-lab.uk/articles
