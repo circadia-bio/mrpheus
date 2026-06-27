@@ -4,8 +4,13 @@
 ## usethis namespace: start
 #' @importFrom rlang abort warn inform
 #' @importFrom cli cli_alert_success cli_alert_warning cli_alert_info
+#' @importFrom stats predict quantile sd var
+#' @importFrom zoo rollapply
 ## usethis namespace: end
 NULL
+
+# Suppress R CMD check NOTE for dplyr NSE column names
+utils::globalVariables(c("epoch", "channel", "total_power"))
 
 #' Orpheus mosaic palette
 #'
@@ -35,7 +40,9 @@ NULL
 #'   <https://en.wikipedia.org/wiki/Orpheus>.
 #'
 #' @examples
-#' scales::show_col(palette_orpheus)
+#' if (requireNamespace("scales", quietly = TRUE)) {
+#'   scales::show_col(palette_orpheus)
+#' }
 #'
 #' @export
 palette_orpheus <- c(
