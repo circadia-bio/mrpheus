@@ -12,6 +12,8 @@ Part of the Circadia Lab R ecosystem.
 
 Useful links:
 
+- <https://mrpheus.circadia-lab.uk>
+
 - <https://github.com/circadia-bio/mrpheus>
 
 - Report bugs at <https://github.com/circadia-bio/mrpheus/issues>

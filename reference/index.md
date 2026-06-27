@@ -41,7 +41,7 @@ Automatic AASM epoch staging and hypnogram export.
 - [`stage_epochs()`](https://mrpheus.circadia-lab.uk/reference/stage_epochs.md)
   : Automatic AASM sleep staging
 - [`export_hypnogram()`](https://mrpheus.circadia-lab.uk/reference/export_hypnogram.md)
-  : Export a staged hypnogram to hypnor
+  : Export a staged hypnogram for use with hypnor
 
 ## Respiratory
 

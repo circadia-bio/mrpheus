@@ -1,11 +1,11 @@
-# Export a staged hypnogram to hypnor
+# Export a staged hypnogram for use with hypnor
 
-Converts the staging tibble produced by
+Prepares the staging tibble produced by
 [`stage_epochs()`](https://mrpheus.circadia-lab.uk/reference/stage_epochs.md)
-into a `hypnor_hypnogram` object ready for architecture metric
-computation and visualisation in the `hypnor` package. This is the
-primary handoff between `mrpheus` and the rest of the Circadia Lab
-ecosystem.
+for downstream use with the `hypnor` package. Attaches recording
+metadata as attributes and returns a tibble of class
+`mrpheus_hypnogram`, which `hypnor::new_hypnogram()` accepts directly
+once `hypnor` is installed.
 
 ## Usage
 
@@ -44,8 +44,11 @@ export_hypnogram(
 
 ## Value
 
-An object of class `hypnor_hypnogram` (defined in `hypnor`). If `hypnor`
-is not installed, returns the staging tibble invisibly with a message.
+A tibble of class `mrpheus_hypnogram` with columns `epoch`, `stage`, and
+any probability columns from the staging model. Metadata (`epoch_s`,
+`start_time`, `participant_id`, `source`, `resolution`) are attached as
+attributes and forwarded to `hypnor::new_hypnogram()` when `hypnor` is
+available.
 
 ## See also
 
