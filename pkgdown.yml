@@ -3,7 +3,7 @@ pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   getting-started: getting-started.html
-last_built: 2026-06-27T14:22Z
+last_built: 2026-06-27T14:23Z
 urls:
   reference: https://mrpheus.circadia-lab.uk/reference
   article: https://mrpheus.circadia-lab.uk/articles
