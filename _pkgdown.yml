@@ -2,18 +2,168 @@ url: https://mrpheus.circadia-lab.uk
 
 template:
   bootstrap: 5
-  bootswatch: flatly
-  theme: arrow-light
+  bslib:
+    # ── Colours (orpheus mosaic palette + Circadia navy) ──────────────────────
+    # bistre #3C2212 | vermillion #B83E2C | olive #6A7840
+    # ochre #B07C3A  | ivory #EAD6AA     | navy #014370
+    bg:              "#F7F3EB"
+    fg:              "#3C2212"
+    primary:         "#B83E2C"
+    secondary:       "#6A7840"
+    success:         "#6A7840"
+    info:            "#B07C3A"
+    warning:         "#B07C3A"
+    danger:          "#B83E2C"
+
+    # ── Fonts ──────────────────────────────────────────────────────────────────
+    base_font:    {google: "DM Sans"}
+    heading_font: {google: "DM Sans"}
+    code_font:    {google: "JetBrains Mono"}
+
+    # ── Typography ─────────────────────────────────────────────────────────────
+    font-size-base:       "1rem"
+    headings-font-weight: 700
+
+    # ── Cards / surfaces ───────────────────────────────────────────────────────
+    card-bg:              "#FFFCF5"
+    card-border-color:    "#EAD6AA"
+    card-border-radius:   "0.75rem"
+
+    # ── Code blocks ────────────────────────────────────────────────────────────
+    pre-bg:    "#3C2212"
+    pre-color: "#EAD6AA"
+
+  includes:
+    in_header: |
+      <meta property="og:image" content="https://mrpheus.circadia-lab.uk/logo.png">
+      <meta property="og:image:width" content="1080">
+      <meta property="og:image:height" content="1080">
+      <meta property="og:image:type" content="image/png">
+      <meta name="twitter:card" content="summary">
+      <meta name="twitter:image" content="https://mrpheus.circadia-lab.uk/logo.png">
+      <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#B83E2C">
+      <meta name="msapplication-TileColor" content="#3C2212">
+      <meta name="theme-color" content="#3C2212">
+      <style>
+        /* ── Navbar ── */
+        .navbar {
+          background-color: #3C2212 !important;
+          border-bottom: 2px solid #B83E2C;
+        }
+        .navbar .navbar-brand,
+        .navbar-nav .nav-link,
+        .navbar-nav .nav-link:hover,
+        .navbar form .btn {
+          color: #EAD6AA !important;
+        }
+        .navbar-nav .nav-link:hover { opacity: 0.8; }
+        .navbar-nav .nav-link.active {
+          color: #EAD6AA !important;
+          border-bottom: 2px solid #B83E2C;
+        }
+        .navbar small.nav-text { color: #B07C3A !important; }
+
+        /* ── Navbar logo size ── */
+        .navbar-brand img { height: 40px; width: auto; }
+
+        /* ── Page title ── */
+        .page-header { border-bottom: none !important; }
+
+        /* ── Sidebar TOC ── */
+        .sidebar .nav-link,
+        .sidebar a,
+        #toc a,
+        #toc .nav-link {
+          color: #3C2212 !important;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar a:hover,
+        #toc a:hover {
+          color: #B83E2C !important;
+        }
+        .sidebar .nav-link.active,
+        #toc .nav-link.active {
+          color: #B83E2C !important;
+          border-left: 2px solid #B07C3A;
+          font-weight: 600;
+        }
+
+        /* ── text-muted ── */
+        .text-muted { color: #7C5432 !important; }
+
+        /* ── Sidebar border ── */
+        .sidebar { border-left: 3px solid #B07C3A; padding-left: 1rem; }
+
+        /* ── Reference index section headers ── */
+        .reference-index h2 {
+          color: #B83E2C;
+          font-size: 0.8rem;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        /* ── Inline code ── */
+        code {
+          color: #B83E2C;
+          background: #F0E8D8;
+          border-radius: 4px;
+          padding: 0.1em 0.35em;
+        }
+
+        /* ── Links ── */
+        a { color: #B83E2C; }
+        a:hover { color: #B07C3A; }
+
+        /* ── Footer ── */
+        .footer { background: #3C2212; color: #EAD6AA; padding: 1.5rem 0; }
+        .footer a { color: #B07C3A; }
+
+        /* ── Search ── */
+        #search-input { border-color: #B07C3A; }
+
+        /* ── Buttons ── */
+        .btn-primary {
+          background-color: #B83E2C !important;
+          border-color: #B83E2C !important;
+          color: #EAD6AA !important;
+        }
+        .btn-primary:hover {
+          background-color: #6A7840 !important;
+          border-color: #6A7840 !important;
+        }
+      </style>
+
+logo: man/figures/logo.svg
+
+opengraph:
+  image:
+    src: https://mrpheus.circadia-lab.uk/logo.png
+    alt: "mrpheus — Polysomnography signal analysis for R"
+  twitter:
+    creator: "@circadia_lab"
+    card: summary
 
 home:
-  title: "mrpheus — PSG Signal Analysis"
-  description: "Polysomnography signal analysis for sleep and circadian research"
+  title: "mrpheus — Polysomnography signal analysis for R"
+  description: >
+    An R package for raw PSG signal analysis: EDF/EDF+ ingestion, artefact
+    detection, spectral analysis, sleep event detection, and automatic AASM
+    sleep staging via a pre-trained LightGBM model. Part of the Circadia Lab
+    R ecosystem at Northumbria University.
+  links:
+  - text: Circadia Lab
+    href: https://circadia-lab.uk
+  sidebar:
+    structure: [links, license, community, citation, authors, dev]
 
 navbar:
   structure:
-    left: [intro, reference, articles]
+    left:  [intro, reference, articles, news]
     right: [search, github]
   components:
+    intro:
+      text: Get started
+      href: articles/getting-started.html
     github:
       icon: fab fa-github
       href: https://github.com/circadia-bio/mrpheus
@@ -21,38 +171,79 @@ navbar:
 
 reference:
   - title: "Ingestion"
-    desc: "Reading and preparing PSG recordings"
+    desc: "Read and prepare PSG recordings."
     contents:
       - read_edf
       - prepare_psg
+
   - title: "Artefacts"
+    desc: "Detect and flag artefact epochs."
     contents:
       - detect_artifacts
+
   - title: "Spectral analysis"
+    desc: "Power spectral density and time-frequency representations."
     contents:
       - compute_band_power
       - compute_spectrogram
+
   - title: "Event detection"
+    desc: "Automatic detection of sleep microstructure events."
     contents:
       - compute_spindles
       - compute_slow_oscillations
+
   - title: "Sleep staging"
+    desc: "Automatic AASM epoch staging and hypnogram export."
     contents:
       - stage_epochs
       - export_hypnogram
+
   - title: "Respiratory"
+    desc: "Apnea/hypopnea detection and respiratory indices."
     contents:
       - detect_apneas
       - compute_ahi
       - compute_odi
+
   - title: "Cardiac"
+    desc: "HRV metrics across sleep stages."
     contents:
       - compute_hrv_sleep
+
   - title: "Data"
+    desc: "Bundled datasets and palettes."
     contents:
       - palette_orpheus
 
+  - title: "Package"
+    desc: "Package-level documentation."
+    contents:
+      - mrpheus-package
+
+articles:
+  - title: "Getting started"
+    navbar: ~
+    contents:
+      - getting-started
+
+news:
+  releases:
+  - text: "Changelog"
+    href: news/index.html
+
+authors:
+  Lucas França:
+    href: https://orcid.org/0000-0003-0853-1319
+  Mario Leocadio-Miguel:
+    href: https://orcid.org/0000-0002-7248-3529
+
 footer:
   structure:
-    left: developed_by
-    right: built_with
+    left:  [package, developed_by]
+    right: [built_with]
+  components:
+    package: >
+      **mrpheus** — Circadia Lab, Northumbria University.
+    developed_by: >
+      Lucas França & Mario Leocadio-Miguel.
