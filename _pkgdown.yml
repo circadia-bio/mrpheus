@@ -42,13 +42,13 @@ template:
       <meta name="twitter:card" content="summary">
       <meta name="twitter:image" content="https://mrpheus.circadia-lab.uk/logo.png">
       <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#B83E2C">
-      <meta name="msapplication-TileColor" content="#3C2212">
-      <meta name="theme-color" content="#3C2212">
+      <meta name="msapplication-TileColor" content="#6A7840">
+      <meta name="theme-color" content="#6A7840">
       <style>
         /* ── Navbar ── */
         .navbar {
-          background-color: #3C2212 !important;
-          border-bottom: 2px solid #B83E2C;
+          background-color: #6A7840 !important;
+          border-bottom: 3px solid #B83E2C;
         }
         .navbar .navbar-brand,
         .navbar-nav .nav-link,
@@ -56,12 +56,12 @@ template:
         .navbar form .btn {
           color: #EAD6AA !important;
         }
-        .navbar-nav .nav-link:hover { opacity: 0.8; }
+        .navbar-nav .nav-link:hover { opacity: 0.85; }
         .navbar-nav .nav-link.active {
           color: #EAD6AA !important;
           border-bottom: 2px solid #B83E2C;
         }
-        .navbar small.nav-text { color: #B07C3A !important; }
+        .navbar small.nav-text { color: #EAD6AA !important; opacity: 0.75; }
 
         /* ── Navbar logo size ── */
         .navbar-brand img { height: 40px; width: auto; }
@@ -115,8 +115,9 @@ template:
         a:hover { color: #B07C3A; }
 
         /* ── Footer ── */
-        .footer { background: #3C2212; color: #EAD6AA; padding: 1.5rem 0; }
-        .footer a { color: #B07C3A; }
+        .footer { background: #6A7840; color: #EAD6AA; padding: 1.5rem 0; }
+        .footer a { color: #EAD6AA; opacity: 0.85; }
+        .footer a:hover { opacity: 1; }
 
         /* ── Search ── */
         #search-input { border-color: #B07C3A; }

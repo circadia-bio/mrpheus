@@ -1,6 +1,6 @@
 Package: mrpheus
 Title: Polysomnography Signal Analysis for Sleep Research
-Version: 0.1.0.9000
+Version: 0.1.0
 Authors@R: c(
     person("Lucas", "França",
            email = "lucas.franca@northumbria.ac.uk",
@@ -19,7 +19,8 @@ Description: Raw polysomnography (PSG) signal analysis for sleep and
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-URL: https://github.com/circadia-bio/mrpheus
+RoxygenNote: 7.3.2
+URL: https://mrpheus.circadia-lab.uk, https://github.com/circadia-bio/mrpheus
 BugReports: https://github.com/circadia-bio/mrpheus/issues
 Depends:
     R (>= 4.1.0)
@@ -44,4 +45,3 @@ Suggests:
     withr
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-Config/roxygen2/version: 8.0.0
