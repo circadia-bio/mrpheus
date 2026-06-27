@@ -4,7 +4,7 @@
 #' single PSG channel across all epochs. Returns power (µV²/Hz) as a matrix
 #' with time (epochs) on rows and frequency on columns.
 #'
-#' @param psg An `mrpheus_psg` object from [prepare_psg()].
+#' @param psg An `mrpheus_psg` object from [mrpheus::prepare_psg()].
 #' @param channel Character. A single channel label.
 #' @param freq_range Numeric vector of length 2. Frequency range to return
 #'   (Hz). Default `c(0, 40)`.
@@ -51,7 +51,6 @@ compute_spectrogram <- function(psg,
     psd$spec[freq_idx]
   }))
 
-  # Recompute freq vector for subsetting
   ref_psd  <- gsignal::pwelch(psg$epochs[[1]][[channel]], fs = sr,
                                 window = nfft, noverlap = novlp, nfft = nfft)
   freq_idx <- ref_psd$freq >= freq_range[1] & ref_psd$freq <= freq_range[2]

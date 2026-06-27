@@ -36,4 +36,15 @@ NULL
 #'
 #' @examples
 #' scales::show_col(palette_orpheus)
-"palette_orpheus"
+#'
+#' @export
+palette_orpheus <- c(
+  sand       = "#CDB992",
+  vermillion = "#B83E2C",
+  olive      = "#6A7840",
+  umber      = "#7C5432",
+  bistre     = "#3C2212",
+  ochre      = "#B07C3A",
+  slate      = "#6C8284",
+  ivory      = "#EAD6AA"
+)

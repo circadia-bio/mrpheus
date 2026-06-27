@@ -9,7 +9,7 @@
 #' Stages returned follow standard AASM nomenclature:
 #' `W` (wake), `N1`, `N2`, `N3`, `REM`.
 #'
-#' @param psg An `mrpheus_psg` object from [prepare_psg()].
+#' @param psg An `mrpheus_psg` object from [mrpheus::prepare_psg()].
 #' @param eeg_channel Character. Central EEG channel (e.g. `"EEG Fpz-Cz"`).
 #'   If `NULL` (default), the first non-bad EEG channel is used.
 #' @param eog_channel Character or `NULL`. EOG channel. If `NULL` (default),
@@ -18,9 +18,9 @@
 #' @param emg_channel Character or `NULL`. Chin EMG channel. If `NULL`
 #'   (default), the first non-bad EMG channel is used (EMG features are omitted
 #'   if none found).
-#' @param artefacts Tibble or `NULL`. Output of [detect_artifacts()]. Artefact
-#'   epochs are assigned `NA` stage and excluded from the model. If `NULL`,
-#'   all epochs are staged.
+#' @param artefacts Tibble or `NULL`. Output of [mrpheus::detect_artifacts()].
+#'   Artefact epochs are assigned `NA` stage and excluded from the model.
+#'   If `NULL`, all epochs are staged.
 #' @param model_path Character. Path to the serialised LightGBM model. Defaults
 #'   to the bundled model at `system.file("models/yasa_staging.txt",
 #'   package = "mrpheus")`.
@@ -39,7 +39,7 @@
 #' for automated sleep staging. *eLife*, 10, e70092.
 #' \doi{10.7554/eLife.70092}
 #'
-#' @seealso [export_hypnogram()] to pass staged output to `hypnor`.
+#' @seealso [mrpheus::export_hypnogram()]
 #'
 #' @export
 stage_epochs <- function(psg,
@@ -59,7 +59,6 @@ stage_epochs <- function(psg,
     ))
   }
 
-  # Resolve channels
   eeg_channel <- eeg_channel %||%
     psg$channel_map$label[psg$channel_map$type == "EEG" & !psg$channel_map$bad][1]
   eog_channel <- eog_channel %||%
@@ -71,19 +70,16 @@ stage_epochs <- function(psg,
     "Staging with EEG={.val {eeg_channel}}, EOG={.val {eog_channel}}, EMG={.val {emg_channel}}"
   )
 
-  # Artefact mask
   art_epochs <- if (!is.null(artefacts)) {
     artefacts$epoch[artefacts$artefact]
   } else {
     integer(0)
   }
 
-  # Feature extraction (mirrors YASA feature set)
   features <- .extract_staging_features(psg, eeg_channel, eog_channel, emg_channel)
 
-  # Load model and predict
   model <- lightgbm::lgb.load(model_path)
-  feat_mat <- as.matrix(features[, -1])  # drop epoch column
+  feat_mat <- as.matrix(features[, -1])
 
   probs <- predict(model, feat_mat, reshape = TRUE)
   colnames(probs) <- c("prob_W", "prob_N1", "prob_N2", "prob_N3", "prob_REM")
@@ -96,7 +92,6 @@ stage_epochs <- function(psg,
   ) |>
     dplyr::bind_cols(tibble::as_tibble(probs))
 
-  # Mark artefact epochs
   if (length(art_epochs) > 0L) {
     out$stage[out$epoch %in% art_epochs] <- NA_character_
   }
@@ -110,11 +105,10 @@ stage_epochs <- function(psg,
 .extract_staging_features <- function(psg, eeg_ch, eog_ch, emg_ch) {
   cli::cli_alert_info("Extracting staging features...")
 
-  # Band power (relative) — EEG
   bp <- compute_band_power(psg, channels = eeg_ch, relative = TRUE)
 
   # TODO: add Hjorth parameters, EOG/EMG covariance, and epoch-context
-  # features (running mean/std over ±1 epoch) to match full YASA feature set.
+  # features (running mean/std over +/-1 epoch) to match full YASA feature set.
   # Feature parity must be validated against yasa.SleepStaging._features()
   # before the model output can be trusted.
 

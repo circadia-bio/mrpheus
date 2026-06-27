@@ -4,7 +4,7 @@
 #' approach in the delta band (0.5–2 Hz), following the algorithm described in
 #' Mölle et al. (2002) and implemented in YASA (Vallat & Walker, 2021).
 #'
-#' @param psg An `mrpheus_psg` object from [prepare_psg()].
+#' @param psg An `mrpheus_psg` object from [mrpheus::prepare_psg()].
 #' @param channel Character. EEG channel label. If `NULL` (default), the first
 #'   non-bad EEG channel is used.
 #' @param stages Integer vector or `NULL`. Epoch indices restricted to N2/N3.
@@ -62,11 +62,9 @@ compute_slow_oscillations <- function(psg,
     sig <- psg$epochs[[i]][[channel]]
     if (is.null(sig) || length(sig) < 2) return(NULL)
 
-    # Band-pass to SO range
     bf       <- gsignal::butter(4, freq_so / (sr / 2), type = "pass")
     sig_filt <- gsignal::filtfilt(bf, sig)
 
-    # Zero-crossings
     zc <- which(diff(sign(sig_filt)) != 0)
     if (length(zc) < 4) return(NULL)
 
@@ -90,10 +88,10 @@ compute_slow_oscillations <- function(psg,
       }
 
       tibble::tibble(
-        epoch      = i,
-        start_s    = neg_start / sr,
-        end_s      = pos_end   / sr,
-        duration_s = (pos_end - neg_start) / sr,
+        epoch       = i,
+        start_s     = neg_start / sr,
+        end_s       = pos_end   / sr,
+        duration_s  = (pos_end - neg_start) / sr,
         neg_peak_uv = neg_peak,
         pos_peak_uv = pos_peak,
         ptp_uv      = ptp,

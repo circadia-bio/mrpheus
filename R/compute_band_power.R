@@ -5,7 +5,7 @@
 #' gamma) for each epoch and each specified channel. Mirrors the band-power
 #' feature extraction used by YASA's staging pipeline.
 #'
-#' @param psg An `mrpheus_psg` object from [prepare_psg()].
+#' @param psg An `mrpheus_psg` object from [mrpheus::prepare_psg()].
 #' @param channels Character vector. EEG channel labels. If `NULL` (default),
 #'   all non-bad EEG channels are used.
 #' @param bands Named list of length-2 numeric vectors defining frequency bands.

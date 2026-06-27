@@ -5,7 +5,7 @@
 #' on the EEG channels by default. Returns a logical vector (one value per epoch)
 #' and optionally attaches per-epoch artefact metrics for inspection.
 #'
-#' @param psg An `mrpheus_psg` object from [prepare_psg()].
+#' @param psg An `mrpheus_psg` object from [mrpheus::prepare_psg()].
 #' @param channels Character vector. Channel labels to evaluate. If `NULL`
 #'   (default), all non-bad EEG channels are used.
 #' @param amp_threshold_uv Numeric. Peak-to-peak amplitude threshold in µV.
@@ -36,7 +36,6 @@ detect_artifacts <- function(psg,
                              verbose           = TRUE) {
   stopifnot(inherits(psg, "mrpheus_psg"))
 
-  # Resolve channels
   if (is.null(channels)) {
     channels <- psg$channel_map$label[
       psg$channel_map$type == "EEG" & !psg$channel_map$bad
@@ -51,14 +50,12 @@ detect_artifacts <- function(psg,
   results <- lapply(seq_along(psg$epochs), function(i) {
     ep <- psg$epochs[[i]]
 
-    # Amplitude check
     pp <- max(vapply(channels, function(ch) {
       s <- ep[[ch]]
       if (is.null(s) || all(is.na(s))) return(0)
       diff(range(s, na.rm = TRUE))
     }, numeric(1)))
 
-    # HF power check
     hf_pwr <- mean(vapply(channels, function(ch) {
       s <- ep[[ch]]
       if (is.null(s) || length(s) < 2) return(0)
@@ -72,8 +69,8 @@ detect_artifacts <- function(psg,
     list(epoch = i, pp = pp, hf = hf_pwr)
   })
 
-  pp_vals  <- vapply(results, `[[`, numeric(1), "pp")
-  hf_vals  <- vapply(results, `[[`, numeric(1), "hf")
+  pp_vals   <- vapply(results, `[[`, numeric(1), "pp")
+  hf_vals   <- vapply(results, `[[`, numeric(1), "hf")
   hf_cutoff <- quantile(hf_vals, hf_percentile, na.rm = TRUE)
 
   artefact <- pp_vals > amp_threshold_uv | hf_vals > hf_cutoff

@@ -5,7 +5,7 @@
 #' implemented in YASA (Vallat & Walker, 2021). Spindles are identified as
 #' transient bursts of 11–16 Hz activity during NREM sleep.
 #'
-#' @param psg An `mrpheus_psg` object from [prepare_psg()].
+#' @param psg An `mrpheus_psg` object from [mrpheus::prepare_psg()].
 #' @param channel Character. EEG channel label. If `NULL` (default), the first
 #'   non-bad EEG channel is used.
 #' @param stages Integer vector or `NULL`. Epoch indices (1-based) restricted to
@@ -64,11 +64,9 @@ compute_spindles <- function(psg,
     sig <- psg$epochs[[i]][[channel]]
     if (is.null(sig) || length(sig) < 2) return(NULL)
 
-    # Band-pass filter to sigma band
     bf  <- gsignal::butter(4, freq_spindle / (sr / 2), type = "pass")
     sig_filt <- gsignal::filtfilt(bf, sig)
 
-    # Moving RMS envelope
     win_samples <- round(rms_window_s * sr)
     rms_env <- zoo::rollapply(sig_filt^2, width = win_samples,
                               FUN = function(x) sqrt(mean(x)),
@@ -79,7 +77,6 @@ compute_spindles <- function(psg,
 
     if (!any(above)) return(NULL)
 
-    # Label contiguous runs
     runs  <- rle(above)
     ends  <- cumsum(runs$lengths)
     starts <- ends - runs$lengths + 1L
@@ -98,13 +95,13 @@ compute_spindles <- function(psg,
       peak_idx <- which.max(psd$spec)
 
       tibble::tibble(
-        epoch       = i,
-        start_s     = s / sr,
-        end_s       = e / sr,
-        duration_s  = dur_s,
+        epoch        = i,
+        start_s      = s / sr,
+        end_s        = e / sr,
+        duration_s   = dur_s,
         peak_freq_hz = psd$freq[peak_idx],
-        rms_uv      = mean(rms_env[s:e], na.rm = TRUE),
-        channel     = channel
+        rms_uv       = mean(rms_env[s:e], na.rm = TRUE),
+        channel      = channel
       )
     })
     dplyr::bind_rows(sp_list)
