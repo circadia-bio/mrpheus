@@ -35,9 +35,6 @@ Imports:
     cli (>= 3.6.0),
     rlang (>= 1.1.0)
 Suggests:
-    hypnor,
-    syncR,
-    circadia,
     scales,
     testthat (>= 3.0.0),
     knitr,
