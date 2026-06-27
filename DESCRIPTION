@@ -1,0 +1,46 @@
+Package: mrpheus
+Title: Polysomnography Signal Analysis for Sleep Research
+Version: 0.1.0.9000
+Authors@R: c(
+    person("Lucas", "França",
+           email = "lucas.franca@northumbria.ac.uk",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-1254-0307")),
+    person("Mario", "Leocadio-Miguel",
+           role = "aut",
+           comment = c(ORCID = "0000-0002-7248-3529"))
+  )
+Description: Raw polysomnography (PSG) signal analysis for sleep and
+    circadian research. Provides EDF/EDF+ ingestion, artefact detection,
+    spectral analysis, sleep event detection (spindles, slow oscillations),
+    automatic AASM sleep staging via a pre-trained LightGBM model (ported
+    from YASA; Vallat & Walker, 2021), and respiratory and cardiac metrics.
+    Exports staged hypnograms directly to hypnor and PSG-derived metrics
+    to syncR. Part of the Circadia Lab R ecosystem.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+URL: https://github.com/circadia-bio/mrpheus
+BugReports: https://github.com/circadia-bio/mrpheus/issues
+Depends:
+    R (>= 4.1.0)
+Imports:
+    edfReader (>= 1.2.1),
+    gsignal (>= 0.3.5),
+    pracma (>= 2.4.2),
+    lightgbm (>= 4.0.0),
+    dplyr (>= 1.1.0),
+    tibble (>= 3.2.0),
+    cli (>= 3.6.0),
+    rlang (>= 1.1.0)
+Suggests:
+    hypnor,
+    syncR,
+    circadia,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    withr
+Config/testthat/edition: 3
+VignetteBuilder: knitr

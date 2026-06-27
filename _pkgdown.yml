@@ -1,0 +1,58 @@
+url: https://mrpheus.circadia-lab.uk
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+  theme: arrow-light
+
+home:
+  title: "mrpheus — PSG Signal Analysis"
+  description: "Polysomnography signal analysis for sleep and circadian research"
+
+navbar:
+  structure:
+    left: [intro, reference, articles]
+    right: [search, github]
+  components:
+    github:
+      icon: fab fa-github
+      href: https://github.com/circadia-bio/mrpheus
+      aria-label: GitHub
+
+reference:
+  - title: "Ingestion"
+    desc: "Reading and preparing PSG recordings"
+    contents:
+      - read_edf
+      - prepare_psg
+  - title: "Artefacts"
+    contents:
+      - detect_artifacts
+  - title: "Spectral analysis"
+    contents:
+      - compute_band_power
+      - compute_spectrogram
+  - title: "Event detection"
+    contents:
+      - compute_spindles
+      - compute_slow_oscillations
+  - title: "Sleep staging"
+    contents:
+      - stage_epochs
+      - export_hypnogram
+  - title: "Respiratory"
+    contents:
+      - detect_apneas
+      - compute_ahi
+      - compute_odi
+  - title: "Cardiac"
+    contents:
+      - compute_hrv_sleep
+  - title: "Data"
+    contents:
+      - palette_orpheus
+
+footer:
+  structure:
+    left: developed_by
+    right: built_with
