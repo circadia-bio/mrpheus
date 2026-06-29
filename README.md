@@ -8,6 +8,10 @@
 
 ---
 
+> ⚠️ **mrpheus is in early development and has not been formally tested.** The API may change without notice, estimation results have not yet been validated against a reference implementation, and the package has not undergone peer review. Use with caution and verify outputs independently before using in any research context.
+
+---
+
 ## 📖 What is mrpheus?
 
 `mrpheus` is the deepest layer of the [Circadia Lab](https://github.com/circadia-bio) R ecosystem — it ingests raw multi-channel PSG recordings (EDF/EDF+) and produces the two outputs that feed everything downstream: staged hypnograms (passed to `hypnor`) and PSG-derived metrics (passed to `syncR`).
