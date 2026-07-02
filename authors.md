@@ -11,7 +11,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/circadia-bio/mrpheus/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/circadia-bio/mrpheus/blob/v0.1.0/DESCRIPTION)
 
 França L, Leocadio-Miguel M (2026). *mrpheus: Polysomnography Signal
 Analysis for Sleep Research*. R package version 0.1.0,
