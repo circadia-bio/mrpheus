@@ -36,6 +36,7 @@ mrpheus is part of the [Circadia Lab](https://circadia-lab.uk) R ecosystem:
 | [zeitR](https://zeitr.circadia-lab.uk) | Wrist actigraphy analysis and circadian metrics |
 | [syncR](https://github.com/circadia-bio/syncR) | Unified participant-indexed database |
 | [slumbR](https://github.com/circadia-bio/slumbR) | Sleep diary processing |
+| [boldR](https://github.com/circadia-bio/boldR) | fMRIPrep BOLD derivatives → parcellated analysis |
 
 ---
 
