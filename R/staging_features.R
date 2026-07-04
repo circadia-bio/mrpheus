@@ -30,11 +30,10 @@
 # Compute Welch PSD and return named vector of band features:
 # sdelta, fdelta, theta, alpha, sigma, beta (relative) + abspow (absolute).
 .spectral_features <- function(sig, sr) {
-  nfft   <- 2L ^ ceiling(log2(4 * sr))   # 4-second Welch window
-  novlap <- nfft %/% 2L                  # 50 % overlap
+  nfft <- 2L ^ ceiling(log2(4 * sr))   # 4-second Welch window
 
   psd <- gsignal::pwelch(sig, fs = sr, window = nfft,
-                          noverlap = novlap, nfft = nfft)
+                          overlap = 0.5, nfft = nfft)
 
   # Absolute total power (0.5–40 Hz) — stored as abspow
   idx_total <- psd$freq >= .ABSPOW_RANGE[1] & psd$freq <= .ABSPOW_RANGE[2]
@@ -98,7 +97,7 @@
   }, numeric(1))
   valid <- Lk > 0
   if (sum(valid) < 2L) return(NA_real_)
-  stats::coef(stats::lm(log(Lk[valid]) ~ log(1 / k_seq[valid])))[2L]
+  unname(stats::coef(stats::lm(log(Lk[valid]) ~ log(1 / k_seq[valid])))[2L])
 }
 
 # Normalised permutation entropy (order = 3, delay = 1, matching YASA defaults)

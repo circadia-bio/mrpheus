@@ -63,7 +63,7 @@ compute_band_power <- function(psg,
       novlap <- as.integer(nfft * overlap)
 
       psd <- gsignal::pwelch(sig, fs = sr, window = nfft,
-                              noverlap = novlap, nfft = nfft)
+                              overlap = novlap, nfft = nfft)
 
       band_power <- vapply(bands, function(b) {
         idx <- psd$freq >= b[1] & psd$freq < b[2]
