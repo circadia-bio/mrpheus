@@ -145,12 +145,15 @@ opengraph:
     card: summary
 
 home:
-  title: "mrpheus — Polysomnography signal analysis for R"
+  title: "mrpheus — Physiological signal analysis for biological rhythms research"
   description: >
-    An R package for raw PSG signal analysis: EDF/EDF+ ingestion, artefact
-    detection, spectral analysis, sleep event detection, and automatic AASM
-    sleep staging via a pre-trained LightGBM model. Part of the Circadia Lab
-    R ecosystem at Northumbria University.
+    Raw physiological signal analysis for biological rhythms research.
+    Ingestion and feature extraction for polysomnography (EDF/EDF+),
+    MRI-concurrent physiological logs (Philips PMU), and EEG. Covers
+    cardiac rhythm (QRS detection, HRV), respiratory rhythm (apnoea
+    detection), and neural oscillations (spindles, slow oscillations,
+    automatic AASM sleep staging). Part of the Circadia Lab R ecosystem
+    at Northumbria University.
   links:
   - text: Circadia Lab
     href: https://circadia-lab.uk

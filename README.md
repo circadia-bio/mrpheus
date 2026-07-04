@@ -1,6 +1,6 @@
 # 🪉 mrpheus
 
-**Raw polysomnography signal analysis for sleep and circadian research.**
+**Raw physiological signal analysis for biological rhythms research.**
 
 [![R](https://img.shields.io/badge/R-%3E%3D4.1-276DC3)](https://www.r-project.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
@@ -10,7 +10,9 @@
 
 ## 📖 What is mrpheus?
 
-`mrpheus` is the deepest layer of the [Circadia Lab](https://github.com/circadia-bio) R ecosystem — it ingests raw multi-channel PSG recordings (EDF/EDF+) and produces the two outputs that feed everything downstream: staged hypnograms (passed to `hypnor`) and PSG-derived metrics (passed to `syncR`).
+`mrpheus` is the raw signal layer of the [Circadia Lab](https://github.com/circadia-bio) R ecosystem. It ingests and processes multi-modal physiological recordings — polysomnography (EDF/EDF+), MRI-concurrent physiological logs (Philips PMU), and EEG — extracting features across the biological rhythms that connect sleep, cardiac function, and neural activity.
+
+The package covers three rhythm domains: **cardiac** (QRS detection, HRV), **respiratory** (apnoea detection, respiratory metrics), and **neural** (spindles, slow oscillations, automatic AASM sleep staging). Staged hypnograms pass downstream to `hypnor`; derived metrics pass to `syncR`.
 
 The name is spelled as *Morpheus* but carries a silent **m**, so it is pronounced as *Orpheus* — a portmanteau of both myths simultaneously. Morpheus, the god of dreams, gives the package its subject matter. Orpheus, who descended into the underworld to navigate the unconscious, gives it its spirit. Sleep is both.
 
@@ -43,13 +45,14 @@ scales::show_col(mrpheus::palette_orpheus)
 ## ✨ Features
 
 - 📂 **EDF/EDF+ ingestion** — `read_edf()` / `prepare_psg()`: channel inventory, epoch segmentation, bad-channel flagging
+- 🏥 **Philips PMU ingestion** — `read_philips_physlog()`: wBTU / wired / custom presets, event markers, scan-window alignment
 - 🚫 **Artefact detection** — `detect_artifacts()`: amplitude and muscle contamination flagging
 - 📊 **Spectral analysis** — `compute_band_power()` (δ/θ/α/σ/β/γ per epoch), `compute_spectrogram()`
 - 🔁 **Sleep event detection** — `compute_spindles()`, `compute_slow_oscillations()`
-- 🛏️ **Automatic AASM staging** — `stage_epochs()`: uses a pre-trained LightGBM model ported from [YASA](https://github.com/raphaelvallat/yasa) (Vallat & Walker, 2021); see [Staging model](#staging-model) below
+- 🛏️ **Automatic AASM staging** — `stage_epochs()`: pre-trained LightGBM model ported from [YASA](https://github.com/raphaelvallat/yasa) (Vallat & Walker, 2021)
 - 🫁 **Respiratory metrics** — `detect_apneas()`, `compute_ahi()`, `compute_odi()`
-- 💓 **Cardiac HRV** — `compute_hrv_sleep()`: HRV stratified by sleep stage
-- 🔗 **Ecosystem handoffs** — `export_hypnogram()` → `hypnor`; PSG metrics → `syncR`
+- 💓 **Cardiac rhythm** — `detect_qrs()` (Pan-Tompkins), `compute_hr_signal()`, `compute_hrv_sleep()`
+- 🔗 **Ecosystem handoffs** — `export_hypnogram()` → `hypnor`; derived metrics → `syncR`
 
 ---
 
@@ -58,24 +61,34 @@ scales::show_col(mrpheus::palette_orpheus)
 ```
 mrpheus/
 ├── R/
-│   ├── mrpheus-package.R       # package doc + palette_orpheus data doc
+│   ├── mrpheus-package.R       # package doc + palette_orpheus
 │   ├── read_edf.R              # read_edf(), print.mrpheus_edf
 │   ├── prepare_psg.R           # prepare_psg(), print.mrpheus_psg
+│   ├── read_philips_physlog.R  # read_philips_physlog(), print.mrpheus_physlog
 │   ├── detect_artifacts.R      # detect_artifacts()
+│   ├── detect_qrs.R            # detect_qrs(), print.mrpheus_qrs
 │   ├── compute_band_power.R    # compute_band_power()
 │   ├── compute_spectrogram.R   # compute_spectrogram()
 │   ├── compute_spindles.R      # compute_spindles()
 │   ├── compute_slow_oscillations.R
-│   ├── stage_epochs.R          # stage_epochs(), .extract_staging_features()
+│   ├── compute_hr_signal.R     # compute_hr_signal()
+│   ├── compute_hrv_sleep.R     # compute_hrv_sleep()
+│   ├── stage_epochs.R          # stage_epochs()
 │   ├── export_hypnogram.R      # export_hypnogram()
-│   ├── detect_apneas.R         # detect_apneas(), compute_ahi(), compute_odi()
-│   └── compute_hrv_sleep.R     # compute_hrv_sleep()
-├── inst/models/
-│   └── yasa_staging.txt        # serialised LightGBM model (see data-raw/)
+│   └── detect_apneas.R         # detect_apneas(), compute_ahi(), compute_odi()
+├── inst/
+│   ├── extdata/
+│   │   └── example_physlog.log # synthetic Philips PMU log (vignette data)
+│   └── models/
+│       └── yasa_staging.txt    # serialised LightGBM model (see data-raw/)
 ├── data-raw/
 │   ├── fetch_yasa_model.py     # extracts model from YASA Python package
+│   ├── create_example_physlog.R # generates inst/extdata/example_physlog.log
 │   └── palette_orpheus.R       # generates palette_orpheus data object
 ├── tests/testthat/
+├── vignettes/
+│   ├── getting-started.Rmd
+│   └── mri-physiology.Rmd
 ├── _pkgdown.yml
 └── DESCRIPTION
 ```
@@ -167,6 +180,7 @@ hypnogram <- export_hypnogram(staging, start_time = rec$header$startTime)
 - 🌊 [**zeitR**](https://github.com/circadia-bio/zeitR) — wrist actigraphy analysis and circadian metrics
 - 😴 [**hypnor**](https://github.com/circadia-bio/hypnor) — hypnogram handling, plotting, and architecture metrics
 - 🔗 [**syncR**](https://github.com/circadia-bio/syncR) — unified participant-indexed database (actigraphy + sleep diary + PSG)
+- 🧠 [**boldR**](https://github.com/circadia-bio/boldR) — fMRIPrep BOLD derivatives → parcellated analysis
 - 📋 [**tallieR**](https://github.com/circadia-bio/tallieR) — sociodemographics and questionnaires
 - 📓 [**slumbR**](https://github.com/circadia-bio/slumbR) — sleep diary processing
 - 🎨 [**circadia**](https://github.com/circadia-bio/circadia) — shared visual identity (palettes, themes)
