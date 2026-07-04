@@ -9,6 +9,11 @@ mrpheus reproduces the same features as the Python reference implementation.
 Usage
 -----
     source /tmp/yasa_env/bin/activate      # same env as fetch_yasa_model.py
+
+    # With the YASA example file (downloads automatically):
+    python3 data-raw/generate_yasa_reference.py --download-example
+
+    # With your own EDF:
     python3 data-raw/generate_yasa_reference.py \\
         --edf path/to/recording.edf \\
         --eeg "EEG Fpz-Cz" \\
@@ -27,6 +32,7 @@ Requirements
 
 import argparse
 import pathlib
+import urllib.request
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -41,14 +47,24 @@ except ImportError as e:
         "    pip install mne yasa pandas"
     ) from e
 
+YASA_EXAMPLE_URL = (
+    "https://github.com/raphaelvallat/yasa/raw/master/notebooks/"
+    "yasa_example_night_young.edf"
+)
+YASA_EXAMPLE_EEG = "EEG Fpz-Cz"
+YASA_EXAMPLE_EOG = "EOG horizontal"
+YASA_EXAMPLE_EMG = "EMG submental"
+
 
 def main():
     parser = argparse.ArgumentParser(
         description="Export YASA feature matrix to CSV for mrpheus parity testing"
     )
-    parser.add_argument("--edf", required=True,
-                        help="Path to PSG EDF recording")
-    parser.add_argument("--eeg", required=True,
+    parser.add_argument("--edf", default="",
+                        help="Path to EDF file (omit when using --download-example)")
+    parser.add_argument("--download-example", action="store_true",
+                        help="Download the YASA example EDF and use it as input")
+    parser.add_argument("--eeg", default="",
                         help="EEG channel label (as it appears in the EDF header)")
     parser.add_argument("--eog", default="",
                         help="EOG channel label (optional)")
@@ -62,24 +78,47 @@ def main():
                         help="Output CSV path")
     args = parser.parse_args()
 
+    # ── Resolve EDF path ──────────────────────────────────────────────────────
+    if args.download_example:
+        edf_path = pathlib.Path(__file__).parent / "yasa_example_night_young.edf"
+        if not edf_path.exists():
+            print(f"Downloading YASA example EDF...")
+            print(f"  URL : {YASA_EXAMPLE_URL}")
+            urllib.request.urlretrieve(YASA_EXAMPLE_URL, edf_path)
+            print(f"  Saved: {edf_path} ({edf_path.stat().st_size / 1024**2:.1f} MB)")
+        else:
+            print(f"Using cached example EDF: {edf_path}")
+        eeg = args.eeg or YASA_EXAMPLE_EEG
+        eog = args.eog or YASA_EXAMPLE_EOG
+        emg = args.emg or YASA_EXAMPLE_EMG
+    else:
+        if not args.edf:
+            parser.error("Provide --edf or use --download-example")
+        edf_path = pathlib.Path(args.edf)
+        eeg = args.eeg
+        eog = args.eog
+        emg = args.emg
+        if not eeg:
+            parser.error("--eeg is required when not using --download-example")
+
     # ── Load EDF ──────────────────────────────────────────────────────────────
-    print(f"Loading: {args.edf}")
-    raw = mne.io.read_raw_edf(args.edf, preload=True, verbose=False)
+    print(f"\nLoading: {edf_path}")
+    raw = mne.io.read_raw_edf(str(edf_path), preload=True, verbose=False)
     raw.del_proj()
     print(f"  Duration : {raw.times[-1] / 3600:.2f} h")
     print(f"  Channels : {raw.ch_names}")
 
     # ── Initialise SleepStaging ───────────────────────────────────────────────
-    kwargs = {"eeg_name": args.eeg}
-    if args.eog:
-        kwargs["eog_name"] = args.eog
-    if args.emg:
-        kwargs["emg_name"] = args.emg
+    kwargs = {"eeg_name": eeg}
+    if eog:
+        kwargs["eog_name"] = eog
+    if emg:
+        kwargs["emg_name"] = emg
 
     print(f"\nSleepStaging channels:")
-    print(f"  EEG = {args.eeg!r}")
-    print(f"  EOG = {repr(args.eog) if args.eog else '(none)'}")
-    print(f"  EMG = {repr(args.emg) if args.emg else '(none)'}")
+    print(f"  EEG = {eeg!r}")
+    print(f"  EOG = {repr(eog) if eog else '(none)'}")
+    print(f"  EMG = {repr(emg) if emg else '(none)'}")
 
     sls = yasa.SleepStaging(raw, **kwargs)
 
@@ -94,7 +133,6 @@ def main():
     print(f"First 5 column names : {list(features.columns[:5])}")
     print(f"Last  5 column names : {list(features.columns[-5:])}")
 
-    # Basic sanity: should be 149 columns and match the model feature_names
     if features.shape[1] != 149:
         print(f"\nWARNING: expected 149 features, got {features.shape[1]}")
 
