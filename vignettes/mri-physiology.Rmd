@@ -10,8 +10,7 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment  = "#>",
-  eval     = FALSE
+  comment  = "#>"
 )
 ```
 
@@ -21,6 +20,10 @@ mrpheus can read these `.log` files, detect QRS complexes with the
 Pan-Tompkins algorithm, and compute instantaneous heart rate — producing
 cardiac regressors ready for RETROICOR or HRV analysis.
 
+```{r libs}
+library(mrpheus)
+```
+
 ---
 
 ## Reading a Philips PMU log
@@ -29,39 +32,40 @@ cardiac regressors ready for RETROICOR or HRV analysis.
 `mrpheus_physlog` object containing the signal matrix, event markers, and
 recording metadata.
 
-```r
-library(mrpheus)
-
-rec <- read_philips_physlog("sub-01_ses-01_physlog.log")
+```{r read}
+path <- system.file("extdata", "example_physlog.log", package = "mrpheus")
+rec  <- read_philips_physlog(path)
 rec
-```
-
-```
-## mrpheus Philips PMU recording
-## ℹ Path:     sub-01_ses-01_physlog.log
-## ℹ System:   wBTU (496 Hz)
-## ℹ Channels: v1raw, v2raw, v1, v2, ppu, resp, gx, gy, gz, mark
-## ℹ Samples:  4497024 (151.2 min)
-## ℹ Markers:  2312 events
 ```
 
 The `system` argument sets the hardware preset:
 
-```r
+```{r system, eval = FALSE}
 # Wireless VCG (Achieva/Ingenia dStream) — default
-rec <- read_philips_physlog("sub-01_physlog.log", system = "wBTU")
+rec <- read_philips_physlog(path, system = "wBTU")
 
-# Older wired ECG system
-rec <- read_philips_physlog("sub-01_physlog.log", system = "wired")
+# Older wired ECG system (500 Hz)
+rec <- read_philips_physlog(path, system = "wired")
 
 # Site-specific sampling rate
-rec <- read_philips_physlog("sub-01_physlog.log", system = "custom", sfreq = 400)
+rec <- read_philips_physlog(path, system = "custom", sfreq = 400)
 ```
 
-The resolved sampling frequency is always available at `rec$HDR$sfreq` so
-nothing downstream needs to hardcode it.
+The resolved sampling frequency is always at `rec$HDR$sfreq` so nothing
+downstream needs to hardcode it.
 
 ### Signal channels
+
+```{r channels}
+# Signal matrix: samples x channels
+dim(rec$C)
+colnames(rec$C)
+
+# Individual channels
+ecg  <- as.double(rec$C[, "v1raw"])
+ppu  <- as.double(rec$C[, "ppu"])
+resp <- as.double(rec$C[, "resp"])
+```
 
 The wBTU layout provides ten channels:
 
@@ -69,74 +73,51 @@ The wBTU layout provides ten channels:
 |---|---|
 | `v1raw`, `v2raw` | Raw VCG electrode voltages |
 | `v1`, `v2` | Processed VCG signals |
-| `ppu` | Peripheral pulse unit (photoplethysmography, foot) |
+| `ppu` | Peripheral pulse unit (PPG, foot) |
 | `resp` | Respiratory belt |
 | `gx`, `gy`, `gz` | 3-axis accelerometer |
 | `mark` | Bit-encoded event marker |
 
-```r
-# Access signal matrix
-head(rec$C)
-
-# Individual channels by name
-ecg  <- rec$C[, "v1raw"]
-ppu  <- rec$C[, "ppu"]
-resp <- rec$C[, "resp"]
-```
-
 ### Event markers
 
-The `I` element holds 1-based sample indices for each event type:
-
-```r
-# Scanner start and stop
+```{r markers}
+# Scanner timing
 rec$I$ScannerStart
 rec$I$ScannerStop
 
-# ECG and PPU triggers
-rec$I$VcgOnset
-rec$I$PpuOnset
+# ECG triggers logged by the scanner
+head(rec$I$VcgOnset)
 ```
-
-These are used to align the physiological recording to the fMRI acquisition
-window (see [Epoch extraction] below).
 
 ---
 
 ## QRS detection
 
-`detect_qrs()` implements the Pan-Tompkins (1985) algorithm on any ECG
-channel and returns a `mrpheus_qrs` object.
+`detect_qrs()` implements the Pan-Tompkins (1985) algorithm and returns a
+`mrpheus_qrs` object.
 
-```r
-qrs <- detect_qrs(rec$C[, "v1raw"], fs = rec$HDR$sfreq)
+```{r qrs}
+qrs <- detect_qrs(ecg, fs = rec$HDR$sfreq)
 qrs
 ```
 
-```
-## mrpheus QRS detection
-## ℹ R-peaks detected: 11 432
-## ℹ Mean HR:          148 bpm
-## ℹ Filter delay:     37 samples (0.075 s)
-## ℹ Sampling rate:    496 Hz
-```
+R-peak indices are in `qrs$qrs_i`. Account for `qrs$delay` if you need
+indices aligned to the raw (pre-filter) ECG.
 
-The algorithm processes the signal in five stages: bandpass filtering
-(5–15 Hz), derivative, squaring, 150 ms moving-average integration, and
-an adaptive dual-threshold loop with T-wave rejection and search-back for
-missed beats.
-
-R-peak indices are stored in `qrs$qrs_i` (1-based, relative to the
-bandpass-filtered signal). Account for `qrs$delay` if you need indices
-aligned to the raw ECG.
+```{r rr}
+# RR intervals (ms)
+rr_ms <- diff(qrs$qrs_i) / rec$HDR$sfreq * 1000
+cat("Mean RR :", round(mean(rr_ms)), "ms\n")
+cat("SDNN    :", round(sd(rr_ms)), "ms\n")
+```
 
 ### PPU as an alternative
 
 In neonates, PPU often gives a cleaner signal than the ECG electrodes.
 `detect_qrs()` accepts any pulsatile channel:
 
-```r
-qrs_ppu <- detect_qrs(rec$C[, "ppu"], fs = rec$HDR$sfreq)
+```{r ppu, eval = FALSE}
+qrs_ppu <- detect_qrs(as.double(rec$C[, "ppu"]), fs = rec$HDR$sfreq)
 ```
 
 ---
@@ -144,69 +125,58 @@ qrs_ppu <- detect_qrs(rec$C[, "ppu"], fs = rec$HDR$sfreq)
 ## Heart rate signal
 
 `compute_hr_signal()` converts R-peak indices into a sample-by-sample
-instantaneous HR trace (beats per minute):
+instantaneous HR trace (bpm). It reads `fs` from the `mrpheus_qrs` object
+directly:
 
-```r
+```{r hr}
 hr <- compute_hr_signal(qrs)
+cat("HR range:", round(min(hr[hr > 0])), "–", round(max(hr)), "bpm\n")
 ```
-
-The function accepts a `mrpheus_qrs` object directly and reads `fs`
-from it automatically.
 
 ---
 
 ## Epoch extraction
 
-To extract the physiology epoch aligned to the fMRI scan, use the
-scanner-stop marker. This is more reliable than the start marker because
-the exact recording onset varies but the stop is always clean:
+To extract the physiology aligned to the fMRI scan, use the scanner-stop
+marker. This is more reliable than the start marker because the exact
+recording onset varies but the stop is always clean:
 
-```r
+```{r epoch}
 sfreq    <- rec$HDR$sfreq
-enddelay <- 42       # site-specific: samples between stop marker and scan end
-tr       <- 0.392    # fMRI TR in seconds (dHCP neonatal protocol)
-vols     <- 2300     # number of volumes
+enddelay <- 42L       # samples between stop marker and scan end (site-specific)
+tr       <- 0.392     # fMRI TR in seconds
+vols     <- 47L       # number of volumes (adjusted for 20 s example)
 
-stopidx  <- tail(rec$I$ScannerStop, 1) - enddelay
+stopidx  <- tail(rec$I$ScannerStop, 1L) - enddelay
 startidx <- stopidx - round(vols * tr * sfreq)
+startidx <- max(1L, startidx)
 
-epoch    <- rec$C[startidx:stopidx, ]   # aligned signal matrix
+epoch <- rec$C[startidx:stopidx, ]
+cat("Epoch:", nrow(epoch), "samples /", round(nrow(epoch) / sfreq, 1), "s\n")
 ```
 
 ### RR intervals per TR
 
-To get one RR value per volume (for use as a BOLD regressor):
+```{r rr-tr}
+qrs_epoch <- detect_qrs(as.double(epoch[, "v1raw"]), fs = sfreq)
 
-```r
-# QRS on epoch only
-qrs_epoch <- detect_qrs(epoch[, "v1raw"], fs = sfreq)
-
-# RR intervals (seconds) at each R-peak
-rr_s <- diff(qrs_epoch$qrs_i) / sfreq
 rr_t <- qrs_epoch$qrs_i[-1] / sfreq
+rr_s <- diff(qrs_epoch$qrs_i) / sfreq
 
-# Interpolate to TR grid
 tr_times <- seq(0, vols * tr, by = tr)
 rr_tr    <- approx(rr_t, rr_s, xout = tr_times, method = "constant")$y
+
+cat("RR per TR (first 5):", round(rr_tr[1:5] * 1000), "ms\n")
 ```
 
-`rr_tr` is a length-`vols` vector ready for inclusion as a nuisance regressor
-in a GLM, or as input to RETROICOR phase computation.
-
----
-
-## HRV across sleep stages
-
-For recordings that include a sleep session alongside fMRI, `detect_qrs()`
-provides the R-peak input for `compute_hrv_sleep()` once that function is
-fully implemented. The stub currently returns `NA` for all metrics — watch
-this space.
+`rr_tr` is a length-`vols` vector ready for RETROICOR phase computation or
+inclusion as a nuisance regressor in a GLM.
 
 ---
 
 ## Full pipeline
 
-```r
+```{r pipeline, eval = FALSE}
 library(mrpheus)
 
 # 1. Read
@@ -214,15 +184,15 @@ rec <- read_philips_physlog("sub-01_ses-01_physlog.log")
 
 # 2. Extract scan epoch
 sfreq    <- rec$HDR$sfreq
-stopidx  <- tail(rec$I$ScannerStop, 1) - 42
-startidx <- stopidx - round(2300 * 0.392 * sfreq)
+stopidx  <- tail(rec$I$ScannerStop, 1L) - 42L
+startidx <- stopidx - round(2300L * 0.392 * sfreq)
 epoch    <- rec$C[startidx:stopidx, ]
 
 # 3. QRS detection
-qrs <- detect_qrs(epoch[, "v1raw"], fs = sfreq)
+qrs <- detect_qrs(as.double(epoch[, "v1raw"]), fs = sfreq)
 
 # 4. HR signal
-hr  <- compute_hr_signal(qrs)
+hr <- compute_hr_signal(qrs)
 
 # 5. RR per TR for BOLD regression
 rr_tr <- approx(
