@@ -59,11 +59,10 @@ compute_band_power <- function(psg,
       sr  <- psg$channel_map$sample_rate[psg$channel_map$label == ch]
       if (is.null(sig) || length(sig) < 2) return(NULL)
 
-      nfft   <- 2^ceiling(log2(window_s * sr))
-      novlap <- as.integer(nfft * overlap)
+      nfft <- 2^ceiling(log2(window_s * sr))
 
       psd <- gsignal::pwelch(sig, fs = sr, window = nfft,
-                              overlap = novlap, nfft = nfft)
+                              overlap = overlap, nfft = nfft)
 
       band_power <- vapply(bands, function(b) {
         idx <- psd$freq >= b[1] & psd$freq < b[2]
