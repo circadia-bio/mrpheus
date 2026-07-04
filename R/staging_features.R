@@ -260,8 +260,8 @@
 
 # ── Main extraction function ──────────────────────────────────────────────────
 
-#' Extract the 149-feature staging matrix from an mrpheus_psg object.
-#' Called internally by [stage_epochs()]. Not exported.
+# Extract the 149-feature staging matrix from an mrpheus_psg object.
+# Called internally by stage_epochs(). Not exported.
 .extract_staging_features <- function(psg, eeg_ch, eog_ch, emg_ch) {
   cli::cli_alert_info("Extracting staging features ({psg$n_epochs} epochs)...")
 
