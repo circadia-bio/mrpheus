@@ -270,9 +270,8 @@ Stages follow AASM nomenclature: `W`, `N1`, `N2`, `N3`, `REM`. Artefact
 epochs are coded `NA`.
 
 > **Note:** `stage_epochs()` requires the staging model at
-> `inst/models/yasa_staging.txt`. Feature parity with YASA's Python pipeline
-> is still being validated — see the source of `.extract_staging_features()`
-> for the current implementation status.
+> `inst/models/yasa_staging.txt`. The model is bundled with the package
+> and loads automatically — no additional setup required.
 
 ---
 

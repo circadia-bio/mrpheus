@@ -111,17 +111,7 @@ install.packages(c("edfReader", "gsignal", "pracma", "lightgbm",
 remotes::install_github("circadia-bio/mrpheus")
 ```
 
-### Staging model
-
-The LightGBM staging model is not bundled in the repo by default (it requires Python + YASA to extract). Run once after cloning:
-
-```bash
-pip install yasa lightgbm
-python data-raw/fetch_yasa_model.py
-# then: usethis::use_data() or copy to inst/models/yasa_staging.txt
-```
-
-The model weights are cross-language — a model serialised by Python's `lgb.Booster.save_model()` loads identically in R's `lightgbm::lgb.load()`.
+The staging model is bundled — no additional setup required.
 
 ### Basic pipeline
 
