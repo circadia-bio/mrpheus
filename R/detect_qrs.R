@@ -332,7 +332,7 @@ detect_qrs <- function(ecg, fs) {
 
   structure(
     list(
-      qrs_i   = qrs_i_raw,
+      qrs_i   = as.integer(qrs_i_raw),
       qrs_amp = qrs_amp_raw,
       delay   = delay,
       fs      = fs
