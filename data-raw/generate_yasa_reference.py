@@ -32,7 +32,6 @@ Requirements
 
 import argparse
 import pathlib
-import urllib.request
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -47,13 +46,17 @@ except ImportError as e:
         "    pip install mne yasa pandas"
     ) from e
 
-YASA_EXAMPLE_URL = (
-    "https://github.com/raphaelvallat/yasa/raw/master/notebooks/"
-    "yasa_example_night_young.edf"
-)
 YASA_EXAMPLE_EEG = "EEG Fpz-Cz"
 YASA_EXAMPLE_EOG = "EOG horizontal"
 YASA_EXAMPLE_EMG = "EMG submental"
+
+
+def fetch_physionet_example():
+    """Download Sleep Cassette SC4001E0 from PhysioNet via MNE and return the path."""
+    from mne.datasets.sleep_physionet.age import fetch_data
+    paths = fetch_data(subjects=[0], recording=[1], on_missing="warn")
+    # fetch_data returns [psg_path, hypno_path]; we only need the PSG
+    return pathlib.Path(paths[0])
 
 
 def main():
@@ -80,14 +83,9 @@ def main():
 
     # ── Resolve EDF path ──────────────────────────────────────────────────────
     if args.download_example:
-        edf_path = pathlib.Path(__file__).parent / "yasa_example_night_young.edf"
-        if not edf_path.exists():
-            print(f"Downloading YASA example EDF...")
-            print(f"  URL : {YASA_EXAMPLE_URL}")
-            urllib.request.urlretrieve(YASA_EXAMPLE_URL, edf_path)
-            print(f"  Saved: {edf_path} ({edf_path.stat().st_size / 1024**2:.1f} MB)")
-        else:
-            print(f"Using cached example EDF: {edf_path}")
+        print("Fetching PhysioNet Sleep Cassette SC4001E0 via MNE...")
+        edf_path = fetch_physionet_example()
+        print(f"  Using: {edf_path}")
         eeg = args.eeg or YASA_EXAMPLE_EEG
         eog = args.eog or YASA_EXAMPLE_EOG
         emg = args.emg or YASA_EXAMPLE_EMG
