@@ -173,7 +173,7 @@
       <img src="../logo.svg" class="logo" alt=""><h1>MRI physiological signal processing</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/circadia-bio/mrpheus/blob/v0.1.1/vignettes/mri-physiology.Rmd" class="external-link"><code>vignettes/mri-physiology.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/circadia-bio/mrpheus/blob/main/vignettes/mri-physiology.Rmd" class="external-link"><code>vignettes/mri-physiology.Rmd</code></a></small>
       <div class="d-none name"><code>mri-physiology.Rmd</code></div>
     </div>
 
@@ -186,7 +186,9 @@ complexes with the Pan-Tompkins algorithm, and compute instantaneous
 heart rate — producing cardiac regressors ready for RETROICOR or HRV
 analysis.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mrpheus.circadia-lab.uk">mrpheus</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mrpheus.circadia-lab.uk">mrpheus</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/gjmvanboxtel/gsignal" class="external-link">gsignal</a></span><span class="op">)</span></span></code></pre></div>
 <hr>
 <div class="section level2">
 <h2 id="reading-a-philips-pmu-log">Reading a Philips PMU log<a class="anchor" aria-label="anchor" href="#reading-a-philips-pmu-log"></a>
@@ -222,15 +224,7 @@ it.</p>
 <h3 id="signal-channels">Signal channels<a class="anchor" aria-label="anchor" href="#signal-channels"></a>
 </h3>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Signal matrix: samples x channels</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">rec</span><span class="op">$</span><span class="va">C</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 9920   10</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">rec</span><span class="op">$</span><span class="va">C</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1] "v1raw" "v2raw" "v1"    "v2"    "ppu"   "resp"  "gx"    "gy"    "gz"   </span></span>
-<span><span class="co">#&gt; [10] "mark"</span></span>
-<span></span>
-<span><span class="co"># Individual channels</span></span>
-<span><span class="va">ecg</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">rec</span><span class="op">$</span><span class="va">C</span><span class="op">[</span>, <span class="st">"v1raw"</span><span class="op">]</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">ecg</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">rec</span><span class="op">$</span><span class="va">C</span><span class="op">[</span>, <span class="st">"v1raw"</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="va">ppu</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">rec</span><span class="op">$</span><span class="va">C</span><span class="op">[</span>, <span class="st">"ppu"</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="va">resp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">rec</span><span class="op">$</span><span class="va">C</span><span class="op">[</span>, <span class="st">"resp"</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <p>The wBTU layout provides ten channels:</p>
@@ -272,18 +266,16 @@ it.</p>
 </tr>
 </tbody>
 </table>
+<p><img src="mri-physiology_files/figure-html/plot-signals-1.png" class="r-plt" alt="" width="672"></p>
 </div>
 <div class="section level3">
 <h3 id="event-markers">Event markers<a class="anchor" aria-label="anchor" href="#event-markers"></a>
 </h3>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Scanner timing</span></span>
-<span><span class="va">rec</span><span class="op">$</span><span class="va">I</span><span class="op">$</span><span class="va">ScannerStart</span></span>
+<code class="sourceCode R"><span><span class="va">rec</span><span class="op">$</span><span class="va">I</span><span class="op">$</span><span class="va">ScannerStart</span></span>
 <span><span class="co">#&gt; [1] 496</span></span>
 <span><span class="va">rec</span><span class="op">$</span><span class="va">I</span><span class="op">$</span><span class="va">ScannerStop</span></span>
 <span><span class="co">#&gt; [1] 9466</span></span>
-<span></span>
-<span><span class="co"># ECG triggers logged by the scanner</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">rec</span><span class="op">$</span><span class="va">I</span><span class="op">$</span><span class="va">VcgOnset</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1]  198  396  594  792  990 1188</span></span></code></pre></div>
 <hr>
@@ -306,9 +298,9 @@ algorithm and returns a <code>mrpheus_qrs</code> object.</p>
 <p>R-peak indices are in <code>qrs$qrs_i</code>. Account for
 <code>qrs$delay</code> if you need indices aligned to the raw
 (pre-filter) ECG.</p>
+<p><img src="mri-physiology_files/figure-html/plot-peaks-1.png" class="r-plt" alt="" width="672"></p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># RR intervals (ms)</span></span>
-<span><span class="va">rr_ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff</a></span><span class="op">(</span><span class="va">qrs</span><span class="op">$</span><span class="va">qrs_i</span><span class="op">)</span> <span class="op">/</span> <span class="va">rec</span><span class="op">$</span><span class="va">HDR</span><span class="op">$</span><span class="va">sfreq</span> <span class="op">*</span> <span class="fl">1000</span></span>
+<code class="sourceCode R"><span><span class="va">rr_ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff</a></span><span class="op">(</span><span class="va">qrs</span><span class="op">$</span><span class="va">qrs_i</span><span class="op">)</span> <span class="op">/</span> <span class="va">rec</span><span class="op">$</span><span class="va">HDR</span><span class="op">$</span><span class="va">sfreq</span> <span class="op">*</span> <span class="fl">1000</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Mean RR :"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">rr_ms</span><span class="op">)</span><span class="op">)</span>, <span class="st">"ms\n"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Mean RR : 399 ms</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"SDNN    :"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="va">rr_ms</span><span class="op">)</span><span class="op">)</span>, <span class="st">"ms\n"</span><span class="op">)</span></span>
@@ -330,9 +322,8 @@ electrodes. <code><a href="../reference/detect_qrs.html">detect_qrs()</a></code>
 sample-by-sample instantaneous HR trace (bpm). It reads <code>fs</code>
 from the <code>mrpheus_qrs</code> object directly:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">hr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_hr_signal.html">compute_hr_signal</a></span><span class="op">(</span><span class="va">qrs</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"HR range:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">hr</span><span class="op">[</span><span class="va">hr</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="st">"–"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">hr</span><span class="op">)</span><span class="op">)</span>, <span class="st">"bpm\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; HR range: 150 – 151 bpm</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">hr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_hr_signal.html">compute_hr_signal</a></span><span class="op">(</span><span class="va">qrs</span><span class="op">)</span></span></code></pre></div>
+<p><img src="mri-physiology_files/figure-html/plot-hr-1.png" class="r-plt" alt="" width="672"></p>
 <hr>
 </div>
 <div class="section level2">
@@ -343,15 +334,13 @@ scanner-stop marker. This is more reliable than the start marker because
 the exact recording onset varies but the stop is always clean:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sfreq</span>    <span class="op">&lt;-</span> <span class="va">rec</span><span class="op">$</span><span class="va">HDR</span><span class="op">$</span><span class="va">sfreq</span></span>
-<span><span class="va">enddelay</span> <span class="op">&lt;-</span> <span class="fl">42L</span>       <span class="co"># samples between stop marker and scan end (site-specific)</span></span>
-<span><span class="va">tr</span>       <span class="op">&lt;-</span> <span class="fl">0.392</span>     <span class="co"># fMRI TR in seconds</span></span>
-<span><span class="va">vols</span>     <span class="op">&lt;-</span> <span class="fl">47L</span>       <span class="co"># number of volumes (adjusted for 20 s example)</span></span>
+<span><span class="va">enddelay</span> <span class="op">&lt;-</span> <span class="fl">42L</span></span>
+<span><span class="va">tr</span>       <span class="op">&lt;-</span> <span class="fl">0.392</span></span>
+<span><span class="va">vols</span>     <span class="op">&lt;-</span> <span class="fl">47L</span></span>
 <span></span>
 <span><span class="va">stopidx</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">rec</span><span class="op">$</span><span class="va">I</span><span class="op">$</span><span class="va">ScannerStop</span>, <span class="fl">1L</span><span class="op">)</span> <span class="op">-</span> <span class="va">enddelay</span></span>
-<span><span class="va">startidx</span> <span class="op">&lt;-</span> <span class="va">stopidx</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">vols</span> <span class="op">*</span> <span class="va">tr</span> <span class="op">*</span> <span class="va">sfreq</span><span class="op">)</span></span>
-<span><span class="va">startidx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="va">startidx</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">epoch</span> <span class="op">&lt;-</span> <span class="va">rec</span><span class="op">$</span><span class="va">C</span><span class="op">[</span><span class="va">startidx</span><span class="op">:</span><span class="va">stopidx</span>, <span class="op">]</span></span>
+<span><span class="va">startidx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="va">stopidx</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">vols</span> <span class="op">*</span> <span class="va">tr</span> <span class="op">*</span> <span class="va">sfreq</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">epoch</span>    <span class="op">&lt;-</span> <span class="va">rec</span><span class="op">$</span><span class="va">C</span><span class="op">[</span><span class="va">startidx</span><span class="op">:</span><span class="va">stopidx</span>, <span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Epoch:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">epoch</span><span class="op">)</span>, <span class="st">"samples /"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">epoch</span><span class="op">)</span> <span class="op">/</span> <span class="va">sfreq</span>, <span class="fl">1</span><span class="op">)</span>, <span class="st">"s\n"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Epoch: 9139 samples / 18.4 s</span></span></code></pre></div>
 <div class="section level3">
@@ -380,23 +369,14 @@ GLM.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mrpheus.circadia-lab.uk">mrpheus</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 1. Read</span></span>
-<span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_philips_physlog.html">read_philips_physlog</a></span><span class="op">(</span><span class="st">"sub-01_ses-01_physlog.log"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 2. Extract scan epoch</span></span>
+<span><span class="va">rec</span>      <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_philips_physlog.html">read_philips_physlog</a></span><span class="op">(</span><span class="st">"sub-01_ses-01_physlog.log"</span><span class="op">)</span></span>
 <span><span class="va">sfreq</span>    <span class="op">&lt;-</span> <span class="va">rec</span><span class="op">$</span><span class="va">HDR</span><span class="op">$</span><span class="va">sfreq</span></span>
 <span><span class="va">stopidx</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">rec</span><span class="op">$</span><span class="va">I</span><span class="op">$</span><span class="va">ScannerStop</span>, <span class="fl">1L</span><span class="op">)</span> <span class="op">-</span> <span class="fl">42L</span></span>
 <span><span class="va">startidx</span> <span class="op">&lt;-</span> <span class="va">stopidx</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">2300L</span> <span class="op">*</span> <span class="fl">0.392</span> <span class="op">*</span> <span class="va">sfreq</span><span class="op">)</span></span>
 <span><span class="va">epoch</span>    <span class="op">&lt;-</span> <span class="va">rec</span><span class="op">$</span><span class="va">C</span><span class="op">[</span><span class="va">startidx</span><span class="op">:</span><span class="va">stopidx</span>, <span class="op">]</span></span>
-<span></span>
-<span><span class="co"># 3. QRS detection</span></span>
-<span><span class="va">qrs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_qrs.html">detect_qrs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">epoch</span><span class="op">[</span>, <span class="st">"v1raw"</span><span class="op">]</span><span class="op">)</span>, fs <span class="op">=</span> <span class="va">sfreq</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 4. HR signal</span></span>
-<span><span class="va">hr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_hr_signal.html">compute_hr_signal</a></span><span class="op">(</span><span class="va">qrs</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 5. RR per TR for BOLD regression</span></span>
-<span><span class="va">rr_tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/approxfun.html" class="external-link">approx</a></span><span class="op">(</span></span>
+<span><span class="va">qrs</span>      <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_qrs.html">detect_qrs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">epoch</span><span class="op">[</span>, <span class="st">"v1raw"</span><span class="op">]</span><span class="op">)</span>, fs <span class="op">=</span> <span class="va">sfreq</span><span class="op">)</span></span>
+<span><span class="va">hr</span>       <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_hr_signal.html">compute_hr_signal</a></span><span class="op">(</span><span class="va">qrs</span><span class="op">)</span></span>
+<span><span class="va">rr_tr</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/approxfun.html" class="external-link">approx</a></span><span class="op">(</span></span>
 <span>  x      <span class="op">=</span> <span class="va">qrs</span><span class="op">$</span><span class="va">qrs_i</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span> <span class="op">/</span> <span class="va">sfreq</span>,</span>
 <span>  y      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff</a></span><span class="op">(</span><span class="va">qrs</span><span class="op">$</span><span class="va">qrs_i</span><span class="op">)</span> <span class="op">/</span> <span class="va">sfreq</span>,</span>
 <span>  xout   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2300</span> <span class="op">*</span> <span class="fl">0.392</span>, by <span class="op">=</span> <span class="fl">0.392</span><span class="op">)</span>,</span>

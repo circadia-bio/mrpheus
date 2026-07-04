@@ -9,6 +9,8 @@ producing cardiac regressors ready for RETROICOR or HRV analysis.
 ``` r
 
 library(mrpheus)
+library(ggplot2)
+library(gsignal)
 ```
 
 ------------------------------------------------------------------------
@@ -55,14 +57,6 @@ downstream needs to hardcode it.
 
 ``` r
 
-# Signal matrix: samples x channels
-dim(rec$C)
-#> [1] 9920   10
-colnames(rec$C)
-#>  [1] "v1raw" "v2raw" "v1"    "v2"    "ppu"   "resp"  "gx"    "gy"    "gz"   
-#> [10] "mark"
-
-# Individual channels
 ecg  <- as.double(rec$C[, "v1raw"])
 ppu  <- as.double(rec$C[, "ppu"])
 resp <- as.double(rec$C[, "resp"])
@@ -79,17 +73,16 @@ The wBTU layout provides ten channels:
 | `gx`, `gy`, `gz` | 3-axis accelerometer              |
 | `mark`           | Bit-encoded event marker          |
 
+![](mri-physiology_files/figure-html/plot-signals-1.png)
+
 ### Event markers
 
 ``` r
 
-# Scanner timing
 rec$I$ScannerStart
 #> [1] 496
 rec$I$ScannerStop
 #> [1] 9466
-
-# ECG triggers logged by the scanner
 head(rec$I$VcgOnset)
 #> [1]  198  396  594  792  990 1188
 ```
@@ -117,9 +110,10 @@ qrs
 R-peak indices are in `qrs$qrs_i`. Account for `qrs$delay` if you need
 indices aligned to the raw (pre-filter) ECG.
 
+![](mri-physiology_files/figure-html/plot-peaks-1.png)
+
 ``` r
 
-# RR intervals (ms)
 rr_ms <- diff(qrs$qrs_i) / rec$HDR$sfreq * 1000
 cat("Mean RR :", round(mean(rr_ms)), "ms\n")
 #> Mean RR : 399 ms
@@ -149,9 +143,9 @@ converts R-peak indices into a sample-by-sample instantaneous HR trace
 ``` r
 
 hr <- compute_hr_signal(qrs)
-cat("HR range:", round(min(hr[hr > 0])), "–", round(max(hr)), "bpm\n")
-#> HR range: 150 – 151 bpm
 ```
+
+![](mri-physiology_files/figure-html/plot-hr-1.png)
 
 ------------------------------------------------------------------------
 
@@ -164,15 +158,13 @@ recording onset varies but the stop is always clean:
 ``` r
 
 sfreq    <- rec$HDR$sfreq
-enddelay <- 42L       # samples between stop marker and scan end (site-specific)
-tr       <- 0.392     # fMRI TR in seconds
-vols     <- 47L       # number of volumes (adjusted for 20 s example)
+enddelay <- 42L
+tr       <- 0.392
+vols     <- 47L
 
 stopidx  <- tail(rec$I$ScannerStop, 1L) - enddelay
-startidx <- stopidx - round(vols * tr * sfreq)
-startidx <- max(1L, startidx)
-
-epoch <- rec$C[startidx:stopidx, ]
+startidx <- max(1L, stopidx - round(vols * tr * sfreq))
+epoch    <- rec$C[startidx:stopidx, ]
 cat("Epoch:", nrow(epoch), "samples /", round(nrow(epoch) / sfreq, 1), "s\n")
 #> Epoch: 9139 samples / 18.4 s
 ```
@@ -204,23 +196,14 @@ or inclusion as a nuisance regressor in a GLM.
 
 library(mrpheus)
 
-# 1. Read
-rec <- read_philips_physlog("sub-01_ses-01_physlog.log")
-
-# 2. Extract scan epoch
+rec      <- read_philips_physlog("sub-01_ses-01_physlog.log")
 sfreq    <- rec$HDR$sfreq
 stopidx  <- tail(rec$I$ScannerStop, 1L) - 42L
 startidx <- stopidx - round(2300L * 0.392 * sfreq)
 epoch    <- rec$C[startidx:stopidx, ]
-
-# 3. QRS detection
-qrs <- detect_qrs(as.double(epoch[, "v1raw"]), fs = sfreq)
-
-# 4. HR signal
-hr <- compute_hr_signal(qrs)
-
-# 5. RR per TR for BOLD regression
-rr_tr <- approx(
+qrs      <- detect_qrs(as.double(epoch[, "v1raw"]), fs = sfreq)
+hr       <- compute_hr_signal(qrs)
+rr_tr    <- approx(
   x      = qrs$qrs_i[-1] / sfreq,
   y      = diff(qrs$qrs_i) / sfreq,
   xout   = seq(0, 2300 * 0.392, by = 0.392),
