@@ -100,19 +100,4 @@ stage_epochs <- function(psg,
   out
 }
 
-# Internal feature extraction — must match YASA's Python pipeline exactly.
-# See data-raw/validate_feature_parity.R for bit-exact validation tests.
-.extract_staging_features <- function(psg, eeg_ch, eog_ch, emg_ch) {
-  cli::cli_alert_info("Extracting staging features...")
-
-  bp <- compute_band_power(psg, channels = eeg_ch, relative = TRUE)
-
-  # TODO: add Hjorth parameters, EOG/EMG covariance, and epoch-context
-  # features (running mean/std over +/-1 epoch) to match full YASA feature set.
-  # Feature parity must be validated against yasa.SleepStaging._features()
-  # before the model output can be trusted.
-
-  bp |>
-    dplyr::rename_with(~ paste0("eeg_", .), -c(epoch, channel, total_power)) |>
-    dplyr::select(-channel, -total_power)
-}
+# Feature extraction is implemented in R/staging_features.R.
