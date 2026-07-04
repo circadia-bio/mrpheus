@@ -78,8 +78,8 @@ def main():
 
     print(f"\nSleepStaging channels:")
     print(f"  EEG = {args.eeg!r}")
-    print(f"  EOG = {args.eog!r or '(none)'}")
-    print(f"  EMG = {args.emg!r or '(none)'}")
+    print(f"  EOG = {repr(args.eog) if args.eog else '(none)'}")
+    print(f"  EMG = {repr(args.emg) if args.emg else '(none)'}")
 
     sls = yasa.SleepStaging(raw, **kwargs)
 
