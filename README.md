@@ -8,6 +8,10 @@
 
 ---
 
+> ⚠️ **mrpheus is in early development and has not been formally tested.** The API may change without notice, estimation results have not yet been validated against a reference implementation, and the package has not undergone peer review. Use with caution and verify outputs independently before using in any research context.
+
+---
+
 ## 📖 What is mrpheus?
 
 `mrpheus` is the raw signal layer of the [Circadia Lab](https://github.com/circadia-bio) R ecosystem. It ingests and processes multi-modal physiological recordings — polysomnography (EDF/EDF+), MRI-concurrent physiological logs (Philips PMU), and EEG — extracting features across the biological rhythms that connect sleep, cardiac function, and neural activity.
