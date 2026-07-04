@@ -2,11 +2,13 @@
 
 ## What is mrpheus?
 
-**mrpheus** is an R package for raw polysomnography (PSG) signal
-analysis. It ingests EDF/EDF+ recordings, detects sleep events, computes
-spectral features, and stages each 30-second epoch using a pre-trained
-LightGBM model ported from [YASA](https://github.com/raphaelvallat/yasa)
-(Vallat & Walker, 2021).
+**mrpheus** is an R package for raw physiological signal analysis across
+biological rhythms research. It ingests multi-modal physiological
+recordings — polysomnography (EDF/EDF+), MRI-concurrent physiological
+logs (Philips PMU), and EEG — and extracts features spanning three
+rhythm domains: **cardiac** (QRS detection, HRV), **respiratory**
+(apnoea detection, respiratory metrics), and **neural** (spindles, slow
+oscillations, automatic AASM sleep staging).
 
 The name is spelled as *Morpheus* but carries a silent **m**, pronounced
 as *Orpheus* — carrying both myths at once. Morpheus, god of dreams,
@@ -18,8 +20,9 @@ ecosystem:
 
 | Package | Purpose |
 |----|----|
-| **mrpheus** | Raw PSG signal analysis and automatic sleep staging |
+| **mrpheus** | Raw physiological signal analysis for biological rhythms research |
 | [hypnor](https://github.com/circadia-bio/hypnor) | Hypnogram handling and sleep architecture metrics |
+| [boldR](https://github.com/circadia-bio/boldR) | fMRIPrep BOLD derivatives → parcellated analysis |
 | [zeitR](https://zeitr.circadia-lab.uk) | Wrist actigraphy analysis and circadian metrics |
 | [syncR](https://github.com/circadia-bio/syncR) | Unified participant-indexed database |
 | [slumbR](https://github.com/circadia-bio/slumbR) | Sleep diary processing |
@@ -34,28 +37,16 @@ ecosystem:
 pak::pak("circadia-bio/mrpheus")
 ```
 
-### Staging model
-
-The automatic sleep staging model is not bundled in the package by
-default — it must be extracted from YASA once after installation:
-
-``` bash
-pip install yasa lightgbm
-python data-raw/fetch_yasa_model.py
-```
-
-This saves `inst/models/yasa_staging.txt` — a cross-language LightGBM
-model that loads identically in R. See
-[`?stage_epochs`](https://mrpheus.circadia-lab.uk/reference/stage_epochs.md)
-for details.
+The staging model is bundled — no additional setup required.
 
 ------------------------------------------------------------------------
 
-## Reading a recording
+## PSG pipeline
 
-The entry point is
-[`read_edf()`](https://mrpheus.circadia-lab.uk/reference/read_edf.md),
-which wraps `edfReader` with consistent output formatting:
+### Reading a recording
+
+[`read_edf()`](https://mrpheus.circadia-lab.uk/reference/read_edf.md)
+wraps `edfReader` with consistent output formatting:
 
 ``` r
 
@@ -85,9 +76,7 @@ data:
 hdr <- read_edf("recordings/psg_001.edf", only_header = TRUE)
 ```
 
-------------------------------------------------------------------------
-
-## Preparing a recording
+### Preparing a recording
 
 [`prepare_psg()`](https://mrpheus.circadia-lab.uk/reference/prepare_psg.md)
 segments the recording into 30-second epochs, classifies channels by
@@ -120,9 +109,7 @@ psg <- prepare_psg(rec,
 )
 ```
 
-------------------------------------------------------------------------
-
-## Artefact detection
+### Artefact detection
 
 [`detect_artifacts()`](https://mrpheus.circadia-lab.uk/reference/detect_artifacts.md)
 flags epochs with excessive amplitude or high-frequency (muscle)
@@ -135,24 +122,7 @@ art <- detect_artifacts(psg)
 
     ## ℹ Artefact epochs: 12 / 958 (1.3%)
 
-``` r
-
-# Inspect flagged epochs
-art[art$artefact, ]
-```
-
-    ## # A tibble: 12 × 5
-    ##   epoch artefact reason    peak_to_peak_uv hf_power_db
-    ##   <int> <lgl>    <chr>               <dbl>       <dbl>
-    ## 1    34 TRUE     amplitude            524.        -18.2
-    ## 2    87 TRUE     high_freq            312.          6.4
-    ## ...
-
-------------------------------------------------------------------------
-
-## Spectral analysis
-
-### Band power
+### Spectral analysis
 
 [`compute_band_power()`](https://mrpheus.circadia-lab.uk/reference/compute_band_power.md)
 estimates PSD via Welch’s method and integrates within standard EEG
@@ -161,7 +131,6 @@ bands per epoch per channel:
 ``` r
 
 bp <- compute_band_power(psg, relative = TRUE)
-bp
 ```
 
     ## # A tibble: 958 × 9
@@ -170,71 +139,27 @@ bp
     ## 1     1 EEG Fpz-Cz 0.412 0.183 0.142 0.089 0.112 0.062          NA
     ## ...
 
-### Spectrogram
-
 [`compute_spectrogram()`](https://mrpheus.circadia-lab.uk/reference/compute_spectrogram.md)
 returns a time × frequency power matrix:
 
 ``` r
 
 sg <- compute_spectrogram(psg, channel = "EEG Fpz-Cz", db = TRUE)
-sg
 ```
 
-    ## mrpheus spectrogram
-    ## ℹ Channel: EEG Fpz-Cz
-    ## ℹ Epochs: 958
-    ## ℹ Frequency range: 0-40 Hz (161 bins)
-    ## ℹ Units: dB
-
-------------------------------------------------------------------------
-
-## Sleep event detection
-
-### Spindles
-
-[`compute_spindles()`](https://mrpheus.circadia-lab.uk/reference/compute_spindles.md)
-detects sleep spindles via RMS envelope thresholding in the sigma band
-(11–16 Hz):
+### Sleep event detection
 
 ``` r
 
 sp <- compute_spindles(psg, channel = "EEG Fpz-Cz")
-```
-
-    ## ✔ Detected 312 spindles in channel 'EEG Fpz-Cz'.
-
-``` r
-
-sp
-```
-
-    ## # A tibble: 312 × 7
-    ##   epoch start_s end_s duration_s peak_freq_hz rms_uv channel
-    ##   <int>   <dbl> <dbl>      <dbl>        <dbl>  <dbl> <chr>
-    ## 1   142    4.23  5.11       0.88         13.2    18.4 EEG Fpz-Cz
-    ## ...
-
-### Slow oscillations
-
-[`compute_slow_oscillations()`](https://mrpheus.circadia-lab.uk/reference/compute_slow_oscillations.md)
-uses zero-crossing detection in the delta band (0.5–2 Hz), following
-Mölle et al. (2002):
-
-``` r
-
 so <- compute_slow_oscillations(psg, channel = "EEG Fpz-Cz")
 ```
 
-    ## ✔ Detected 188 slow oscillations in channel 'EEG Fpz-Cz'.
-
-------------------------------------------------------------------------
-
-## Automatic sleep staging
+### Automatic sleep staging
 
 [`stage_epochs()`](https://mrpheus.circadia-lab.uk/reference/stage_epochs.md)
-stages each epoch using the pre-trained LightGBM model. Pass the
-artefact table to exclude flagged epochs:
+stages each epoch using a pre-trained LightGBM model ported from
+[YASA](https://github.com/raphaelvallat/yasa) (Vallat & Walker, 2021):
 
 ``` r
 
@@ -259,20 +184,7 @@ staging
 Stages follow AASM nomenclature: `W`, `N1`, `N2`, `N3`, `REM`. Artefact
 epochs are coded `NA`.
 
-> **Note:**
-> [`stage_epochs()`](https://mrpheus.circadia-lab.uk/reference/stage_epochs.md)
-> requires the staging model at `inst/models/yasa_staging.txt`. Feature
-> parity with YASA’s Python pipeline is still being validated — see the
-> source of `.extract_staging_features()` for the current implementation
-> status.
-
-------------------------------------------------------------------------
-
-## Exporting to hypnor
-
-[`export_hypnogram()`](https://mrpheus.circadia-lab.uk/reference/export_hypnogram.md)
-converts the staging output into a `hypnor_hypnogram` object for
-downstream architecture analysis:
+### Exporting to hypnor
 
 ``` r
 
@@ -283,42 +195,57 @@ hypnogram <- export_hypnogram(
   participant_id = "P001"
 )
 
-# hypnor functions now work directly on the hypnogram
 hypnor::plot_hypnogram(hypnogram)
 hypnor::compute_architecture(hypnogram)
 ```
 
-------------------------------------------------------------------------
-
-## Full pipeline
-
-Putting it all together:
+### Full PSG pipeline
 
 ``` r
 
 library(mrpheus)
 
-# 1. Ingest
 rec      <- read_edf("recordings/psg_001.edf")
 psg      <- prepare_psg(rec)
-
-# 2. Quality
 art      <- detect_artifacts(psg)
-
-# 3. Spectral
 bp       <- compute_band_power(psg, relative = TRUE)
-sg       <- compute_spectrogram(psg, channel = "EEG Fpz-Cz")
-
-# 4. Events
 sp       <- compute_spindles(psg)
 so       <- compute_slow_oscillations(psg)
-
-# 5. Stage
 staging  <- stage_epochs(psg, artefacts = art)
-
-# 6. Hand off
 hypnogram <- export_hypnogram(staging, start_time = rec$header$startTime)
 ```
+
+------------------------------------------------------------------------
+
+## MRI physiology pipeline
+
+For recordings acquired alongside fMRI, mrpheus reads Philips PMU `.log`
+files and runs Pan-Tompkins QRS detection to produce cardiac regressors.
+
+``` r
+
+# Read Philips PMU log (wBTU wireless VCG system, 496 Hz)
+rec <- read_philips_physlog("sub-01_ses-01_physlog.log")
+
+# Detect QRS complexes
+qrs <- detect_qrs(as.double(rec$C[, "v1raw"]), fs = rec$HDR$sfreq)
+
+# Instantaneous HR signal
+hr  <- compute_hr_signal(qrs)
+
+# RR intervals per TR for BOLD regression
+rr_tr <- approx(
+  x      = qrs$qrs_i[-1] / rec$HDR$sfreq,
+  y      = diff(qrs$qrs_i) / rec$HDR$sfreq,
+  xout   = seq(0, n_vols * TR, by = TR),
+  method = "constant"
+)$y
+```
+
+See
+[`vignette("mri-physiology")`](https://mrpheus.circadia-lab.uk/articles/mri-physiology.md)
+for the full workflow including scan-window alignment and RR-per-TR
+computation.
 
 ------------------------------------------------------------------------
 
@@ -331,3 +258,7 @@ tool for automated sleep staging. *eLife*, 10, e70092.
 Mölle, M., Marshall, L., Gais, S., & Born, J. (2002). Grouping of
 spindle activity during slow oscillations in human non-rapid eye
 movement sleep. *Journal of Neuroscience*, 22(24), 10941–10947.
+
+Pan J, Tompkins WJ. (1985). A real-time QRS detection algorithm. *IEEE
+Trans Biomed Eng*, 32(3):230–236.
+<https://doi.org/10.1109/TBME.1985.325532>

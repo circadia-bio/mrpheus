@@ -61,6 +61,17 @@ HRV metrics across sleep stages.
 - [`compute_hrv_sleep()`](https://mrpheus.circadia-lab.uk/reference/compute_hrv_sleep.md)
   : Compute HRV metrics across sleep stages
 
+## MRI physiology
+
+Philips PMU physiological log processing and cardiac signal analysis.
+
+- [`read_philips_physlog()`](https://mrpheus.circadia-lab.uk/reference/read_philips_physlog.md)
+  : Read a Philips MRI Physiological Log File
+- [`detect_qrs()`](https://mrpheus.circadia-lab.uk/reference/detect_qrs.md)
+  : Detect QRS Complexes in an ECG Signal (Pan-Tompkins Algorithm)
+- [`compute_hr_signal()`](https://mrpheus.circadia-lab.uk/reference/compute_hr_signal.md)
+  : Compute Instantaneous Heart Rate from R-Peak Indices
+
 ## Data
 
 Bundled datasets and palettes.
@@ -74,4 +85,5 @@ Package-level documentation.
 
 - [`mrpheus`](https://mrpheus.circadia-lab.uk/reference/mrpheus-package.md)
   [`mrpheus-package`](https://mrpheus.circadia-lab.uk/reference/mrpheus-package.md)
-  : mrpheus: Polysomnography Signal Analysis for Sleep Research
+  : mrpheus: Raw Physiological Signal Analysis for Biological Rhythms
+  Research

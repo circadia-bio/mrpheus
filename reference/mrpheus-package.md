@@ -1,12 +1,15 @@
-# mrpheus: Polysomnography Signal Analysis for Sleep Research
+# mrpheus: Raw Physiological Signal Analysis for Biological Rhythms Research
 
-Raw polysomnography (PSG) signal analysis for sleep and circadian
-research. Provides EDF/EDF+ ingestion, artefact detection, spectral
-analysis, sleep event detection (spindles, slow oscillations), automatic
-AASM sleep staging via a pre-trained LightGBM model (ported from YASA;
-Vallat & Walker, 2021), and respiratory and cardiac metrics. Exports
-staged hypnograms directly to hypnor and PSG-derived metrics to syncR.
-Part of the Circadia Lab R ecosystem.
+Raw physiological signal analysis for biological rhythms research.
+Provides ingestion, artefact detection, event detection, and feature
+extraction for multi-modal physiological recordings including
+polysomnography (EDF/EDF+), MRI-concurrent physiological logs (Philips
+PMU), and EEG. Covers cardiac rhythm (QRS detection, HRV), respiratory
+rhythm (apnoea detection, respiratory indices), and neural oscillations
+(sleep spindles, slow oscillations, automatic AASM sleep staging via a
+pre-trained LightGBM model ported from YASA; Vallat & Walker, 2021).
+Exports staged hypnograms to hypnor and derived metrics to syncR. Part
+of the Circadia Lab R ecosystem at Northumbria University.
 
 ## See also
 

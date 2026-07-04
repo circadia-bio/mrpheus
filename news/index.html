@@ -95,7 +95,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mrpheus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -108,6 +108,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with mrpheus</a></li>
+    <li><a class="dropdown-item" href="../articles/mri-physiology.html">MRI physiological signal processing</a></li>
   </ul></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-news" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">News</button>
@@ -127,9 +128,36 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.svg" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/circadia-bio/mrpheus/blob/v0.1.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/circadia-bio/mrpheus/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.1" id="mrpheus-011">mrpheus 0.1.1<a class="anchor" aria-label="anchor" href="#mrpheus-011"></a></h2>
+<div class="section level4">
+<h4 id="scope-0-1-1">Scope<a class="anchor" aria-label="anchor" href="#scope-0-1-1"></a></h4>
+<ul><li>Package reframed from PSG-only to <strong>raw physiological signal analysis for biological rhythms research</strong>, encompassing PSG, MRI-concurrent physiology, and EEG.</li>
+<li>DESCRIPTION, README, pkgdown site, and vignettes updated accordingly.</li>
+</ul></div>
+<div class="section level4">
+<h4 id="new-functions-0-1-1">New functions<a class="anchor" aria-label="anchor" href="#new-functions-0-1-1"></a></h4>
+<ul><li>
+<code><a href="../reference/read_philips_physlog.html">read_philips_physlog()</a></code> — reads Philips PMU <code>.log</code> files (wBTU wireless VCG, wired ECG, or custom sampling rate). Returns a <code>mrpheus_physlog</code> S3 object with signal matrix, event markers, and header metadata.</li>
+<li>
+<code><a href="../reference/detect_qrs.html">detect_qrs()</a></code> — Pan-Tompkins QRS detector (Pan &amp; Tompkins, 1985). Bandpass filter → derivative → squaring → 150 ms moving average → adaptive dual-threshold with T-wave rejection and search-back. Returns a <code>mrpheus_qrs</code> S3 object.</li>
+<li>
+<code><a href="../reference/compute_hr_signal.html">compute_hr_signal()</a></code> — converts R-peak indices to a sample-by-sample instantaneous heart rate trace (bpm).</li>
+</ul></div>
+<div class="section level4">
+<h4 id="other-changes-0-1-1">Other changes<a class="anchor" aria-label="anchor" href="#other-changes-0-1-1"></a></h4>
+<ul><li>Staging model (<code>inst/models/yasa_staging.txt</code>) is now bundled with the package — no Python setup required after installation.</li>
+<li>
+<code>data-raw/fetch_yasa_model.py</code> updated for YASA 0.7.0.</li>
+<li>New vignette: <em>MRI physiological signal processing</em>.</li>
+<li>New test suite: <code>test-read_philips_physlog.R</code>, <code>test-detect_qrs.R</code>, <code>test-compute_hr_signal.R</code> with MATLAB bit-perfect fixture comparison.</li>
+<li>
+<code>boldR</code> added to ecosystem table in docs and vignettes.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="mrpheus-010">mrpheus 0.1.0<a class="anchor" aria-label="anchor" href="#mrpheus-010"></a></h2>
 <ul><li>Initial release. Package scaffolded with full PSG analysis pipeline.</li>
@@ -158,7 +186,8 @@
 <li>Hex sticker: olive background, ivory lyre, ochre motion lines, vermillion border.</li>
 <li>pkgdown site deploying via Netlify at <code>mrpheus.circadia-lab.uk</code>.</li>
 </ul></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

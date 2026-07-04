@@ -1,7 +1,6 @@
 # 🪉 mrpheus
 
-**Raw polysomnography signal analysis for sleep and circadian
-research.**
+**Raw physiological signal analysis for biological rhythms research.**
 
 [![R](https://img.shields.io/badge/R-%3E%3D4.1-276DC3)](https://www.r-project.org/)
 [![License:
@@ -21,11 +20,18 @@ Lab](https://img.shields.io/badge/circadia--bio-GitHub-014370)](https://github.c
 
 ## 📖 What is mrpheus?
 
-`mrpheus` is the deepest layer of the [Circadia
-Lab](https://github.com/circadia-bio) R ecosystem — it ingests raw
-multi-channel PSG recordings (EDF/EDF+) and produces the two outputs
-that feed everything downstream: staged hypnograms (passed to `hypnor`)
-and PSG-derived metrics (passed to `syncR`).
+`mrpheus` is the raw signal layer of the [Circadia
+Lab](https://github.com/circadia-bio) R ecosystem. It ingests and
+processes multi-modal physiological recordings — polysomnography
+(EDF/EDF+), MRI-concurrent physiological logs (Philips PMU), and EEG —
+extracting features across the biological rhythms that connect sleep,
+cardiac function, and neural activity.
+
+The package covers three rhythm domains: **cardiac** (QRS detection,
+HRV), **respiratory** (apnoea detection, respiratory metrics), and
+**neural** (spindles, slow oscillations, automatic AASM sleep staging).
+Staged hypnograms pass downstream to `hypnor`; derived metrics pass to
+`syncR`.
 
 The name is spelled as *Morpheus* but carries a silent **m**, so it is
 pronounced as *Orpheus* — a portmanteau of both myths simultaneously.
@@ -69,6 +75,9 @@ scales::show_col(mrpheus::palette_orpheus)
   /
   [`prepare_psg()`](https://mrpheus.circadia-lab.uk/reference/prepare_psg.md):
   channel inventory, epoch segmentation, bad-channel flagging
+- 🏥 **Philips PMU ingestion** —
+  [`read_philips_physlog()`](https://mrpheus.circadia-lab.uk/reference/read_philips_physlog.md):
+  wBTU / wired / custom presets, event markers, scan-window alignment
 - 🚫 **Artefact detection** —
   [`detect_artifacts()`](https://mrpheus.circadia-lab.uk/reference/detect_artifacts.md):
   amplitude and muscle contamination flagging
@@ -81,19 +90,20 @@ scales::show_col(mrpheus::palette_orpheus)
   [`compute_slow_oscillations()`](https://mrpheus.circadia-lab.uk/reference/compute_slow_oscillations.md)
 - 🛏️ **Automatic AASM staging** —
   [`stage_epochs()`](https://mrpheus.circadia-lab.uk/reference/stage_epochs.md):
-  uses a pre-trained LightGBM model ported from
-  [YASA](https://github.com/raphaelvallat/yasa) (Vallat & Walker, 2021);
-  see [Staging model](#staging-model) below
+  pre-trained LightGBM model ported from
+  [YASA](https://github.com/raphaelvallat/yasa) (Vallat & Walker, 2021)
 - 🫁 **Respiratory metrics** —
   [`detect_apneas()`](https://mrpheus.circadia-lab.uk/reference/detect_apneas.md),
   [`compute_ahi()`](https://mrpheus.circadia-lab.uk/reference/compute_ahi.md),
   [`compute_odi()`](https://mrpheus.circadia-lab.uk/reference/compute_odi.md)
-- 💓 **Cardiac HRV** —
-  [`compute_hrv_sleep()`](https://mrpheus.circadia-lab.uk/reference/compute_hrv_sleep.md):
-  HRV stratified by sleep stage
+- 💓 **Cardiac rhythm** —
+  [`detect_qrs()`](https://mrpheus.circadia-lab.uk/reference/detect_qrs.md)
+  (Pan-Tompkins),
+  [`compute_hr_signal()`](https://mrpheus.circadia-lab.uk/reference/compute_hr_signal.md),
+  [`compute_hrv_sleep()`](https://mrpheus.circadia-lab.uk/reference/compute_hrv_sleep.md)
 - 🔗 **Ecosystem handoffs** —
   [`export_hypnogram()`](https://mrpheus.circadia-lab.uk/reference/export_hypnogram.md)
-  → `hypnor`; PSG metrics → `syncR`
+  → `hypnor`; derived metrics → `syncR`
 
 ------------------------------------------------------------------------
 
@@ -101,24 +111,34 @@ scales::show_col(mrpheus::palette_orpheus)
 
     mrpheus/
     ├── R/
-    │   ├── mrpheus-package.R       # package doc + palette_orpheus data doc
+    │   ├── mrpheus-package.R       # package doc + palette_orpheus
     │   ├── read_edf.R              # read_edf(), print.mrpheus_edf
     │   ├── prepare_psg.R           # prepare_psg(), print.mrpheus_psg
+    │   ├── read_philips_physlog.R  # read_philips_physlog(), print.mrpheus_physlog
     │   ├── detect_artifacts.R      # detect_artifacts()
+    │   ├── detect_qrs.R            # detect_qrs(), print.mrpheus_qrs
     │   ├── compute_band_power.R    # compute_band_power()
     │   ├── compute_spectrogram.R   # compute_spectrogram()
     │   ├── compute_spindles.R      # compute_spindles()
     │   ├── compute_slow_oscillations.R
-    │   ├── stage_epochs.R          # stage_epochs(), .extract_staging_features()
+    │   ├── compute_hr_signal.R     # compute_hr_signal()
+    │   ├── compute_hrv_sleep.R     # compute_hrv_sleep()
+    │   ├── stage_epochs.R          # stage_epochs()
     │   ├── export_hypnogram.R      # export_hypnogram()
-    │   ├── detect_apneas.R         # detect_apneas(), compute_ahi(), compute_odi()
-    │   └── compute_hrv_sleep.R     # compute_hrv_sleep()
-    ├── inst/models/
-    │   └── yasa_staging.txt        # serialised LightGBM model (see data-raw/)
+    │   └── detect_apneas.R         # detect_apneas(), compute_ahi(), compute_odi()
+    ├── inst/
+    │   ├── extdata/
+    │   │   └── example_physlog.log # synthetic Philips PMU log (vignette data)
+    │   └── models/
+    │       └── yasa_staging.txt    # serialised LightGBM model (see data-raw/)
     ├── data-raw/
     │   ├── fetch_yasa_model.py     # extracts model from YASA Python package
+    │   ├── create_example_physlog.R # generates inst/extdata/example_physlog.log
     │   └── palette_orpheus.R       # generates palette_orpheus data object
     ├── tests/testthat/
+    ├── vignettes/
+    │   ├── getting-started.Rmd
+    │   └── mri-physiology.Rmd
     ├── _pkgdown.yml
     └── DESCRIPTION
 
@@ -142,20 +162,7 @@ install.packages(c("edfReader", "gsignal", "pracma", "lightgbm",
 remotes::install_github("circadia-bio/mrpheus")
 ```
 
-### Staging model
-
-The LightGBM staging model is not bundled in the repo by default (it
-requires Python + YASA to extract). Run once after cloning:
-
-``` bash
-pip install yasa lightgbm
-python data-raw/fetch_yasa_model.py
-# then: usethis::use_data() or copy to inst/models/yasa_staging.txt
-```
-
-The model weights are cross-language — a model serialised by Python’s
-`lgb.Booster.save_model()` loads identically in R’s
-[`lightgbm::lgb.load()`](https://rdrr.io/pkg/lightgbm/man/lgb.load.html).
+The staging model is bundled — no additional setup required.
 
 ### Basic pipeline
 
@@ -218,6 +225,8 @@ hypnogram <- export_hypnogram(staging, start_time = rec$header$startTime)
   handling, plotting, and architecture metrics
 - 🔗 [**syncR**](https://github.com/circadia-bio/syncR) — unified
   participant-indexed database (actigraphy + sleep diary + PSG)
+- 🧠 [**boldR**](https://github.com/circadia-bio/boldR) — fMRIPrep BOLD
+  derivatives → parcellated analysis
 - 📋 [**tallieR**](https://github.com/circadia-bio/tallieR) —
   sociodemographics and questionnaires
 - 📓 [**slumbR**](https://github.com/circadia-bio/slumbR) — sleep diary
@@ -307,6 +316,17 @@ HRV metrics across sleep stages.
 - [`compute_hrv_sleep()`](https://mrpheus.circadia-lab.uk/reference/compute_hrv_sleep.md)
   : Compute HRV metrics across sleep stages
 
+## MRI physiology
+
+Philips PMU physiological log processing and cardiac signal analysis.
+
+- [`read_philips_physlog()`](https://mrpheus.circadia-lab.uk/reference/read_philips_physlog.md)
+  : Read a Philips MRI Physiological Log File
+- [`detect_qrs()`](https://mrpheus.circadia-lab.uk/reference/detect_qrs.md)
+  : Detect QRS Complexes in an ECG Signal (Pan-Tompkins Algorithm)
+- [`compute_hr_signal()`](https://mrpheus.circadia-lab.uk/reference/compute_hr_signal.md)
+  : Compute Instantaneous Heart Rate from R-Peak Indices
+
 ## Data
 
 Bundled datasets and palettes.
@@ -320,7 +340,8 @@ Package-level documentation.
 
 - [`mrpheus`](https://mrpheus.circadia-lab.uk/reference/mrpheus-package.md)
   [`mrpheus-package`](https://mrpheus.circadia-lab.uk/reference/mrpheus-package.md)
-  : mrpheus: Polysomnography Signal Analysis for Sleep Research
+  : mrpheus: Raw Physiological Signal Analysis for Biological Rhythms
+  Research
 
 # Articles
 
@@ -328,3 +349,8 @@ Package-level documentation.
 
 - [Getting started with
   mrpheus](https://mrpheus.circadia-lab.uk/articles/getting-started.md):
+
+### Workflows
+
+- [MRI physiological signal
+  processing](https://mrpheus.circadia-lab.uk/articles/mri-physiology.md):

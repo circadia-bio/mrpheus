@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>mrpheus — Polysomnography signal analysis for R • mrpheus</title>
+<title>mrpheus — Physiological signal analysis for biological rhythms research • mrpheus</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -17,10 +17,10 @@
 <link href="deps/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="mrpheus — Polysomnography signal analysis for R">
-<meta name="description" content="An R package for raw PSG signal analysis: EDF/EDF+ ingestion, artefact detection, spectral analysis, sleep event detection, and automatic AASM sleep staging via a pre-trained LightGBM model. Part of the Circadia Lab R ecosystem at Northumbria University.
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="mrpheus — Physiological signal analysis for biological rhythms research">
+<meta name="description" content="Raw physiological signal analysis for biological rhythms research. Ingestion and feature extraction for polysomnography (EDF/EDF+), MRI-concurrent physiological logs (Philips PMU), and EEG. Covers cardiac rhythm (QRS detection, HRV), respiratory rhythm (apnoea detection), and neural oscillations (spindles, slow oscillations, automatic AASM sleep staging). Part of the Circadia Lab R ecosystem at Northumbria University.
 ">
-<meta property="og:description" content="An R package for raw PSG signal analysis: EDF/EDF+ ingestion, artefact detection, spectral analysis, sleep event detection, and automatic AASM sleep staging via a pre-trained LightGBM model. Part of the Circadia Lab R ecosystem at Northumbria University.
+<meta property="og:description" content="Raw physiological signal analysis for biological rhythms research. Ingestion and feature extraction for polysomnography (EDF/EDF+), MRI-concurrent physiological logs (Philips PMU), and EEG. Covers cardiac rhythm (QRS detection, HRV), respiratory rhythm (apnoea detection), and neural oscillations (spindles, slow oscillations, automatic AASM sleep staging). Part of the Circadia Lab R ecosystem at Northumbria University.
 ">
 <meta property="og:image" content="https://mrpheus.circadia-lab.uk/logo.svg">
 <meta property="og:image" content="https://mrpheus.circadia-lab.uk/logo.png">
@@ -130,7 +130,7 @@
 
     <a class="navbar-brand me-2" href="index.html">mrpheus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -145,6 +145,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/getting-started.html">Getting started with mrpheus</a></li>
+    <li><a class="dropdown-item" href="articles/mri-physiology.html">MRI physiological signal processing</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -174,7 +175,7 @@
 <img src="logo.svg" class="logo" alt=""><h1 id="id_-mrpheus">🪉 mrpheus<a class="anchor" aria-label="anchor" href="#id_-mrpheus"></a>
 </h1>
 </div>
-<p><strong>Raw polysomnography signal analysis for sleep and circadian research.</strong></p>
+<p><strong>Raw physiological signal analysis for biological rhythms research.</strong></p>
 <p><a href="https://www.r-project.org/" class="external-link"><img src="https://img.shields.io/badge/R-%3E%3D4.1-276DC3" alt="R"></a> <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a> <a href="https://github.com/circadia-bio" class="external-link"><img src="https://img.shields.io/badge/circadia--bio-GitHub-014370" alt="Circadia Lab"></a></p>
 <hr>
 <blockquote>
@@ -184,7 +185,8 @@
 <div class="section level2">
 <h2 id="open_book-what-is-mrpheus">📖 What is mrpheus?<a class="anchor" aria-label="anchor" href="#open_book-what-is-mrpheus"></a>
 </h2>
-<p><code>mrpheus</code> is the deepest layer of the <a href="https://github.com/circadia-bio" class="external-link">Circadia Lab</a> R ecosystem — it ingests raw multi-channel PSG recordings (EDF/EDF+) and produces the two outputs that feed everything downstream: staged hypnograms (passed to <code>hypnor</code>) and PSG-derived metrics (passed to <code>syncR</code>).</p>
+<p><code>mrpheus</code> is the raw signal layer of the <a href="https://github.com/circadia-bio" class="external-link">Circadia Lab</a> R ecosystem. It ingests and processes multi-modal physiological recordings — polysomnography (EDF/EDF+), MRI-concurrent physiological logs (Philips PMU), and EEG — extracting features across the biological rhythms that connect sleep, cardiac function, and neural activity.</p>
+<p>The package covers three rhythm domains: <strong>cardiac</strong> (QRS detection, HRV), <strong>respiratory</strong> (apnoea detection, respiratory metrics), and <strong>neural</strong> (spindles, slow oscillations, automatic AASM sleep staging). Staged hypnograms pass downstream to <code>hypnor</code>; derived metrics pass to <code>syncR</code>.</p>
 <p>The name is spelled as <em>Morpheus</em> but carries a silent <strong>m</strong>, so it is pronounced as <em>Orpheus</em> — a portmanteau of both myths simultaneously. Morpheus, the god of dreams, gives the package its subject matter. Orpheus, who descended into the underworld to navigate the unconscious, gives it its spirit. Sleep is both.</p>
 <blockquote>
 <p><em>“He calmed the savage beasts with song, as mrpheus calms your raw signals into stages.”</em></p>
@@ -252,16 +254,18 @@
 </h2>
 <ul>
 <li>📂 <strong>EDF/EDF+ ingestion</strong> — <code><a href="reference/read_edf.html">read_edf()</a></code> / <code><a href="reference/prepare_psg.html">prepare_psg()</a></code>: channel inventory, epoch segmentation, bad-channel flagging</li>
+<li>🏥 <strong>Philips PMU ingestion</strong> — <code><a href="reference/read_philips_physlog.html">read_philips_physlog()</a></code>: wBTU / wired / custom presets, event markers, scan-window alignment</li>
 <li>🚫 <strong>Artefact detection</strong> — <code><a href="reference/detect_artifacts.html">detect_artifacts()</a></code>: amplitude and muscle contamination flagging</li>
 <li>📊 <strong>Spectral analysis</strong> — <code><a href="reference/compute_band_power.html">compute_band_power()</a></code> (δ/θ/α/σ/β/γ per epoch), <code><a href="reference/compute_spectrogram.html">compute_spectrogram()</a></code>
 </li>
 <li>🔁 <strong>Sleep event detection</strong> — <code><a href="reference/compute_spindles.html">compute_spindles()</a></code>, <code><a href="reference/compute_slow_oscillations.html">compute_slow_oscillations()</a></code>
 </li>
-<li>🛏️ <strong>Automatic AASM staging</strong> — <code><a href="reference/stage_epochs.html">stage_epochs()</a></code>: uses a pre-trained LightGBM model ported from <a href="https://github.com/raphaelvallat/yasa" class="external-link">YASA</a> (Vallat &amp; Walker, 2021); see <a href="#staging-model">Staging model</a> below</li>
+<li>🛏️ <strong>Automatic AASM staging</strong> — <code><a href="reference/stage_epochs.html">stage_epochs()</a></code>: pre-trained LightGBM model ported from <a href="https://github.com/raphaelvallat/yasa" class="external-link">YASA</a> (Vallat &amp; Walker, 2021)</li>
 <li>🫁 <strong>Respiratory metrics</strong> — <code><a href="reference/detect_apneas.html">detect_apneas()</a></code>, <code><a href="reference/compute_ahi.html">compute_ahi()</a></code>, <code><a href="reference/compute_odi.html">compute_odi()</a></code>
 </li>
-<li>💓 <strong>Cardiac HRV</strong> — <code><a href="reference/compute_hrv_sleep.html">compute_hrv_sleep()</a></code>: HRV stratified by sleep stage</li>
-<li>🔗 <strong>Ecosystem handoffs</strong> — <code><a href="reference/export_hypnogram.html">export_hypnogram()</a></code> → <code>hypnor</code>; PSG metrics → <code>syncR</code>
+<li>💓 <strong>Cardiac rhythm</strong> — <code><a href="reference/detect_qrs.html">detect_qrs()</a></code> (Pan-Tompkins), <code><a href="reference/compute_hr_signal.html">compute_hr_signal()</a></code>, <code><a href="reference/compute_hrv_sleep.html">compute_hrv_sleep()</a></code>
+</li>
+<li>🔗 <strong>Ecosystem handoffs</strong> — <code><a href="reference/export_hypnogram.html">export_hypnogram()</a></code> → <code>hypnor</code>; derived metrics → <code>syncR</code>
 </li>
 </ul>
 <hr>
@@ -271,24 +275,34 @@
 </h2>
 <pre><code>mrpheus/
 ├── R/
-│   ├── mrpheus-package.R       # package doc + palette_orpheus data doc
+│   ├── mrpheus-package.R       # package doc + palette_orpheus
 │   ├── read_edf.R              # read_edf(), print.mrpheus_edf
 │   ├── prepare_psg.R           # prepare_psg(), print.mrpheus_psg
+│   ├── read_philips_physlog.R  # read_philips_physlog(), print.mrpheus_physlog
 │   ├── detect_artifacts.R      # detect_artifacts()
+│   ├── detect_qrs.R            # detect_qrs(), print.mrpheus_qrs
 │   ├── compute_band_power.R    # compute_band_power()
 │   ├── compute_spectrogram.R   # compute_spectrogram()
 │   ├── compute_spindles.R      # compute_spindles()
 │   ├── compute_slow_oscillations.R
-│   ├── stage_epochs.R          # stage_epochs(), .extract_staging_features()
+│   ├── compute_hr_signal.R     # compute_hr_signal()
+│   ├── compute_hrv_sleep.R     # compute_hrv_sleep()
+│   ├── stage_epochs.R          # stage_epochs()
 │   ├── export_hypnogram.R      # export_hypnogram()
-│   ├── detect_apneas.R         # detect_apneas(), compute_ahi(), compute_odi()
-│   └── compute_hrv_sleep.R     # compute_hrv_sleep()
-├── inst/models/
-│   └── yasa_staging.txt        # serialised LightGBM model (see data-raw/)
+│   └── detect_apneas.R         # detect_apneas(), compute_ahi(), compute_odi()
+├── inst/
+│   ├── extdata/
+│   │   └── example_physlog.log # synthetic Philips PMU log (vignette data)
+│   └── models/
+│       └── yasa_staging.txt    # serialised LightGBM model (see data-raw/)
 ├── data-raw/
 │   ├── fetch_yasa_model.py     # extracts model from YASA Python package
+│   ├── create_example_physlog.R # generates inst/extdata/example_physlog.log
 │   └── palette_orpheus.R       # generates palette_orpheus data object
 ├── tests/testthat/
+├── vignettes/
+│   ├── getting-started.Rmd
+│   └── mri-physiology.Rmd
 ├── _pkgdown.yml
 └── DESCRIPTION</code></pre>
 <hr>
@@ -309,20 +323,12 @@
 </h3>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"circadia-bio/mrpheus"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="staging-model">Staging model<a class="anchor" aria-label="anchor" href="#staging-model"></a>
-</h3>
-<p>The LightGBM staging model is not bundled in the repo by default (it requires Python + YASA to extract). Run once after cloning:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="ex">pip</span> install yasa lightgbm</span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="ex">python</span> data-raw/fetch_yasa_model.py</span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co"># then: usethis::use_data() or copy to inst/models/yasa_staging.txt</span></span></code></pre></div>
-<p>The model weights are cross-language — a model serialised by Python’s <code>lgb.Booster.save_model()</code> loads identically in R’s <code><a href="https://rdrr.io/pkg/lightgbm/man/lgb.load.html" class="external-link">lightgbm::lgb.load()</a></code>.</p>
+<p>The staging model is bundled — no additional setup required.</p>
 </div>
 <div class="section level3">
 <h3 id="basic-pipeline">Basic pipeline<a class="anchor" aria-label="anchor" href="#basic-pipeline"></a>
 </h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mrpheus.circadia-lab.uk">mrpheus</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 1. Ingest</span></span>
@@ -437,6 +443,7 @@
 <li>🌊 <a href="https://github.com/circadia-bio/zeitR" class="external-link"><strong>zeitR</strong></a> — wrist actigraphy analysis and circadian metrics</li>
 <li>😴 <a href="https://github.com/circadia-bio/hypnor" class="external-link"><strong>hypnor</strong></a> — hypnogram handling, plotting, and architecture metrics</li>
 <li>🔗 <a href="https://github.com/circadia-bio/syncR" class="external-link"><strong>syncR</strong></a> — unified participant-indexed database (actigraphy + sleep diary + PSG)</li>
+<li>🧠 <a href="https://github.com/circadia-bio/boldR" class="external-link"><strong>boldR</strong></a> — fMRIPrep BOLD derivatives → parcellated analysis</li>
 <li>📋 <a href="https://github.com/circadia-bio/tallieR" class="external-link"><strong>tallieR</strong></a> — sociodemographics and questionnaires</li>
 <li>📓 <a href="https://github.com/circadia-bio/slumbR" class="external-link"><strong>slumbR</strong></a> — sleep diary processing</li>
 <li>🎨 <a href="https://github.com/circadia-bio/circadia" class="external-link"><strong>circadia</strong></a> — shared visual identity (palettes, themes)</li>

@@ -125,7 +125,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mrpheus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -140,6 +140,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with mrpheus</a></li>
+    <li><a class="dropdown-item" href="../articles/mri-physiology.html">MRI physiological signal processing</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -172,7 +173,7 @@
       <img src="../logo.svg" class="logo" alt=""><h1>Getting started with mrpheus</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/circadia-bio/mrpheus/blob/v0.1.0/vignettes/getting-started.Rmd" class="external-link"><code>vignettes/getting-started.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/circadia-bio/mrpheus/blob/main/vignettes/getting-started.Rmd" class="external-link"><code>vignettes/getting-started.Rmd</code></a></small>
       <div class="d-none name"><code>getting-started.Rmd</code></div>
     </div>
 
@@ -181,11 +182,14 @@
 <div class="section level2">
 <h2 id="what-is-mrpheus">What is mrpheus?<a class="anchor" aria-label="anchor" href="#what-is-mrpheus"></a>
 </h2>
-<p><strong>mrpheus</strong> is an R package for raw polysomnography
-(PSG) signal analysis. It ingests EDF/EDF+ recordings, detects sleep
-events, computes spectral features, and stages each 30-second epoch
-using a pre-trained LightGBM model ported from <a href="https://github.com/raphaelvallat/yasa" class="external-link">YASA</a> (Vallat &amp;
-Walker, 2021).</p>
+<p><strong>mrpheus</strong> is an R package for raw physiological signal
+analysis across biological rhythms research. It ingests multi-modal
+physiological recordings — polysomnography (EDF/EDF+), MRI-concurrent
+physiological logs (Philips PMU), and EEG — and extracts features
+spanning three rhythm domains: <strong>cardiac</strong> (QRS detection,
+HRV), <strong>respiratory</strong> (apnoea detection, respiratory
+metrics), and <strong>neural</strong> (spindles, slow oscillations,
+automatic AASM sleep staging).</p>
 <p>The name is spelled as <em>Morpheus</em> but carries a silent
 <strong>m</strong>, pronounced as <em>Orpheus</em> — carrying both myths
 at once. Morpheus, god of dreams, gives the package its subject;
@@ -205,21 +209,26 @@ Lab</a> R ecosystem:</p>
 <tbody>
 <tr class="odd">
 <td><strong>mrpheus</strong></td>
-<td>Raw PSG signal analysis and automatic sleep staging</td>
+<td>Raw physiological signal analysis for biological rhythms
+research</td>
 </tr>
 <tr class="even">
 <td><a href="https://github.com/circadia-bio/hypnor" class="external-link">hypnor</a></td>
 <td>Hypnogram handling and sleep architecture metrics</td>
 </tr>
 <tr class="odd">
+<td><a href="https://github.com/circadia-bio/boldR" class="external-link">boldR</a></td>
+<td>fMRIPrep BOLD derivatives → parcellated analysis</td>
+</tr>
+<tr class="even">
 <td><a href="https://zeitr.circadia-lab.uk" class="external-link">zeitR</a></td>
 <td>Wrist actigraphy analysis and circadian metrics</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="https://github.com/circadia-bio/syncR" class="external-link">syncR</a></td>
 <td>Unified participant-indexed database</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="https://github.com/circadia-bio/slumbR" class="external-link">slumbR</a></td>
 <td>Sleep diary processing</td>
 </tr>
@@ -233,25 +242,18 @@ Lab</a> R ecosystem:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"circadia-bio/mrpheus"</span><span class="op">)</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="staging-model">Staging model<a class="anchor" aria-label="anchor" href="#staging-model"></a>
-</h3>
-<p>The automatic sleep staging model is not bundled in the package by
-default — it must be extracted from YASA once after installation:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="ex">pip</span> install yasa lightgbm</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="ex">python</span> data-raw/fetch_yasa_model.py</span></code></pre></div>
-<p>This saves <code>inst/models/yasa_staging.txt</code> — a
-cross-language LightGBM model that loads identically in R. See
-<code><a href="../reference/stage_epochs.html">?stage_epochs</a></code> for details.</p>
+<p>The staging model is bundled — no additional setup required.</p>
 <hr>
 </div>
-</div>
 <div class="section level2">
-<h2 id="reading-a-recording">Reading a recording<a class="anchor" aria-label="anchor" href="#reading-a-recording"></a>
+<h2 id="psg-pipeline">PSG pipeline<a class="anchor" aria-label="anchor" href="#psg-pipeline"></a>
 </h2>
-<p>The entry point is <code><a href="../reference/read_edf.html">read_edf()</a></code>, which wraps
-<code>edfReader</code> with consistent output formatting:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="section level3">
+<h3 id="reading-a-recording">Reading a recording<a class="anchor" aria-label="anchor" href="#reading-a-recording"></a>
+</h3>
+<p><code><a href="../reference/read_edf.html">read_edf()</a></code> wraps <code>edfReader</code> with consistent
+output formatting:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mrpheus.circadia-lab.uk">mrpheus</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_edf.html">read_edf</a></span><span class="op">(</span><span class="st">"recordings/psg_001.edf"</span><span class="op">)</span></span>
@@ -269,17 +271,16 @@ cross-language LightGBM model that loads identically in R. See
 <span><span class="co">## ...</span></span></code></pre>
 <p>Pass <code>only_header = TRUE</code> to inspect channels without
 loading signal data:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">hdr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_edf.html">read_edf</a></span><span class="op">(</span><span class="st">"recordings/psg_001.edf"</span>, only_header <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<hr>
 </div>
-<div class="section level2">
-<h2 id="preparing-a-recording">Preparing a recording<a class="anchor" aria-label="anchor" href="#preparing-a-recording"></a>
-</h2>
+<div class="section level3">
+<h3 id="preparing-a-recording">Preparing a recording<a class="anchor" aria-label="anchor" href="#preparing-a-recording"></a>
+</h3>
 <p><code><a href="../reference/prepare_psg.html">prepare_psg()</a></code> segments the recording into 30-second
 epochs, classifies channels by type (EEG, EOG, EMG, ECG, RESP), and
 flags flat or bad channels:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">psg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_psg.html">prepare_psg</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
 <span><span class="va">psg</span></span></code></pre></div>
 <pre><code><span><span class="co">## mrpheus PSG</span></span>
@@ -294,101 +295,52 @@ flags flat or bad channels:</p>
 <span><span class="co">## ...</span></span></code></pre>
 <p>Channel classification uses regex patterns which can be
 overridden:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">psg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_psg.html">prepare_psg</a></span><span class="op">(</span><span class="va">rec</span>,</span>
 <span>  eeg_pattern  <span class="op">=</span> <span class="st">"EEG|C3|C4|F3|F4|O1|O2|Fpz|Pz"</span>,</span>
 <span>  resp_pattern <span class="op">=</span> <span class="st">"Thor|Abdo|Flow|SpO2|airflow"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<hr>
 </div>
-<div class="section level2">
-<h2 id="artefact-detection">Artefact detection<a class="anchor" aria-label="anchor" href="#artefact-detection"></a>
-</h2>
+<div class="section level3">
+<h3 id="artefact-detection">Artefact detection<a class="anchor" aria-label="anchor" href="#artefact-detection"></a>
+</h3>
 <p><code><a href="../reference/detect_artifacts.html">detect_artifacts()</a></code> flags epochs with excessive amplitude
 or high-frequency (muscle) contamination:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">art</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_artifacts.html">detect_artifacts</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## ℹ Artefact epochs: 12 / 958 (1.3%)</span></span></code></pre>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Inspect flagged epochs</span></span>
-<span><span class="va">art</span><span class="op">[</span><span class="va">art</span><span class="op">$</span><span class="va">artefact</span>, <span class="op">]</span></span></code></pre></div>
-<pre><code><span><span class="co">## # A tibble: 12 × 5</span></span>
-<span><span class="co">##   epoch artefact reason    peak_to_peak_uv hf_power_db</span></span>
-<span><span class="co">##   &lt;int&gt; &lt;lgl&gt;    &lt;chr&gt;               &lt;dbl&gt;       &lt;dbl&gt;</span></span>
-<span><span class="co">## 1    34 TRUE     amplitude            524.        -18.2</span></span>
-<span><span class="co">## 2    87 TRUE     high_freq            312.          6.4</span></span>
-<span><span class="co">## ...</span></span></code></pre>
-<hr>
 </div>
-<div class="section level2">
-<h2 id="spectral-analysis">Spectral analysis<a class="anchor" aria-label="anchor" href="#spectral-analysis"></a>
-</h2>
 <div class="section level3">
-<h3 id="band-power">Band power<a class="anchor" aria-label="anchor" href="#band-power"></a>
+<h3 id="spectral-analysis">Spectral analysis<a class="anchor" aria-label="anchor" href="#spectral-analysis"></a>
 </h3>
 <p><code><a href="../reference/compute_band_power.html">compute_band_power()</a></code> estimates PSD via Welch’s method
 and integrates within standard EEG bands per epoch per channel:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">bp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_band_power.html">compute_band_power</a></span><span class="op">(</span><span class="va">psg</span>, relative <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">bp</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_band_power.html">compute_band_power</a></span><span class="op">(</span><span class="va">psg</span>, relative <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## # A tibble: 958 × 9</span></span>
 <span><span class="co">##   epoch channel    delta theta alpha sigma  beta gamma total_power</span></span>
 <span><span class="co">##   &lt;int&gt; &lt;chr&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;       &lt;dbl&gt;</span></span>
 <span><span class="co">## 1     1 EEG Fpz-Cz 0.412 0.183 0.142 0.089 0.112 0.062          NA</span></span>
 <span><span class="co">## ...</span></span></code></pre>
-</div>
-<div class="section level3">
-<h3 id="spectrogram">Spectrogram<a class="anchor" aria-label="anchor" href="#spectrogram"></a>
-</h3>
 <p><code><a href="../reference/compute_spectrogram.html">compute_spectrogram()</a></code> returns a time × frequency power
 matrix:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_spectrogram.html">compute_spectrogram</a></span><span class="op">(</span><span class="va">psg</span>, channel <span class="op">=</span> <span class="st">"EEG Fpz-Cz"</span>, db <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">sg</span></span></code></pre></div>
-<pre><code><span><span class="co">## mrpheus spectrogram</span></span>
-<span><span class="co">## ℹ Channel: EEG Fpz-Cz</span></span>
-<span><span class="co">## ℹ Epochs: 958</span></span>
-<span><span class="co">## ℹ Frequency range: 0-40 Hz (161 bins)</span></span>
-<span><span class="co">## ℹ Units: dB</span></span></code></pre>
-<hr>
-</div>
-</div>
-<div class="section level2">
-<h2 id="sleep-event-detection">Sleep event detection<a class="anchor" aria-label="anchor" href="#sleep-event-detection"></a>
-</h2>
-<div class="section level3">
-<h3 id="spindles">Spindles<a class="anchor" aria-label="anchor" href="#spindles"></a>
-</h3>
-<p><code><a href="../reference/compute_spindles.html">compute_spindles()</a></code> detects sleep spindles via RMS
-envelope thresholding in the sigma band (11–16 Hz):</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_spindles.html">compute_spindles</a></span><span class="op">(</span><span class="va">psg</span>, channel <span class="op">=</span> <span class="st">"EEG Fpz-Cz"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## ✔ Detected 312 spindles in channel 'EEG Fpz-Cz'.</span></span></code></pre>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sp</span></span></code></pre></div>
-<pre><code><span><span class="co">## # A tibble: 312 × 7</span></span>
-<span><span class="co">##   epoch start_s end_s duration_s peak_freq_hz rms_uv channel</span></span>
-<span><span class="co">##   &lt;int&gt;   &lt;dbl&gt; &lt;dbl&gt;      &lt;dbl&gt;        &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;</span></span>
-<span><span class="co">## 1   142    4.23  5.11       0.88         13.2    18.4 EEG Fpz-Cz</span></span>
-<span><span class="co">## ...</span></span></code></pre>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_spectrogram.html">compute_spectrogram</a></span><span class="op">(</span><span class="va">psg</span>, channel <span class="op">=</span> <span class="st">"EEG Fpz-Cz"</span>, db <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="slow-oscillations">Slow oscillations<a class="anchor" aria-label="anchor" href="#slow-oscillations"></a>
+<h3 id="sleep-event-detection">Sleep event detection<a class="anchor" aria-label="anchor" href="#sleep-event-detection"></a>
 </h3>
-<p><code><a href="../reference/compute_slow_oscillations.html">compute_slow_oscillations()</a></code> uses zero-crossing detection
-in the delta band (0.5–2 Hz), following Mölle et al. (2002):</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">so</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_slow_oscillations.html">compute_slow_oscillations</a></span><span class="op">(</span><span class="va">psg</span>, channel <span class="op">=</span> <span class="st">"EEG Fpz-Cz"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## ✔ Detected 188 slow oscillations in channel 'EEG Fpz-Cz'.</span></span></code></pre>
-<hr>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_spindles.html">compute_spindles</a></span><span class="op">(</span><span class="va">psg</span>, channel <span class="op">=</span> <span class="st">"EEG Fpz-Cz"</span><span class="op">)</span></span>
+<span><span class="va">so</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_slow_oscillations.html">compute_slow_oscillations</a></span><span class="op">(</span><span class="va">psg</span>, channel <span class="op">=</span> <span class="st">"EEG Fpz-Cz"</span><span class="op">)</span></span></code></pre></div>
 </div>
-</div>
-<div class="section level2">
-<h2 id="automatic-sleep-staging">Automatic sleep staging<a class="anchor" aria-label="anchor" href="#automatic-sleep-staging"></a>
-</h2>
-<p><code><a href="../reference/stage_epochs.html">stage_epochs()</a></code> stages each epoch using the pre-trained
-LightGBM model. Pass the artefact table to exclude flagged epochs:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="section level3">
+<h3 id="automatic-sleep-staging">Automatic sleep staging<a class="anchor" aria-label="anchor" href="#automatic-sleep-staging"></a>
+</h3>
+<p><code><a href="../reference/stage_epochs.html">stage_epochs()</a></code> stages each epoch using a pre-trained
+LightGBM model ported from <a href="https://github.com/raphaelvallat/yasa" class="external-link">YASA</a> (Vallat &amp;
+Walker, 2021):</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">staging</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stage_epochs.html">stage_epochs</a></span><span class="op">(</span></span>
 <span>  <span class="va">psg</span>,</span>
 <span>  eeg_channel <span class="op">=</span> <span class="st">"EEG Fpz-Cz"</span>,</span>
@@ -407,22 +359,11 @@ LightGBM model. Pass the artefact table to exclude flagged epochs:</p>
 <p>Stages follow AASM nomenclature: <code>W</code>, <code>N1</code>,
 <code>N2</code>, <code>N3</code>, <code>REM</code>. Artefact epochs are
 coded <code>NA</code>.</p>
-<blockquote>
-<p><strong>Note:</strong> <code><a href="../reference/stage_epochs.html">stage_epochs()</a></code> requires the
-staging model at <code>inst/models/yasa_staging.txt</code>. Feature
-parity with YASA’s Python pipeline is still being validated — see the
-source of <code>.extract_staging_features()</code> for the current
-implementation status.</p>
-</blockquote>
-<hr>
 </div>
-<div class="section level2">
-<h2 id="exporting-to-hypnor">Exporting to hypnor<a class="anchor" aria-label="anchor" href="#exporting-to-hypnor"></a>
-</h2>
-<p><code><a href="../reference/export_hypnogram.html">export_hypnogram()</a></code> converts the staging output into a
-<code>hypnor_hypnogram</code> object for downstream architecture
-analysis:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="section level3">
+<h3 id="exporting-to-hypnor">Exporting to hypnor<a class="anchor" aria-label="anchor" href="#exporting-to-hypnor"></a>
+</h3>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">hypnogram</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/export_hypnogram.html">export_hypnogram</a></span><span class="op">(</span></span>
 <span>  <span class="va">staging</span>,</span>
 <span>  epoch_s        <span class="op">=</span> <span class="fl">30</span>,</span>
@@ -430,38 +371,51 @@ analysis:</p>
 <span>  participant_id <span class="op">=</span> <span class="st">"P001"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># hypnor functions now work directly on the hypnogram</span></span>
 <span><span class="fu">hypnor</span><span class="fu">::</span><span class="fu">plot_hypnogram</span><span class="op">(</span><span class="va">hypnogram</span><span class="op">)</span></span>
 <span><span class="fu">hypnor</span><span class="fu">::</span><span class="fu">compute_architecture</span><span class="op">(</span><span class="va">hypnogram</span><span class="op">)</span></span></code></pre></div>
-<hr>
 </div>
-<div class="section level2">
-<h2 id="full-pipeline">Full pipeline<a class="anchor" aria-label="anchor" href="#full-pipeline"></a>
-</h2>
-<p>Putting it all together:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="section level3">
+<h3 id="full-psg-pipeline">Full PSG pipeline<a class="anchor" aria-label="anchor" href="#full-psg-pipeline"></a>
+</h3>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mrpheus.circadia-lab.uk">mrpheus</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 1. Ingest</span></span>
 <span><span class="va">rec</span>      <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_edf.html">read_edf</a></span><span class="op">(</span><span class="st">"recordings/psg_001.edf"</span><span class="op">)</span></span>
 <span><span class="va">psg</span>      <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_psg.html">prepare_psg</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 2. Quality</span></span>
 <span><span class="va">art</span>      <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_artifacts.html">detect_artifacts</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 3. Spectral</span></span>
 <span><span class="va">bp</span>       <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_band_power.html">compute_band_power</a></span><span class="op">(</span><span class="va">psg</span>, relative <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">sg</span>       <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_spectrogram.html">compute_spectrogram</a></span><span class="op">(</span><span class="va">psg</span>, channel <span class="op">=</span> <span class="st">"EEG Fpz-Cz"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 4. Events</span></span>
 <span><span class="va">sp</span>       <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_spindles.html">compute_spindles</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
 <span><span class="va">so</span>       <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_slow_oscillations.html">compute_slow_oscillations</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 5. Stage</span></span>
 <span><span class="va">staging</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stage_epochs.html">stage_epochs</a></span><span class="op">(</span><span class="va">psg</span>, artefacts <span class="op">=</span> <span class="va">art</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 6. Hand off</span></span>
 <span><span class="va">hypnogram</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/export_hypnogram.html">export_hypnogram</a></span><span class="op">(</span><span class="va">staging</span>, start_time <span class="op">=</span> <span class="va">rec</span><span class="op">$</span><span class="va">header</span><span class="op">$</span><span class="va">startTime</span><span class="op">)</span></span></code></pre></div>
+<hr>
+</div>
+</div>
+<div class="section level2">
+<h2 id="mri-physiology-pipeline">MRI physiology pipeline<a class="anchor" aria-label="anchor" href="#mri-physiology-pipeline"></a>
+</h2>
+<p>For recordings acquired alongside fMRI, mrpheus reads Philips PMU
+<code>.log</code> files and runs Pan-Tompkins QRS detection to produce
+cardiac regressors.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Read Philips PMU log (wBTU wireless VCG system, 496 Hz)</span></span>
+<span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_philips_physlog.html">read_philips_physlog</a></span><span class="op">(</span><span class="st">"sub-01_ses-01_physlog.log"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Detect QRS complexes</span></span>
+<span><span class="va">qrs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_qrs.html">detect_qrs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">rec</span><span class="op">$</span><span class="va">C</span><span class="op">[</span>, <span class="st">"v1raw"</span><span class="op">]</span><span class="op">)</span>, fs <span class="op">=</span> <span class="va">rec</span><span class="op">$</span><span class="va">HDR</span><span class="op">$</span><span class="va">sfreq</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Instantaneous HR signal</span></span>
+<span><span class="va">hr</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_hr_signal.html">compute_hr_signal</a></span><span class="op">(</span><span class="va">qrs</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># RR intervals per TR for BOLD regression</span></span>
+<span><span class="va">rr_tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/approxfun.html" class="external-link">approx</a></span><span class="op">(</span></span>
+<span>  x      <span class="op">=</span> <span class="va">qrs</span><span class="op">$</span><span class="va">qrs_i</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span> <span class="op">/</span> <span class="va">rec</span><span class="op">$</span><span class="va">HDR</span><span class="op">$</span><span class="va">sfreq</span>,</span>
+<span>  y      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff</a></span><span class="op">(</span><span class="va">qrs</span><span class="op">$</span><span class="va">qrs_i</span><span class="op">)</span> <span class="op">/</span> <span class="va">rec</span><span class="op">$</span><span class="va">HDR</span><span class="op">$</span><span class="va">sfreq</span>,</span>
+<span>  xout   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">n_vols</span> <span class="op">*</span> <span class="va">TR</span>, by <span class="op">=</span> <span class="va">TR</span><span class="op">)</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"constant"</span></span>
+<span><span class="op">)</span><span class="op">$</span><span class="va">y</span></span></code></pre></div>
+<p>See <code><a href="../articles/mri-physiology.html">vignette("mri-physiology")</a></code> for the full workflow
+including scan-window alignment and RR-per-TR computation.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -474,6 +428,8 @@ e70092. <a href="https://doi.org/10.7554/eLife.70092" class="external-link uri">
 spindle activity during slow oscillations in human non-rapid eye
 movement sleep. <em>Journal of Neuroscience</em>, 22(24),
 10941–10947.</p>
+<p>Pan J, Tompkins WJ. (1985). A real-time QRS detection algorithm.
+<em>IEEE Trans Biomed Eng</em>, 32(3):230–236. <a href="https://doi.org/10.1109/TBME.1985.325532" class="external-link uri">https://doi.org/10.1109/TBME.1985.325532</a></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

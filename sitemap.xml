@@ -4,11 +4,13 @@
 <url><loc>https://mrpheus.circadia-lab.uk/LICENSE.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/articles/getting-started.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/articles/index.html</loc></url>
+<url><loc>https://mrpheus.circadia-lab.uk/articles/mri-physiology.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/authors.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/index.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/news/index.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/compute_ahi.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/compute_band_power.html</loc></url>
+<url><loc>https://mrpheus.circadia-lab.uk/reference/compute_hr_signal.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/compute_hrv_sleep.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/compute_odi.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/compute_slow_oscillations.html</loc></url>
@@ -16,12 +18,14 @@
 <url><loc>https://mrpheus.circadia-lab.uk/reference/compute_spindles.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/detect_apneas.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/detect_artifacts.html</loc></url>
+<url><loc>https://mrpheus.circadia-lab.uk/reference/detect_qrs.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/export_hypnogram.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/index.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/mrpheus-package.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/palette_orpheus.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/prepare_psg.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/read_edf.html</loc></url>
+<url><loc>https://mrpheus.circadia-lab.uk/reference/read_philips_physlog.html</loc></url>
 <url><loc>https://mrpheus.circadia-lab.uk/reference/stage_epochs.html</loc></url>
 </urlset>
 

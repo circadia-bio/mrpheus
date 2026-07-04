@@ -95,7 +95,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mrpheus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -108,6 +108,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with mrpheus</a></li>
+    <li><a class="dropdown-item" href="../articles/mri-physiology.html">MRI physiological signal processing</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-news" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">News</button>
@@ -284,6 +285,36 @@
         </dt>
         <dd>Compute HRV metrics across sleep stages</dd>
       </dl></div><div class="section level2">
+      <h2 id="mri-physiology">MRI physiology<a class="anchor" aria-label="anchor" href="#mri-physiology"></a></h2>
+
+      <div class="section-desc"><p>Philips PMU physiological log processing and cardiac signal analysis.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="read_philips_physlog.html">read_philips_physlog()</a></code>
+
+        </dt>
+        <dd>Read a Philips MRI Physiological Log File</dd>
+
+        <dt>
+
+          <code><a href="detect_qrs.html">detect_qrs()</a></code>
+
+        </dt>
+        <dd>Detect QRS Complexes in an ECG Signal (Pan-Tompkins Algorithm)</dd>
+
+        <dt>
+
+          <code><a href="compute_hr_signal.html">compute_hr_signal()</a></code>
+
+        </dt>
+        <dd>Compute Instantaneous Heart Rate from R-Peak Indices</dd>
+      </dl></div><div class="section level2">
       <h2 id="data">Data<a class="anchor" aria-label="anchor" href="#data"></a></h2>
 
       <div class="section-desc"><p>Bundled datasets and palettes.</p></div>
@@ -314,7 +345,7 @@
           <code><a href="mrpheus-package.html">mrpheus</a></code> <code><a href="mrpheus-package.html">mrpheus-package</a></code>
 
         </dt>
-        <dd>mrpheus: Polysomnography Signal Analysis for Sleep Research</dd>
+        <dd>mrpheus: Raw Physiological Signal Analysis for Biological Rhythms Research</dd>
       </dl></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
