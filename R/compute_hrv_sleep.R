@@ -43,7 +43,7 @@ compute_hrv_sleep <- function(psg,
   }
 
   cli::cli_alert_warning(
-    "`compute_hrv_sleep()` is a stub. Full R-peak detection implementation pending."
+    "`compute_hrv_sleep()` is a stub. Wire in `detect_qrs()` to complete implementation."
   )
 
   tibble::tibble(

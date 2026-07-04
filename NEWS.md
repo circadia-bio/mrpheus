@@ -1,3 +1,34 @@
+# mrpheus 0.1.1
+
+### Scope
+
+* Package reframed from PSG-only to **raw physiological signal analysis for
+  biological rhythms research**, encompassing PSG, MRI-concurrent physiology,
+  and EEG.
+* DESCRIPTION, README, pkgdown site, and vignettes updated accordingly.
+
+### New functions
+
+* `read_philips_physlog()` — reads Philips PMU `.log` files (wBTU wireless
+  VCG, wired ECG, or custom sampling rate). Returns a `mrpheus_physlog`
+  S3 object with signal matrix, event markers, and header metadata.
+* `detect_qrs()` — Pan-Tompkins QRS detector (Pan & Tompkins, 1985).
+  Bandpass filter → derivative → squaring → 150 ms moving average →
+  adaptive dual-threshold with T-wave rejection and search-back.
+  Returns a `mrpheus_qrs` S3 object.
+* `compute_hr_signal()` — converts R-peak indices to a sample-by-sample
+  instantaneous heart rate trace (bpm).
+
+### Other changes
+
+* Staging model (`inst/models/yasa_staging.txt`) is now bundled with the
+  package — no Python setup required after installation.
+* `data-raw/fetch_yasa_model.py` updated for YASA 0.7.0.
+* New vignette: *MRI physiological signal processing*.
+* New test suite: `test-read_philips_physlog.R`, `test-detect_qrs.R`,
+  `test-compute_hr_signal.R` with MATLAB bit-perfect fixture comparison.
+* `boldR` added to ecosystem table in docs and vignettes.
+
 # mrpheus 0.1.0
 
 * Initial release. Package scaffolded with full PSG analysis pipeline.
