@@ -1,3 +1,8 @@
+# read_philips_physlog.R
+# R port of ReadPhilipsScanPhysLog.m
+# Copyright (c) 2020 Paul F.C. Groot, Amsterdam UMC — BSD 3-Clause License
+# See inst/licenses/ReadPhilipsScanPhysLog-LICENSE.txt
+
 #' Read a Philips MRI Physiological Log File
 #'
 #' Reads a Philips PMU physiological log (`.log`) file recorded alongside an

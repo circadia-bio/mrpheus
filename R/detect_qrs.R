@@ -1,3 +1,7 @@
+# detect_qrs.R
+# R port of pan_tompkin.m (Hooman Sedghamiz, Linköping University, 2018)
+# See inst/licenses/pan_tompkin-LICENSE.txt
+
 #' Detect QRS Complexes in an ECG Signal (Pan-Tompkins Algorithm)
 #'
 #' Detects R-peaks in a raw ECG signal using the Pan-Tompkins algorithm.
