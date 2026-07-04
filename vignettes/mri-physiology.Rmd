@@ -1,0 +1,248 @@
+---
+title: "MRI physiological signal processing"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{MRI physiological signal processing}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  eval     = FALSE
+)
+```
+
+Philips MRI scanners record cardiac, respiratory, and motion signals
+alongside the BOLD acquisition via the Physiological Monitoring Unit (PMU).
+mrpheus can read these `.log` files, detect QRS complexes with the
+Pan-Tompkins algorithm, and compute instantaneous heart rate — producing
+cardiac regressors ready for RETROICOR or HRV analysis.
+
+---
+
+## Reading a Philips PMU log
+
+`read_philips_physlog()` parses any Philips PMU `.log` file and returns a
+`mrpheus_physlog` object containing the signal matrix, event markers, and
+recording metadata.
+
+```r
+library(mrpheus)
+
+rec <- read_philips_physlog("sub-01_ses-01_physlog.log")
+rec
+```
+
+```
+## mrpheus Philips PMU recording
+## ℹ Path:     sub-01_ses-01_physlog.log
+## ℹ System:   wBTU (496 Hz)
+## ℹ Channels: v1raw, v2raw, v1, v2, ppu, resp, gx, gy, gz, mark
+## ℹ Samples:  4497024 (151.2 min)
+## ℹ Markers:  2312 events
+```
+
+The `system` argument sets the hardware preset:
+
+```r
+# Wireless VCG (Achieva/Ingenia dStream) — default
+rec <- read_philips_physlog("sub-01_physlog.log", system = "wBTU")
+
+# Older wired ECG system
+rec <- read_philips_physlog("sub-01_physlog.log", system = "wired")
+
+# Site-specific sampling rate
+rec <- read_philips_physlog("sub-01_physlog.log", system = "custom", sfreq = 400)
+```
+
+The resolved sampling frequency is always available at `rec$HDR$sfreq` so
+nothing downstream needs to hardcode it.
+
+### Signal channels
+
+The wBTU layout provides ten channels:
+
+| Channel | Contents |
+|---|---|
+| `v1raw`, `v2raw` | Raw VCG electrode voltages |
+| `v1`, `v2` | Processed VCG signals |
+| `ppu` | Peripheral pulse unit (photoplethysmography, foot) |
+| `resp` | Respiratory belt |
+| `gx`, `gy`, `gz` | 3-axis accelerometer |
+| `mark` | Bit-encoded event marker |
+
+```r
+# Access signal matrix
+head(rec$C)
+
+# Individual channels by name
+ecg  <- rec$C[, "v1raw"]
+ppu  <- rec$C[, "ppu"]
+resp <- rec$C[, "resp"]
+```
+
+### Event markers
+
+The `I` element holds 1-based sample indices for each event type:
+
+```r
+# Scanner start and stop
+rec$I$ScannerStart
+rec$I$ScannerStop
+
+# ECG and PPU triggers
+rec$I$VcgOnset
+rec$I$PpuOnset
+```
+
+These are used to align the physiological recording to the fMRI acquisition
+window (see [Epoch extraction] below).
+
+---
+
+## QRS detection
+
+`detect_qrs()` implements the Pan-Tompkins (1985) algorithm on any ECG
+channel and returns a `mrpheus_qrs` object.
+
+```r
+qrs <- detect_qrs(rec$C[, "v1raw"], fs = rec$HDR$sfreq)
+qrs
+```
+
+```
+## mrpheus QRS detection
+## ℹ R-peaks detected: 11 432
+## ℹ Mean HR:          148 bpm
+## ℹ Filter delay:     37 samples (0.075 s)
+## ℹ Sampling rate:    496 Hz
+```
+
+The algorithm processes the signal in five stages: bandpass filtering
+(5–15 Hz), derivative, squaring, 150 ms moving-average integration, and
+an adaptive dual-threshold loop with T-wave rejection and search-back for
+missed beats.
+
+R-peak indices are stored in `qrs$qrs_i` (1-based, relative to the
+bandpass-filtered signal). Account for `qrs$delay` if you need indices
+aligned to the raw ECG.
+
+### PPU as an alternative
+
+In neonates, PPU often gives a cleaner signal than the ECG electrodes.
+`detect_qrs()` accepts any pulsatile channel:
+
+```r
+qrs_ppu <- detect_qrs(rec$C[, "ppu"], fs = rec$HDR$sfreq)
+```
+
+---
+
+## Heart rate signal
+
+`compute_hr_signal()` converts R-peak indices into a sample-by-sample
+instantaneous HR trace (beats per minute):
+
+```r
+hr <- compute_hr_signal(qrs)
+```
+
+The function accepts a `mrpheus_qrs` object directly and reads `fs`
+from it automatically.
+
+---
+
+## Epoch extraction
+
+To extract the physiology epoch aligned to the fMRI scan, use the
+scanner-stop marker. This is more reliable than the start marker because
+the exact recording onset varies but the stop is always clean:
+
+```r
+sfreq    <- rec$HDR$sfreq
+enddelay <- 42       # site-specific: samples between stop marker and scan end
+tr       <- 0.392    # fMRI TR in seconds (dHCP neonatal protocol)
+vols     <- 2300     # number of volumes
+
+stopidx  <- tail(rec$I$ScannerStop, 1) - enddelay
+startidx <- stopidx - round(vols * tr * sfreq)
+
+epoch    <- rec$C[startidx:stopidx, ]   # aligned signal matrix
+```
+
+### RR intervals per TR
+
+To get one RR value per volume (for use as a BOLD regressor):
+
+```r
+# QRS on epoch only
+qrs_epoch <- detect_qrs(epoch[, "v1raw"], fs = sfreq)
+
+# RR intervals (seconds) at each R-peak
+rr_s <- diff(qrs_epoch$qrs_i) / sfreq
+rr_t <- qrs_epoch$qrs_i[-1] / sfreq
+
+# Interpolate to TR grid
+tr_times <- seq(0, vols * tr, by = tr)
+rr_tr    <- approx(rr_t, rr_s, xout = tr_times, method = "constant")$y
+```
+
+`rr_tr` is a length-`vols` vector ready for inclusion as a nuisance regressor
+in a GLM, or as input to RETROICOR phase computation.
+
+---
+
+## HRV across sleep stages
+
+For recordings that include a sleep session alongside fMRI, `detect_qrs()`
+provides the R-peak input for `compute_hrv_sleep()` once that function is
+fully implemented. The stub currently returns `NA` for all metrics — watch
+this space.
+
+---
+
+## Full pipeline
+
+```r
+library(mrpheus)
+
+# 1. Read
+rec <- read_philips_physlog("sub-01_ses-01_physlog.log")
+
+# 2. Extract scan epoch
+sfreq    <- rec$HDR$sfreq
+stopidx  <- tail(rec$I$ScannerStop, 1) - 42
+startidx <- stopidx - round(2300 * 0.392 * sfreq)
+epoch    <- rec$C[startidx:stopidx, ]
+
+# 3. QRS detection
+qrs <- detect_qrs(epoch[, "v1raw"], fs = sfreq)
+
+# 4. HR signal
+hr  <- compute_hr_signal(qrs)
+
+# 5. RR per TR for BOLD regression
+rr_tr <- approx(
+  x      = qrs$qrs_i[-1] / sfreq,
+  y      = diff(qrs$qrs_i) / sfreq,
+  xout   = seq(0, 2300 * 0.392, by = 0.392),
+  method = "constant"
+)$y
+```
+
+---
+
+## References
+
+Pan J, Tompkins WJ. A real-time QRS detection algorithm.
+*IEEE Trans Biomed Eng.* 1985;32(3):230–236.
+<https://doi.org/10.1109/TBME.1985.325532>
+
+Groot PFC. *ReadPhilipsScanPhysLog* (MATLAB). AMC Amsterdam. 2010.
+
+Glover GH, Li TQ, Ress D. Image-based method for retrospective correction of
+physiological motion effects in fMRI: RETROICOR. *Magn Reson Med.*
+2000;44(1):162–167.

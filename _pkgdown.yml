@@ -212,6 +212,13 @@ reference:
     contents:
       - compute_hrv_sleep
 
+  - title: "MRI physiology"
+    desc: "Philips PMU physiological log processing and cardiac signal analysis."
+    contents:
+      - read_philips_physlog
+      - detect_qrs
+      - compute_hr_signal
+
   - title: "Data"
     desc: "Bundled datasets and palettes."
     contents:
@@ -227,6 +234,10 @@ articles:
     navbar: ~
     contents:
       - getting-started
+  - title: "Workflows"
+    navbar: ~
+    contents:
+      - mri-physiology
 
 news:
   releases:
