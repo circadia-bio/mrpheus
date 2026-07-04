@@ -10,7 +10,9 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment  = "#>"
+  comment  = "#>",
+  fig.width  = 7,
+  fig.height = 3.5
 )
 ```
 
@@ -20,8 +22,22 @@ mrpheus can read these `.log` files, detect QRS complexes with the
 Pan-Tompkins algorithm, and compute instantaneous heart rate — producing
 cardiac regressors ready for RETROICOR or HRV analysis.
 
-```{r libs}
+```{r libs, message = FALSE}
 library(mrpheus)
+library(ggplot2)
+library(gsignal)
+```
+
+```{r theme, include = FALSE}
+theme_mri <- function() {
+  theme_minimal(base_size = 13) +
+    theme(
+      panel.grid        = element_blank(),
+      axis.line         = element_line(colour = "black"),
+      axis.line.x.top   = element_blank(),
+      axis.line.y.right = element_blank()
+    )
+}
 ```
 
 ---
@@ -57,11 +73,6 @@ downstream needs to hardcode it.
 ### Signal channels
 
 ```{r channels}
-# Signal matrix: samples x channels
-dim(rec$C)
-colnames(rec$C)
-
-# Individual channels
 ecg  <- as.double(rec$C[, "v1raw"])
 ppu  <- as.double(rec$C[, "ppu"])
 resp <- as.double(rec$C[, "resp"])
@@ -78,14 +89,31 @@ The wBTU layout provides ten channels:
 | `gx`, `gy`, `gz` | 3-axis accelerometer |
 | `mark` | Bit-encoded event marker |
 
+```{r plot-signals, fig.height = 5, echo = FALSE}
+sfreq <- rec$HDR$sfreq
+t     <- seq_along(ecg) / sfreq
+
+df_signals <- data.frame(
+  t       = rep(t, 3),
+  value   = c(ecg, ppu, resp),
+  channel = rep(c("ECG (v1raw)", "PPU", "RESP"), each = length(t))
+)
+df_signals$channel <- factor(df_signals$channel,
+                              levels = c("ECG (v1raw)", "PPU", "RESP"))
+
+ggplot(df_signals, aes(t, value)) +
+  geom_line(linewidth = 0.3, colour = "#014370") +
+  facet_wrap(~channel, ncol = 1, scales = "free_y") +
+  labs(x = "Time (s)", y = "Amplitude (a.u.)") +
+  theme_mri() +
+  theme(strip.text = element_text(face = "bold", size = 11))
+```
+
 ### Event markers
 
 ```{r markers}
-# Scanner timing
 rec$I$ScannerStart
 rec$I$ScannerStop
-
-# ECG triggers logged by the scanner
 head(rec$I$VcgOnset)
 ```
 
@@ -104,8 +132,24 @@ qrs
 R-peak indices are in `qrs$qrs_i`. Account for `qrs$delay` if you need
 indices aligned to the raw (pre-filter) ECG.
 
+```{r plot-peaks, echo = FALSE}
+bp     <- gsignal::butter(3L, c(5, 15) * 2 / sfreq, type = "pass")
+ecg_bp <- as.double(gsignal::filtfilt(bp, ecg))
+
+df_bp <- data.frame(t = t, ecg = ecg_bp)
+df_rpeaks <- data.frame(t = qrs$qrs_i / sfreq, amp = qrs$qrs_amp)
+
+ggplot(df_bp, aes(t, ecg)) +
+  geom_line(linewidth = 0.3, colour = "#1B6799") +
+  geom_point(data = df_rpeaks, aes(x = t, y = amp),
+             colour = "#FC544A", size = 2, shape = 21,
+             fill = "#FC544A", alpha = 0.85) +
+  labs(x = "Time (s)", y = "Amplitude (normalised)",
+       title = "Bandpass ECG with detected R-peaks") +
+  theme_mri()
+```
+
 ```{r rr}
-# RR intervals (ms)
 rr_ms <- diff(qrs$qrs_i) / rec$HDR$sfreq * 1000
 cat("Mean RR :", round(mean(rr_ms)), "ms\n")
 cat("SDNN    :", round(sd(rr_ms)), "ms\n")
@@ -130,7 +174,16 @@ directly:
 
 ```{r hr}
 hr <- compute_hr_signal(qrs)
-cat("HR range:", round(min(hr[hr > 0])), "–", round(max(hr)), "bpm\n")
+```
+
+```{r plot-hr, echo = FALSE}
+df_hr <- data.frame(t = seq_along(hr) / sfreq, hr = hr)
+
+ggplot(subset(df_hr, hr > 0), aes(t, hr)) +
+  geom_line(linewidth = 0.4, colour = "#FFA75D") +
+  labs(x = "Time (s)", y = "Heart rate (bpm)",
+       title = "Instantaneous heart rate") +
+  theme_mri()
 ```
 
 ---
@@ -143,15 +196,13 @@ recording onset varies but the stop is always clean:
 
 ```{r epoch}
 sfreq    <- rec$HDR$sfreq
-enddelay <- 42L       # samples between stop marker and scan end (site-specific)
-tr       <- 0.392     # fMRI TR in seconds
-vols     <- 47L       # number of volumes (adjusted for 20 s example)
+enddelay <- 42L
+tr       <- 0.392
+vols     <- 47L
 
 stopidx  <- tail(rec$I$ScannerStop, 1L) - enddelay
-startidx <- stopidx - round(vols * tr * sfreq)
-startidx <- max(1L, startidx)
-
-epoch <- rec$C[startidx:stopidx, ]
+startidx <- max(1L, stopidx - round(vols * tr * sfreq))
+epoch    <- rec$C[startidx:stopidx, ]
 cat("Epoch:", nrow(epoch), "samples /", round(nrow(epoch) / sfreq, 1), "s\n")
 ```
 
@@ -179,23 +230,14 @@ inclusion as a nuisance regressor in a GLM.
 ```{r pipeline, eval = FALSE}
 library(mrpheus)
 
-# 1. Read
-rec <- read_philips_physlog("sub-01_ses-01_physlog.log")
-
-# 2. Extract scan epoch
+rec      <- read_philips_physlog("sub-01_ses-01_physlog.log")
 sfreq    <- rec$HDR$sfreq
 stopidx  <- tail(rec$I$ScannerStop, 1L) - 42L
 startidx <- stopidx - round(2300L * 0.392 * sfreq)
 epoch    <- rec$C[startidx:stopidx, ]
-
-# 3. QRS detection
-qrs <- detect_qrs(as.double(epoch[, "v1raw"]), fs = sfreq)
-
-# 4. HR signal
-hr <- compute_hr_signal(qrs)
-
-# 5. RR per TR for BOLD regression
-rr_tr <- approx(
+qrs      <- detect_qrs(as.double(epoch[, "v1raw"]), fs = sfreq)
+hr       <- compute_hr_signal(qrs)
+rr_tr    <- approx(
   x      = qrs$qrs_i[-1] / sfreq,
   y      = diff(qrs$qrs_i) / sfreq,
   xout   = seq(0, 2300 * 0.392, by = 0.392),
