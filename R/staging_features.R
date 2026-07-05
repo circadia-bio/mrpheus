@@ -79,6 +79,40 @@
 
 # ── Spectral helpers ──────────────────────────────────────────────────────────
 
+# Composite Simpson's rule matching scipy.integrate.simpson.
+# - Odd  N: standard 1/3 rule.
+# - Even N: scipy 1.11+ approach — standard 1/3 on first N-3 points,
+#            Simpson's 3/8 rule on the last 4 points.
+.scipy_simpson <- function(y, dx) {
+  N <- length(y)
+  if (N < 2L) return(0)
+  if (N == 2L) return(dx * (y[1L] + y[2L]) / 2)   # degenerate: trapezoid
+
+  if (N %% 2L == 1L) {
+    # Odd N: standard composite 1/3 rule
+    # coefficients: 1 4 2 4 2 ... 4 1
+    coef      <- rep(2, N)
+    coef[seq(2L, N - 1L, by = 2L)] <- 4
+    coef[c(1L, N)] <- 1
+    return(dx / 3 * sum(coef * y))
+  } else {
+    # Even N: standard 1/3 on first N-3 points (odd count) +
+    #          3/8 rule on last 4 points
+    n_std   <- N - 3L
+    s_total <- 0
+
+    if (n_std >= 3L) {
+      coef <- rep(2, n_std)
+      coef[seq(2L, n_std - 1L, by = 2L)] <- 4
+      coef[c(1L, n_std)] <- 1
+      s_total <- dx / 3 * sum(coef * y[seq_len(n_std)])
+    }
+
+    # Simpson's 3/8 on last 4 points
+    s_total + 3 * dx / 8 * (y[N - 3L] + 3 * y[N - 2L] + 3 * y[N - 1L] + y[N])
+  }
+}
+
 # Bias correction factor for the median of a chi-squared distribution.
 # scipy.signal.welch(average='median') divides by this before returning.
 # Matches scipy.signal.spectral._median_bias(n).
@@ -117,22 +151,30 @@
 
 # Compute Welch PSD and return named vector of band features:
 # sdelta, fdelta, theta, alpha, sigma, beta (relative) + abspow.
-# Matches YASA: 5-second Hamming window, median averaging, abspow = trapz over freq_broad.
+# Matches YASA: 5-second Hamming window, median averaging.
+# Band powers: relative, computed via bandpower_from_psd_ndarray (simpson, inclusive bounds).
+# abspow: trapezoid over freq_broad (matches YASA's separate trapezoid call).
 .spectral_features <- function(sig, sr) {
   win <- as.integer(5L * sr)
   psd <- .welch_median_psd(sig, sr, win_n = win)
+  dx  <- psd$freq[2L] - psd$freq[1L]   # frequency resolution
 
+  # Band powers via Simpson's integration with INCLUSIVE upper bound.
+  # Matches YASA's bandpower_from_psd_ndarray (freqs >= b0 & freqs <= b1).
   bp <- vapply(.STAGING_BANDS, function(b) {
-    idx <- psd$freq >= b[1] & psd$freq < b[2]
+    idx <- psd$freq >= b[1] & psd$freq <= b[2]   # inclusive
     if (!any(idx)) return(NA_real_)
-    pracma::trapz(psd$freq[idx], psd$spec[idx])
+    .scipy_simpson(psd$spec[idx], dx)
   }, numeric(1))
 
-  total_bp  <- sum(bp, na.rm = TRUE)
-  rel       <- bp / total_bp
+  # Total power: Simpson's over full freq_broad range (denominator for relative powers).
+  # Matches YASA's: total_power = simpson(psd_trimmed, dx=res)
+  idx_broad_full <- psd$freq >= .FREQ_BROAD[1] & psd$freq <= .FREQ_BROAD[2]
+  total_power    <- .scipy_simpson(psd$spec[idx_broad_full], dx)
+  rel            <- bp / total_power
 
-  idx_broad <- psd$freq >= .FREQ_BROAD[1] & psd$freq <= .FREQ_BROAD[2]
-  abspow    <- pracma::trapz(psd$freq[idx_broad], psd$spec[idx_broad])
+  # abspow: trapezoid over freq_broad, matching YASA's separate trapezoid call
+  abspow <- pracma::trapz(psd$freq[idx_broad_full], psd$spec[idx_broad_full])
 
   c(rel, abspow = abspow)
 }
