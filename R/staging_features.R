@@ -38,9 +38,18 @@
 
 # ── Spectral helpers ──────────────────────────────────────────────────────────
 
-# Compute Welch PSD with median averaging over segments.
-# Matches YASA/scipy.signal.welch(average='median'), which is robust to
-# transient artifacts — critical for EOG/EMG channels.
+# Bias correction factor for the median of a chi-squared distribution.
+# scipy.signal.welch(average='median') divides by this before returning.
+# Matches scipy.signal.spectral._median_bias(n).
+.median_bias <- function(n) {
+  n_half <- (n - 1L) %/% 2L
+  if (n_half < 1L) return(1)
+  ii_2 <- 2 * seq_len(n_half)      # 2*[1, 2, ..., (n-1)//2]
+  1 + sum(1 / (ii_2 + 1) - 1 / ii_2)
+}
+
+# Compute Welch PSD with bias-corrected median averaging over segments.
+# Matches YASA/scipy.signal.welch(average='median').
 .welch_median_psd <- function(sig, sr, win_n, overlap = 0.5) {
   wvec   <- gsignal::hamming(win_n)
   hop    <- max(1L, as.integer(win_n * (1 - overlap)))
@@ -51,7 +60,7 @@
   if (length(starts) == 0L)
     return(list(freq = freqs, spec = rep(NA_real_, n_freq)))
 
-  # Normalisation: sum(win^2) * fs  (matches scipy one-sided PSD)
+  # Normalisation: sum(win^2) * fs  (matches scipy one-sided PSD scaling)
   scale <- sum(wvec ^ 2) * sr
 
   pgrams <- vapply(starts, function(s) {
@@ -61,7 +70,10 @@
     psd
   }, numeric(n_freq))
 
-  list(freq = freqs, spec = apply(pgrams, 1L, stats::median))
+  # Bias-corrected median (scipy divides raw median by _median_bias)
+  bias    <- .median_bias(length(starts))
+  psd_med <- apply(pgrams, 1L, stats::median) / bias
+  list(freq = freqs, spec = psd_med)
 }
 
 # Compute Welch PSD and return named vector of band features:
