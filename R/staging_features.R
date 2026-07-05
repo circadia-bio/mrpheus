@@ -225,7 +225,9 @@
     rep(seq_len(win_n), n_segs) + rep((starts - 1L), each = win_n),
     nrow = win_n
   )
-  seg_mat <- matrix(sig[idx_mat] * wvec, nrow = win_n)  # apply Hamming window
+  seg_mat <- matrix(sig[idx_mat], nrow = win_n)
+  # Detrend each segment by subtracting its mean — matches scipy detrend='constant'
+  seg_mat <- sweep(seg_mat, 2L, colMeans(seg_mat), "-") * wvec
 
   # Batch FFT: one C call for all segments, keep one-sided frequencies
   ft_mat  <- mvfft(seg_mat)[seq_len(n_freq), , drop = FALSE]
