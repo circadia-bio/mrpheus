@@ -77,6 +77,83 @@
   .filtfilt_fir(b, sig)
 }
 
+# ── MNE-equivalent FFT resampling ────────────────────────────────────────────────────────
+# Matches mne.filter.resample(x, up=up, down=1, npad='auto', method='fft', pad='auto').
+# Called by YASA as raw_pick.resample(100, npad='auto').
+#
+# Algorithm (from MNE _resample_fft + _smart_pad):
+#  1. npad='auto': pad signal to the next power of 2 (makes both FFTs fast)
+#  2. reflect_limited padding at each end
+#  3. FFT; scale all bins by new_len/orig_len (boxcar window = no windowing)
+#  4. Halve the Nyquist bin (upsampling, shorter=FALSE)
+#  5. Zero-pad in the frequency domain to new_len (= ideal sinc interpolation)
+#  6. IFFT then trim the padding back off
+
+# MNE _smart_pad with pad='reflect_limited':
+#   Odd reflection limited to the signal length, zero-padded if npad > len(x)-1.
+.mne_smart_pad <- function(x, n_pad) {
+  nx    <- length(x)
+  l     <- n_pad[1L]
+  r     <- n_pad[2L]
+  l_lim <- min(l, nx - 1L)
+  r_lim <- min(r, nx - 1L)
+  c(
+    rep(0.0, max(l - nx + 1L, 0L)),             # left zero-pad (rarely needed)
+    if (l_lim > 0L) 2.0 * x[1L] - x[seq.int(l_lim + 1L, 2L, by = -1L)] else NULL,
+    x,
+    if (r_lim > 0L) 2.0 * x[nx] - x[seq.int(nx - 1L, nx - r_lim, by = -1L)] else NULL,
+    rep(0.0, max(r - nx + 1L, 0L))              # right zero-pad
+  )
+}
+
+.mne_fft_resample <- function(x, up) {
+  ratio     <- as.double(up)
+  x_len     <- length(x)
+  final_len <- as.integer(round(x_len * ratio))
+
+  # npad='auto': pad to next power of 2 for fast FFTs
+  min_add    <- min(x_len %/% 8L, 100L) * 2L
+  n_total    <- 2L ^ ceiling(log2(x_len + min_add))
+  npad_total <- n_total - x_len
+  npad_left  <- npad_total %/% 2L
+  npad_right <- npad_total - npad_left
+  npads      <- c(npad_left, npad_right)
+
+  # reflect_limited padding → power-of-2 length (fast FFT)
+  x_pad    <- .mne_smart_pad(x, npads)
+  orig_len <- length(x_pad)                      # = n_total
+  new_len  <- as.integer(max(round(ratio * orig_len), 1L))
+
+  to_rm_start <- as.integer(round(ratio * npads[1L]))
+  to_rm_end   <- new_len - final_len - to_rm_start
+
+  # Forward FFT of padded signal (power-of-2 → fast)
+  X <- stats::fft(x_pad)
+
+  # Boxcar window: scale uniformly by new_len/orig_len (= ratio for npad balanced)
+  X <- X * (new_len / orig_len)
+
+  # Nyquist bin halved for upsampling (shorter=FALSE, use_len=orig_len, even length)
+  if (orig_len %% 2L == 0L)
+    X[orig_len %/% 2L + 1L] <- X[orig_len %/% 2L + 1L] * 0.5
+
+  # Zero-pad in frequency domain (ideal sinc upsampling)
+  # The negative-frequency side (including conjugate Nyquist) must start at
+  # X[n_pos], not X[n_pos+1]. For even orig_len, the Nyquist bin X[n_pos] is
+  # real and appears at both the positive position (n_pos) AND the conjugate
+  # position at the end of X_new — exactly as numpy irfft constructs Y.
+  n_pos        <- orig_len %/% 2L + 1L   # DC + positive freqs + Nyquist
+  n_neg_total  <- orig_len - n_pos + 1L  # conj-Nyquist + pure negatives = n_pos-1
+  X_new <- complex(length.out = new_len)
+  X_new[seq_len(n_pos)] <- X[seq_len(n_pos)]
+  if (n_neg_total > 0L)
+    X_new[seq.int(new_len - n_neg_total + 1L, new_len)] <- X[seq.int(n_pos, orig_len)]
+
+  # Inverse FFT (highly composite length → fast) then trim
+  y_full <- Re(stats::fft(X_new, inverse = TRUE)) / new_len
+  y_full[seq.int(to_rm_start + 1L, new_len - to_rm_end)]
+}
+
 # ── Spectral helpers ──────────────────────────────────────────────────────────
 
 # Composite Simpson's rule matching scipy.integrate.simpson.
@@ -215,9 +292,12 @@
 }
 
 .petrosian_fd <- function(x) {
-  N   <- length(x)
-  nzc <- .nzc(x)
-  log10(N) / (log10(N) + log10(N / (N + 0.4 * nzc)))
+  N  <- length(x)
+  dx <- diff(x)
+  # antropy: sign changes in consecutive first differences = local extrema count
+  # NOT zero crossings of x (that would be .nzc(x))
+  nzc_p <- sum((dx[-length(dx)] * dx[-1L]) < 0L)
+  log10(N) / (log10(N) + log10(N / (N + 0.4 * nzc_p)))
 }
 
 .higuchi_fd <- function(x, kmax = 10L) higuchi_fd_cpp(x, kmax)
@@ -405,11 +485,11 @@
     sig_raw <- psg$edf$signals[[ch]]$signal
     sr_orig <- sr(ch)
 
-    # Resample to 100 Hz if needed — matches YASA's raw_pick.resample(100).
-    # gsignal::resample (polyphase Kaiser FIR) gives the closest parity to
-    # MNE's resampling for the 1 Hz EMG channel in Sleep-EDF cassette recordings.
+    # Resample to 100 Hz if needed — matches YASA's raw_pick.resample(100, npad='auto').
+    # MNE uses method='fft' with reflect_limited padding and npad='auto' (pads signal
+    # to next power of 2 for fast FFTs, then trims back to target length).
     if (sr_orig != SR_TARGET) {
-      sig_raw <- as.vector(gsignal::resample(sig_raw, SR_TARGET, sr_orig))
+      sig_raw <- .mne_fft_resample(sig_raw, up = SR_TARGET / sr_orig)
     }
 
     ep_len   <- as.integer(psg$epoch_s * SR_TARGET)
