@@ -29,8 +29,10 @@
 # gsignal::filtfilt is used here — not bit-exact with MNE's FIR, but
 # functionally equivalent for staging purposes.
 .bandpass_filter <- function(sig, sr, l_freq = 0.3, h_freq = 35) {
-  nyq <- sr / 2
-  bf  <- gsignal::butter(5L, c(l_freq / nyq, h_freq / nyq), type = "pass")
+  nyq    <- sr / 2
+  h_safe <- min(h_freq, nyq * 0.95)   # clamp to below Nyquist
+  if (h_safe <= l_freq) return(sig)   # no valid passband; return unfiltered
+  bf <- gsignal::butter(5L, c(l_freq / nyq, h_safe / nyq), type = "pass")
   as.vector(gsignal::filtfilt(bf, sig))
 }
 
