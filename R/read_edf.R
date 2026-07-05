@@ -63,7 +63,7 @@ read_edf <- function(path, channels = NULL, only_header = FALSE) {
       header     = hdr,
       signals    = sigs,
       channels   = ch_meta,
-      duration_s = as.numeric(hdr$endTime - hdr$startTime),
+      duration_s = hdr$recordedPeriod * hdr$nrOfRecords,
       path       = normalizePath(path)
     ),
     class = "mrpheus_edf"
