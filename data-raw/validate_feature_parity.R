@@ -24,10 +24,12 @@ library(mrpheus)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(purrr)
+library(readr)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-EDF_PATH     <- "/path/to/recording.edf"    # <-- set to your EDF
-REF_CSV      <- "data-raw/yasa_reference_features.csv"
+EDF_PATH    <- "~/mne_data/physionet-sleep-data/SC4001E0-PSG.edf"
+REF_CSV     <- "data-raw/yasa_reference_features.csv"
 EEG_CHANNEL  <- "EEG Fpz-Cz"               # <-- match what you passed to Python
 EOG_CHANNEL  <- "EOG horizontal"            # <-- or NA_character_ if omitted
 EMG_CHANNEL  <- "EMG submental"             # <-- or NA_character_ if omitted
@@ -124,7 +126,7 @@ if (n_flagged == 0) {
 } else {
   message("⚠  ", n_flagged, " / ", nrow(report), " features exceed MAE threshold:\n")
   report |>
-    filter(flagged) |>
+    dplyr::filter(flagged) |>
     arrange(desc(mae)) |>
     print(n = Inf)
 }
