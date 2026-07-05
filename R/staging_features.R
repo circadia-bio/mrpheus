@@ -23,20 +23,53 @@
   beta   = c(16,  30)
 )
 
-# ── Pre-filter helper ────────────────────────────────────────────────────────
-# YASA resamples all data to 100 Hz then calls MNE's filter_data with
-# l_freq=0.4, h_freq=30. The exact FIR coefficients were extracted once via
-# data-raw/extract_mne_filter.py and are bundled in inst/filters/. This
-# eliminates any Python dependency at runtime while preserving exact parity.
+# ── Pre-filter helpers ────────────────────────────────────────────────────────
+# YASA resamples to 100 Hz then calls MNE filter_data(l_freq=0.4, h_freq=30).
+# The exact 825-tap Hamming FIR coefficients are bundled in inst/filters/
+# (generated once by data-raw/extract_mne_filter.py, no Python at runtime).
+#
+# Applied here with a zero-phase FFT filtfilt matching
+# scipy.signal.filtfilt(b, [1], x, padtype='odd').
+# Adapted from dynR::bandpass_filter (same scipy-parity approach).
+
+# Odd-reflection padding — matches scipy padtype='odd'.
+.odd_ext_fir <- function(x, n) {
+  nx <- length(x)
+  n  <- min(n, nx - 1L)
+  c(
+    2 * x[1L] - x[seq.int(n + 1L, 2L,      by = -1L)],
+    x,
+    2 * x[nx]  - x[seq.int(nx - 1L, nx - n, by = -1L)]
+  )
+}
+
+# Single causal FIR pass via FFT: y[k] = sum_j b[j]*x[k-j], length = length(x).
+.fft_fir_pass <- function(b, x) {
+  M     <- length(b)
+  N     <- length(x)
+  n_fft <- 2L ^ ceiling(log2(N + M - 1L))
+  B     <- stats::fft(c(b, numeric(n_fft - M)))
+  X     <- stats::fft(c(x, numeric(n_fft - N)))
+  Re(stats::fft(X * B, inverse = TRUE))[seq_len(N)] / n_fft
+}
+
+# Zero-phase FIR filtfilt: forward + backward FFT passes with odd padding.
+.filtfilt_fir <- function(b, x) {
+  M     <- length(b)
+  pad   <- 3L * (M - 1L)
+  ext   <- .odd_ext_fir(x, pad)
+  y_fwd <- .fft_fir_pass(b, ext)
+  y_bwd <- rev(.fft_fir_pass(b, rev(y_fwd)))
+  y_bwd[seq.int(pad + 1L, pad + length(x))]
+}
+
 .bandpass_filter <- function(sig, sr) {
-  # Load bundled MNE coefficients (designed for sr = 100 Hz)
   coef_path <- system.file("filters", "mne_bandpass_100hz.csv",
                             package = "mrpheus")
   if (!nzchar(coef_path))
     cli::cli_abort("Filter coefficients not found. Run data-raw/extract_mne_filter.py.")
-
   b <- scan(coef_path, quiet = TRUE)
-  as.vector(gsignal::filtfilt(b, sig))
+  .filtfilt_fir(b, sig)
 }
 
 # ── Spectral helpers ──────────────────────────────────────────────────────────
@@ -179,7 +212,7 @@
 }
 
 # ── Per-epoch feature vectors ─────────────────────────────────────────────────
-# Accept pre-filtered epoch signals — filtering is applied to the full recording
+# Accept pre-filtered epoch signals — filtering happens on the full recording
 # in .extract_staging_features before epoch extraction (matches YASA structure).
 
 # 21 EEG base features
