@@ -46,7 +46,7 @@
   b <- gsignal::fir1(
     n      = n_taps - 1L,
     w      = c(l_freq / nyq, h_safe / nyq),
-    type   = "bandpass",
+    type   = "pass",
     window = gsignal::hamming(n_taps)
   )
   as.vector(gsignal::filtfilt(b, sig))
