@@ -4,9 +4,10 @@
 ## usethis namespace: start
 #' @importFrom rlang abort warn inform
 #' @importFrom cli cli_alert_success cli_alert_warning cli_alert_info
-#' @importFrom stats predict quantile sd var
+#' @importFrom stats predict quantile sd var median
 #' @importFrom utils read.table
 #' @importFrom zoo rollapply
+#' @importFrom stats mvfft
 #' @useDynLib mrpheus, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 ## usethis namespace: end
