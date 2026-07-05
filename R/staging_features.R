@@ -10,15 +10,15 @@
 # Reference: Vallat & Walker (2021), eLife 10:e70092.
 
 # ── Band definitions ─────────────────────────────────────────────────────────
-# NOTE: validate against YASA's yasa.SleepStaging._check_params() if staging
-# accuracy is lower than expected. Sigma lower bound (12 vs 11 Hz) is the most
-# likely source of parity drift.
+# NOTE: band definitions confirmed against YASA SleepStaging.fit() source.
+
+.FREQ_BROAD <- c(0.4, 30)
 
 .STAGING_BANDS <- list(
-  sdelta = c(0.5,  2),
-  fdelta = c(2,    4),
+  sdelta = c(0.4,  1),
+  fdelta = c(1,    4),
   theta  = c(4,    8),
-  alpha  = c(8,   13),
+  alpha  = c(8,   12),
   sigma  = c(12,  16),
   beta   = c(16,  30)
 )
@@ -28,7 +28,7 @@
 # (spectral and time-domain alike). A 5th-order zero-phase Butterworth with
 # gsignal::filtfilt is used here — not bit-exact with MNE's FIR, but
 # functionally equivalent for staging purposes.
-.bandpass_filter <- function(sig, sr, l_freq = 0.3, h_freq = 35) {
+.bandpass_filter <- function(sig, sr, l_freq = 0.4, h_freq = 30) {
   nyq    <- sr / 2
   h_safe <- min(h_freq, nyq * 0.95)   # clamp to below Nyquist
   if (h_safe <= l_freq) return(sig)   # no valid passband; return unfiltered
@@ -40,23 +40,29 @@
 
 # Compute Welch PSD and return named vector of band features:
 # sdelta, fdelta, theta, alpha, sigma, beta (relative) + abspow.
-# abspow = sum of all 6 band powers (matching YASA), NOT a 0.5–40 Hz integral.
+# Matches YASA: 5-second Hamming window, abspow = trapz over freq_broad.
+# NOTE: YASA uses average='median' in scipy.welch; gsignal always uses mean.
+# Residual abspow error (~5%) is expected until median Welch is implemented.
 .spectral_features <- function(sig, sr) {
-  nfft <- 2L ^ ceiling(log2(4 * sr))   # 4-second Welch window
+  win  <- as.integer(5L * sr)      # 5-second window (win_sec=5 in YASA)
+  wvec <- gsignal::hamming(win)    # Hamming window
 
-  psd <- gsignal::pwelch(sig, fs = sr, window = nfft,
-                          overlap = 0.5, nfft = nfft)
+  psd <- gsignal::pwelch(sig, fs = sr, window = wvec,
+                          overlap = 0.5, nfft = win)
 
-  # Absolute band powers
+  # Relative band powers
   bp <- vapply(.STAGING_BANDS, function(b) {
     idx <- psd$freq >= b[1] & psd$freq < b[2]
     if (!any(idx)) return(NA_real_)
     pracma::trapz(psd$freq[idx], psd$spec[idx])
   }, numeric(1))
 
-  # abspow = sum of all 6 bands (0.5–30 Hz), matching YASA
-  abspow   <- sum(bp, na.rm = TRUE)
-  rel      <- bp / abspow
+  total_bp <- sum(bp, na.rm = TRUE)
+  rel      <- bp / total_bp
+
+  # abspow = trapz over freq_broad (0.4–30 Hz), separate from relative powers
+  idx_broad <- psd$freq >= .FREQ_BROAD[1] & psd$freq <= .FREQ_BROAD[2]
+  abspow    <- pracma::trapz(psd$freq[idx_broad], psd$spec[idx_broad])
 
   c(rel, abspow = abspow)
 }
@@ -225,35 +231,57 @@
   )
 }
 
-# ── Rolling normalisation ─────────────────────────────────────────────────────
+# ── Normalisation helpers ─────────────────────────────────────────────────────
+# YASA normalises via:
+#   _c7min_norm : triangular-weighted rolling mean (k=15, centered) → robust_scale
+#   _p2min_norm : uniform rolling mean (k=4, right-aligned)         → robust_scale
+# robust_scale = (x - median) / (q95 - q5)
 
-# Z-score normalise a single feature vector with a rolling window.
-# partial = TRUE so edge epochs use whatever data is available (matching pandas
-# rolling(min_periods=1) behaviour).
-.roll_znorm <- function(x, k, align) {
-  eps   <- 1e-10
-  rmean <- zoo::rollapply(x, k, mean, fill = NA, partial = TRUE, align = align)
-  rsd   <- zoo::rollapply(x, k, function(w) {
-    s <- stats::sd(w)
-    if (is.na(s) || is.nan(s)) 0 else s
-  }, fill = NA, partial = TRUE, align = align)
-  rmean[is.na(rmean)] <- x[is.na(rmean)]
-  (x - rmean) / (rsd + eps)
+.robust_scale <- function(x, q_low = 0.05, q_high = 0.95) {
+  eps <- 1e-10
+  med <- median(x, na.rm = TRUE)
+  q   <- quantile(x, c(q_low, q_high), na.rm = TRUE)
+  (x - med) / (q[2L] - q[1L] + eps)
 }
 
-# For each base feature column, add _c7min_norm (centered 15-epoch window) and
-# _p2min_norm (right-aligned 4-epoch window), interleaved: raw, c7min, p2min.
+# Triangular-weighted rolling mean, centered window of size k.
+# Matches pandas rolling(window=k, center=True, min_periods=1, win_type='triang').mean()
+.roll_triang_mean <- function(x, k = 15L) {
+  n    <- length(x)
+  half <- (k - 1L) %/% 2L
+  # Full triangular weights: [1, 2, ..., half+1, ..., 2, 1]
+  w_full <- c(seq_len(half + 1L), seq(half, 1L))
+  vapply(seq_len(n), function(i) {
+    i_start <- max(1L, i - half)
+    i_end   <- min(n, i + half)
+    w_start <- (i_start - (i - half)) + 1L
+    w_end   <- w_start + (i_end - i_start)
+    w_sub   <- w_full[w_start:w_end]
+    sum(x[i_start:i_end] * w_sub) / sum(w_sub)
+  }, numeric(1))
+}
+
+# For each base feature column, add _c7min_norm and _p2min_norm, interleaved.
 .add_norm_variants <- function(mat, prefix) {
   base_names <- colnames(mat)
   out <- vector("list", ncol(mat) * 3L)
   nms <- character(ncol(mat) * 3L)
   j   <- 1L
   for (i in seq_along(base_names)) {
-    nm        <- base_names[i]
-    col       <- as.vector(mat[, i])
-    out[[j]]     <- col;                         nms[j]     <- paste0(prefix, nm)
-    out[[j + 1L]] <- .roll_znorm(col, 15L, "center"); nms[j + 1L] <- paste0(prefix, nm, "_c7min_norm")
-    out[[j + 2L]] <- .roll_znorm(col, 4L,  "right");  nms[j + 2L] <- paste0(prefix, nm, "_p2min_norm")
+    nm  <- base_names[i]
+    col <- as.vector(mat[, i])
+
+    # _c7min_norm: triangular rolling mean → robust_scale
+    c7 <- .robust_scale(.roll_triang_mean(col, k = 15L))
+
+    # _p2min_norm: uniform rolling mean (right-aligned, k=4) → robust_scale
+    p2_raw <- as.vector(zoo::rollapply(col, 4L, mean, fill = NA,
+                                        partial = TRUE, align = "right"))
+    p2 <- .robust_scale(p2_raw)
+
+    out[[j]]      <- col; nms[j]      <- paste0(prefix, nm)
+    out[[j + 1L]] <- c7;  nms[j + 1L] <- paste0(prefix, nm, "_c7min_norm")
+    out[[j + 2L]] <- p2;  nms[j + 2L] <- paste0(prefix, nm, "_p2min_norm")
     j <- j + 3L
   }
   out <- do.call(cbind, out)
