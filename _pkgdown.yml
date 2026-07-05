@@ -241,6 +241,12 @@ articles:
     navbar: ~
     contents:
       - mri-physiology
+      - sleep-staging
+  - title: "Live demos"
+    desc: "Fully executed examples requiring external data."
+    navbar: ~
+    contents:
+      - articles/sleep-staging-demo
 
 news:
   releases:
