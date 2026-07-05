@@ -32,7 +32,7 @@
 #'   or `60L`). `NULL` (default) triggers auto-detection via
 #'   [detect_powerline()] on the first clean EEG channel.
 #' @param notch_harmonics Logical. Notch harmonics of `powerline_freq` up to
-#'   Nyquist − 5 Hz. Default `TRUE`.
+#'   Nyquist - 5 Hz. Default `TRUE`.
 #' @param notch_bw_hz Numeric. Full bandwidth of each notch in Hz. Default `2`.
 #' @param eeg_bandpass Numeric vector of length 2. Bandpass limits (Hz) applied
 #'   to all EEG channels. Default `c(0.3, 35)`.
@@ -82,7 +82,7 @@ preprocess_psg <- function(psg,
   cmap <- psg$channel_map
   edf  <- psg$edf
 
-  # ── Channel renaming ────────────────────────────────────────────────────────
+  # -- Channel renaming -----------------------------------------------------------
   if (!is.null(channel_rename)) {
     old_labels <- names(channel_rename)
     found      <- old_labels %in% cmap$label
@@ -104,7 +104,7 @@ preprocess_psg <- function(psg,
       cli::cli_alert_success("Renamed {sum(found)} channel(s)")
   }
 
-  # ── Auto-detect powerline ────────────────────────────────────────────────────
+  # -- Auto-detect powerline ------------------------------------------------------
   if (is.null(powerline_freq)) {
     eeg_ch <- cmap$label[cmap$type == "EEG" & !cmap$bad][1]
 
@@ -122,7 +122,7 @@ preprocess_psg <- function(psg,
     }
   }
 
-  # ── Filter each non-bad channel ─────────────────────────────────────────────
+  # -- Filter each non-bad channel -----------------------------------------------
   active_channels <- cmap$label[!cmap$bad]
 
   for (lbl in active_channels) {
@@ -152,7 +152,7 @@ preprocess_psg <- function(psg,
     edf$signals[[lbl]]$signal <- sig
   }
 
-  # ── Re-epoch with filtered signals ───────────────────────────────────────────
+  # -- Re-epoch with filtered signals --------------------------------------------
   n_epochs <- psg$n_epochs
   epoch_s  <- psg$epoch_s
 
@@ -168,7 +168,7 @@ preprocess_psg <- function(psg,
 
   if (verbose)
     cli::cli_alert_success(
-      "Preprocessing complete — {n_epochs} epochs ready."
+      "Preprocessing complete -- {n_epochs} epochs ready."
     )
 
   structure(
