@@ -38,17 +38,38 @@
 
 # ── Spectral helpers ──────────────────────────────────────────────────────────
 
+# Compute Welch PSD with median averaging over segments.
+# Matches YASA/scipy.signal.welch(average='median'), which is robust to
+# transient artifacts — critical for EOG/EMG channels.
+.welch_median_psd <- function(sig, sr, win_n, overlap = 0.5) {
+  wvec   <- gsignal::hamming(win_n)
+  hop    <- max(1L, as.integer(win_n * (1 - overlap)))
+  n_freq <- win_n %/% 2L + 1L
+  freqs  <- seq(0, sr / 2, length.out = n_freq)
+  starts <- seq(1L, length(sig) - win_n + 1L, by = hop)
+
+  if (length(starts) == 0L)
+    return(list(freq = freqs, spec = rep(NA_real_, n_freq)))
+
+  # Normalisation: sum(win^2) * fs  (matches scipy one-sided PSD)
+  scale <- sum(wvec ^ 2) * sr
+
+  pgrams <- vapply(starts, function(s) {
+    ft  <- stats::fft(sig[s:(s + win_n - 1L)] * wvec)[seq_len(n_freq)]
+    psd <- Mod(ft) ^ 2 / scale
+    psd[seq(2L, n_freq - 1L)] <- 2 * psd[seq(2L, n_freq - 1L)]  # one-sided
+    psd
+  }, numeric(n_freq))
+
+  list(freq = freqs, spec = apply(pgrams, 1L, stats::median))
+}
+
 # Compute Welch PSD and return named vector of band features:
 # sdelta, fdelta, theta, alpha, sigma, beta (relative) + abspow.
-# Matches YASA: 5-second Hamming window, abspow = trapz over freq_broad.
-# NOTE: YASA uses average='median' in scipy.welch; gsignal always uses mean.
-# Residual abspow error (~5%) is expected until median Welch is implemented.
+# Matches YASA: 5-second Hamming window, median averaging, abspow = trapz over freq_broad.
 .spectral_features <- function(sig, sr) {
-  win  <- as.integer(5L * sr)      # 5-second window (win_sec=5 in YASA)
-  wvec <- gsignal::hamming(win)    # Hamming window
-
-  psd <- gsignal::pwelch(sig, fs = sr, window = wvec,
-                          overlap = 0.5, nfft = win)
+  win <- as.integer(5L * sr)      # 5-second window (win_sec=5 in YASA)
+  psd <- .welch_median_psd(sig, sr, win_n = win)
 
   # Relative band powers
   bp <- vapply(.STAGING_BANDS, function(b) {
