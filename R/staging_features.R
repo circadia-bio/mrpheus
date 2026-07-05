@@ -43,24 +43,29 @@
   )
 }
 
-# Single causal FIR pass via FFT: y[k] = sum_j b[j]*x[k-j], length = length(x).
-.fft_fir_pass <- function(b, x) {
+# Single causal FIR pass via FFT, returns FULL convolution (length N+M-1).
+.fft_fir_full <- function(b, x) {
   M     <- length(b)
   N     <- length(x)
   n_fft <- 2L ^ ceiling(log2(N + M - 1L))
   B     <- stats::fft(c(b, numeric(n_fft - M)))
   X     <- stats::fft(c(x, numeric(n_fft - N)))
-  Re(stats::fft(X * B, inverse = TRUE))[seq_len(N)] / n_fft
+  Re(stats::fft(X * B, inverse = TRUE))[seq_len(N + M - 1L)] / n_fft
 }
 
-# Zero-phase FIR filtfilt: forward + backward FFT passes with odd padding.
+# Zero-phase FIR: single FFT pass then remove the linear group delay (M-1)/2.
+# Matches MNE's filter_data which applies a symmetric FIR as a single
+# zero-phase pass, NOT as filtfilt (which would square the response).
 .filtfilt_fir <- function(b, x) {
   M     <- length(b)
-  pad   <- 3L * (M - 1L)
+  delay <- (M - 1L) %/% 2L      # group delay of symmetric FIR
+  pad   <- 3L * delay
   ext   <- .odd_ext_fir(x, pad)
-  y_fwd <- .fft_fir_pass(b, ext)
-  y_bwd <- rev(.fft_fir_pass(b, rev(y_fwd)))
-  y_bwd[seq.int(pad + 1L, pad + length(x))]
+  # Full convolution, then shift by delay to remove group delay
+  y_full     <- .fft_fir_full(b, ext)
+  y_nodelay  <- y_full[seq.int(delay + 1L, delay + length(ext))]
+  # Strip padding to recover the filtered signal
+  y_nodelay[seq.int(pad + 1L, pad + length(x))]
 }
 
 .bandpass_filter <- function(sig, sr) {
