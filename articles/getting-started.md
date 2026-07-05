@@ -10,7 +10,7 @@ rhythm domains: **cardiac** (QRS detection, HRV), **respiratory**
 (apnoea detection, respiratory metrics), and **neural** (spindles, slow
 oscillations, automatic AASM sleep staging).
 
-The name is spelled as *Morpheus* but carries a silent **m**, pronounced
+The name is spelled as *Mrpheus* but carries a silent **m**, pronounced
 as *Orpheus* — carrying both myths at once. Morpheus, god of dreams,
 gives the package its subject; Orpheus, who descended into the
 underworld to navigate the unconscious, gives it its spirit.

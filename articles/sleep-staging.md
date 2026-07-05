@@ -1,0 +1,290 @@
+# Automatic AASM Sleep Staging
+
+**mrpheus** provides fully automated AASM sleep staging via a pure-R
+port of the YASA LightGBM model (Vallat & Walker, 2021). No Python is
+required at runtime — the 149-feature extraction pipeline and the
+pre-trained model are both bundled in the package.
+
+> **Live demo** — For a fully-executed walkthrough on a real Sleep-EDF
+> cassette recording, including figures, see the companion article:
+> [Sleep Staging: Live
+> Walkthrough](https://mrpheus.circadia-lab.uk/articles/sleep-staging-demo.html)
+
+------------------------------------------------------------------------
+
+## Data
+
+The examples below use **SC4001E0-PSG.edf** from the Sleep-EDF Cassette
+study (Kemp et al., 2000), a 22-hour ambulatory PSG recording of a
+healthy young adult. The dataset is freely available from
+[PhysioNet](https://physionet.org/content/sleep-edfx/1.0.0/) under CC BY
+1.0, but requires a (free) PhysioNet account to download.
+
+### Option A — via MNE Python (recommended)
+
+If you already have MNE installed (e.g. in the YASA environment), this
+is the easiest route. MNE handles authentication and caches files under
+`~/mne_data/physionet-sleep-data/`:
+
+``` python
+import mne
+# Downloads SC4001E0-PSG.edf and SC4001EC-Hypnogram.edf
+files = mne.datasets.sleep_physionet.age.fetch_data(subjects=[0], recording=[1])
+print(files[0])  # path to the PSG EDF
+```
+
+### Option B — direct download
+
+After creating a PhysioNet account and accepting the data use agreement,
+download with `wget` or R’s
+[`download.file()`](https://rdrr.io/r/utils/download.file.html):
+
+``` bash
+# Replace <user> and <password> with your PhysioNet credentials
+wget --user=<user> --password=<password> \
+  "https://physionet.org/files/sleep-edfx/1.0.0/sleep-cassette/SC4001E0-PSG.edf" \
+  "https://physionet.org/files/sleep-edfx/1.0.0/sleep-cassette/SC4001EC-Hypnogram.edf"
+```
+
+``` r
+
+physionet_base <- "https://physionet.org/files/sleep-edfx/1.0.0/sleep-cassette"
+dest_dir <- "~/mne_data/physionet-sleep-data"
+dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
+
+for (f in c("SC4001E0-PSG.edf", "SC4001EC-Hypnogram.edf")) {
+  download.file(
+    url      = file.path(physionet_base, f),
+    destfile = file.path(dest_dir, f),
+    method   = "auto"
+  )
+}
+```
+
+> For large-scale studies,
+> `mne.datasets.sleep_physionet.age.fetch_data()` accepts a `subjects`
+> vector and will batch-download multiple recordings.
+
+------------------------------------------------------------------------
+
+## Pipeline
+
+### 1. Load and inspect the recording
+
+``` r
+
+library(mrpheus)
+
+rec <- read_edf("~/mne_data/physionet-sleep-data/SC4001E0-PSG.edf")
+rec
+```
+
+    ## mrpheus EDF recording
+    ## ℹ Path: ~/mne_data/physionet-sleep-data/SC4001E0-PSG.edf
+    ## ℹ Duration: 22.08 hours
+    ## ℹ Channels: 7
+    ## # A tibble: 7 × 3
+    ##   label              sample_rate transducer
+    ##   <chr>                    <dbl> <chr>
+    ## 1 EEG Fpz-Cz                 100 AgAgCl electrode
+    ## 2 EEG Pz-Oz                  100 AgAgCl electrode
+    ## 3 EOG horizontal              100 AgAgCl electrode
+    ## 4 Resp oro-nasal              100 Resp thermistor
+    ## 5 EMG submental                 1 AgAgCl electrode
+    ## 6 Temp rectal                   1 Rectal thermometer
+    ## 7 Event marker                 1 Marker
+
+### 2. Segment into 30-second epochs
+
+``` r
+
+psg <- prepare_psg(rec)
+psg
+```
+
+    ## mrpheus PSG
+    ## ℹ Epochs: 2650 × 30 s
+    ## ℹ Recording: 22.08 h
+    ## # A tibble: 7 × 4
+    ##   label              type  sample_rate   bad
+    ##   <chr>              <chr>       <dbl> <lgl>
+    ## 1 EEG Fpz-Cz         EEG           100 FALSE
+    ## 2 EEG Pz-Oz          EEG           100 FALSE
+    ## 3 EOG horizontal      EOG           100 FALSE
+    ## 4 Resp oro-nasal      RESP          100 FALSE
+    ## 5 EMG submental       EMG             1 FALSE
+    ## 6 Temp rectal         OTHER           1 FALSE
+    ## 7 Event marker        OTHER           1 FALSE
+
+### 3. Stage epochs
+
+[`stage_epochs()`](https://mrpheus.circadia-lab.uk/reference/stage_epochs.md)
+runs the full 149-feature YASA pipeline in pure R and returns a tibble
+with one row per 30-second epoch:
+
+``` r
+
+staging <- stage_epochs(
+  psg,
+  eeg_channel = "EEG Fpz-Cz",
+  eog_channel = "EOG horizontal",
+  emg_channel = "EMG submental"
+)
+staging
+```
+
+    ## ℹ Staging with EEG="EEG Fpz-Cz", EOG="EOG horizontal", EMG="EMG submental"
+    ## ℹ Extracting staging features (2650 epochs)...
+    ## ✔ Staging complete: 2650 epochs.
+    ## # A tibble: 2,650 × 7
+    ##    epoch stage prob_N1 prob_N2 prob_N3 prob_REM prob_W
+    ##    <int> <chr>   <dbl>   <dbl>   <dbl>    <dbl>  <dbl>
+    ##  1     1 W     0.00563 0.00691 0.000503 0.000378  0.987
+    ##  2     2 W     0.00412 0.00524 0.000381 0.000271  0.990
+    ##  3     3 W     0.00387 0.00499 0.000368 0.000262  0.991
+    ## ...
+
+The output columns are:
+
+| Column | Description |
+|----|----|
+| `epoch` | Epoch index (1-based) |
+| `stage` | Predicted AASM stage: `W`, `N1`, `N2`, `N3`, `REM` |
+| `prob_N1` … `prob_W` | Posterior class probabilities from the LightGBM model |
+
+Artefact epochs (if
+[`detect_artifacts()`](https://mrpheus.circadia-lab.uk/reference/detect_artifacts.md)
+output is passed) are set to `NA` rather than staged.
+
+### 4. With artefact exclusion
+
+``` r
+
+art     <- detect_artifacts(psg)
+staging <- stage_epochs(psg,
+  eeg_channel = "EEG Fpz-Cz",
+  eog_channel = "EOG horizontal",
+  emg_channel = "EMG submental",
+  artefacts   = art
+)
+```
+
+------------------------------------------------------------------------
+
+## Working with results
+
+### Stage distribution
+
+``` r
+
+library(dplyr)
+
+staging |>
+  count(stage) |>
+  mutate(duration_h = round(n * 30 / 3600, 2)) |>
+  arrange(match(stage, c("W", "N1", "N2", "N3", "REM")))
+```
+
+### Posterior probabilities
+
+Each epoch’s five posterior probabilities sum to 1 and reflect how
+confidently the model assigns a stage. Confident Wake epochs show
+`prob_W` near 1.0; ambiguous transitions between N1 and N2 will show
+more distributed probabilities.
+
+``` r
+
+# Mean confidence (max posterior) across all epochs
+staging |>
+  mutate(confidence = pmax(prob_N1, prob_N2, prob_N3, prob_REM, prob_W)) |>
+  summarise(
+    mean_confidence   = mean(confidence),
+    median_confidence = median(confidence),
+    low_conf_epochs   = sum(confidence < 0.6)  # uncertain epochs
+  )
+```
+
+### Visualising the night
+
+``` r
+
+library(ggplot2)
+library(tidyr)
+
+stage_pal <- c(W = "#AAAAAA", N1 = "#B07C3A", N2 = "#6A7840",
+               N3 = "#014370", REM = "#B83E2C")
+
+# Posterior probability heatmap across the full recording
+staging |>
+  select(epoch, starts_with("prob_")) |>
+  pivot_longer(starts_with("prob_"), names_to = "stage", values_to = "prob") |>
+  mutate(
+    stage  = factor(sub("prob_", "", stage), levels = c("W", "N1", "N2", "N3", "REM")),
+    time_h = (epoch - 1) * 30 / 3600
+  ) |>
+  ggplot(aes(x = time_h, y = stage, fill = prob)) +
+  geom_tile() +
+  scale_fill_gradient(low = "#F7F3EB", high = "#3C2212",
+                      name = "Posterior\nprobability") +
+  labs(x = "Time from recording start (hours)", y = NULL,
+       title = "Sleep Staging Posterior Probabilities") +
+  theme_minimal()
+```
+
+------------------------------------------------------------------------
+
+## Passing to hypnor
+
+Once staged, pass the result to **hypnor** for hypnogram visualisation
+and sleep architecture metrics:
+
+``` r
+
+hypnogram <- export_hypnogram(
+  staging,
+  epoch_s        = 30,
+  start_time     = rec$header$startTime,
+  participant_id = "SC4001"
+)
+
+# In hypnor:
+# hypnor::plot_hypnogram(hypnogram)
+# hypnor::compute_architecture(hypnogram)
+```
+
+------------------------------------------------------------------------
+
+## Model details
+
+The bundled LightGBM model (`inst/models/yasa_staging.txt`) was trained
+by Vallat & Walker (2021) on a multi-cohort dataset of 3,000+ nights
+spanning 5 age groups. mrpheus reproduces the 149-feature extraction
+pipeline in pure R with validated numerical parity against the original
+Python implementation (137 features within MAE \< 0.01 of YASA; 9
+residual features reflecting irreducible floating-point differences in
+ratio amplification and rolling normalisation).
+
+Features cover three channels:
+
+| Channel | Features (63) |
+|----|----|
+| EEG | Band powers (sdelta, fdelta, θ, α, σ, β), ratios (db, ds, dt, at), Hjorth parameters, Higuchi FD, permutation entropy, Petrosian FD, NZC, IQR, skewness, kurtosis, abs. power + rolling normalisations |
+| EOG | Same minus ratio features (51) |
+| EMG | Abs. power + nonlinear features only (33) |
+
+Two time features (hour of night, normalised position) provide circadian
+context. All features are computed at 100 Hz after resampling and
+bandpass filtering (0.4–30 Hz, MNE 825-tap Hamming FIR).
+
+------------------------------------------------------------------------
+
+## References
+
+Kemp, B., Värri, A., Rosa, A. C., Nielsen, K. D., & Gade, J. (2000). A
+simple format for exchange of digitized polygraphic recordings.
+*Electroencephalography and Clinical Neurophysiology*, 69(5), 391–397.
+<https://doi.org/10.1016/0013-4694(87)90048-7>
+
+Vallat, R., & Walker, M. P. (2021). An open-source, high-performance
+tool for automated sleep staging. *eLife*, 10, e70092.
+<https://doi.org/10.7554/eLife.70092>

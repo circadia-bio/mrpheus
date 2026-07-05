@@ -95,7 +95,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mrpheus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,6 +109,8 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with mrpheus</a></li>
     <li><a class="dropdown-item" href="../articles/mri-physiology.html">MRI physiological signal processing</a></li>
+    <li><a class="dropdown-item" href="../articles/sleep-staging.html">Automatic AASM Sleep Staging</a></li>
+    <li><a class="dropdown-item" href="../articles/sleep-staging-demo.html">Sleep Staging: Live Walkthrough (SC4001E0)</a></li>
   </ul></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-news" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">News</button>
@@ -131,6 +133,30 @@
       <small>Source: <a href="https://github.com/circadia-bio/mrpheus/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.2" id="mrpheus-012">mrpheus 0.1.2<a class="anchor" aria-label="anchor" href="#mrpheus-012"></a></h2>
+<div class="section level4">
+<h4 id="aasm-sleep-staging--validated-parity-with-yasa-0-1-2">AASM sleep staging — validated parity with YASA<a class="anchor" aria-label="anchor" href="#aasm-sleep-staging--validated-parity-with-yasa-0-1-2"></a></h4>
+<p>The <code><a href="../reference/stage_epochs.html">stage_epochs()</a></code> pipeline now achieves validated numerical parity with the YASA Python reference implementation (Vallat &amp; Walker, 2021), producing 77.8% epoch-level agreement against scored ground truth on the Sleep-EDF Cassette dataset — matching YASA’s own 77.7% on the same recording.</p>
+<p><strong>Feature extraction fixes (149-feature LightGBM matrix):</strong></p>
+<ul><li>Filter: replaced Butterworth with exact 825-tap MNE Hamming FIR coefficients bundled in <code>inst/filters/mne_bandpass_100hz.csv</code>; applied as a single zero-phase FFT pass (not <code>filtfilt</code>, which squares the response).</li>
+<li>EMG resampling: ported MNE’s <code>_resample_fft</code> algorithm exactly — npad=‘auto’ pads to the next power of 2 for fast FFTs, reflect-limited padding, correct conjugate-Nyquist placement in the zero-padded frequency domain.</li>
+<li>Welch PSD: periodic (DFT-even) Hamming window matching <code>scipy.signal.get_window('hamming', N, fftbins=True)</code>; segment detrending (<code>detrend='constant'</code>); bias-corrected median averaging.</li>
+<li>Band integration: composite Simpson’s rule matching <code>scipy.integrate.simpson</code> (odd N: standard 1/3; even N: 1/3 on first N-3 points + 3/8 on last 4); inclusive frequency bounds.</li>
+<li>Petrosian FD: fixed to count local extrema (sign changes in consecutive first differences) rather than zero crossings of x — matching antropy’s convention.</li>
+<li>Rolling normalisation: <code>_c7min_norm</code> now uses a C++ triangular rolling mean via <code>roll_triang_mean_cpp</code>; <code>_p2min_norm</code> uses right-aligned <code><a href="https://rdrr.io/pkg/zoo/man/rollapply.html" class="external-link">zoo::rollapply</a></code>; both followed by <code>robust_scale</code>.</li>
+</ul><p><strong>Model prediction fixes:</strong></p>
+<ul><li>Feature ordering: <code><a href="../reference/stage_epochs.html">stage_epochs()</a></code> reads the model’s <code>feature_names=</code> line from the bundled <code>.txt</code> file and reorders columns to match the EEG | time | EOG | EMG order the model was trained with (LightGBM R passes matrices by position, not by name).</li>
+<li>LightGBM v4 compatibility: <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> now returns a matrix directly; removed the deprecated <code>reshape=TRUE</code> argument.</li>
+<li>Label mapping: class indices follow sklearn <code>LabelEncoder</code> alphabetical order — N1=0, N2=1, N3=2, REM=3, W=4.</li>
+</ul><p><strong>Performance:</strong></p>
+<ul><li>Three inner loops ported to Rcpp C++: <code>perm_entropy_cpp</code>, <code>higuchi_fd_cpp</code>, <code>roll_triang_mean_cpp</code>. Full-day staging (2650 epochs × 3 channels) completes in ~40 s.</li>
+</ul><p><strong>Documentation:</strong></p>
+<ul><li>New vignette: <em>Automatic AASM Sleep Staging</em> — full pipeline API with PhysioNet download instructions.</li>
+<li>New pkgdown article: <em>Sleep Staging: Live Walkthrough (SC4001E0)</em> — fully executed on a real Sleep-EDF cassette recording with posterior probability figures.</li>
+<li>56 new unit tests covering all staging feature helpers, Rcpp functions, and edge cases. <code>test-staging-features.R</code> now has 149 passing tests.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.1" id="mrpheus-011">mrpheus 0.1.1<a class="anchor" aria-label="anchor" href="#mrpheus-011"></a></h2>
 <div class="section level4">
