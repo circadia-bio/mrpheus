@@ -55,8 +55,8 @@ def fetch_physionet_example():
     """Download Sleep Cassette SC4001E0 from PhysioNet via MNE and return the path."""
     from mne.datasets.sleep_physionet.age import fetch_data
     paths = fetch_data(subjects=[0], recording=[1], on_missing="warn")
-    # fetch_data returns [psg_path, hypno_path]; we only need the PSG
-    return pathlib.Path(paths[0])
+    # fetch_data returns [[psg_path, hypno_path]]; we only need the PSG
+    return pathlib.Path(paths[0][0])
 
 
 def main():
