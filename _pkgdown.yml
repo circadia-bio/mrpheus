@@ -179,6 +179,15 @@ reference:
     contents:
       - read_edf
       - prepare_psg
+      - preprocess_psg
+
+  - title: "Signal filtering"
+    desc: "Low-level filter functions for physiological signals."
+    contents:
+      - remove_dc
+      - detect_powerline
+      - notch_filter
+      - bandpass_filter
 
   - title: "Artefacts"
     desc: "Detect and flag artefact epochs."
@@ -242,6 +251,7 @@ articles:
     contents:
       - mri-physiology
       - sleep-staging
+      - eeg-preprocessing
   - title: "Live demos"
     desc: "Fully executed examples requiring external data."
     navbar: ~
