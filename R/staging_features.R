@@ -24,16 +24,32 @@
 )
 
 # ── Pre-filter helper ────────────────────────────────────────────────────────
-# YASA bandpasses all channels to 0.3–35 Hz before computing any feature
-# (spectral and time-domain alike). A 5th-order zero-phase Butterworth with
-# gsignal::filtfilt is used here — not bit-exact with MNE's FIR, but
-# functionally equivalent for staging purposes.
+# YASA calls filter_data(self.data, sf, l_freq=0.4, h_freq=30) on the FULL
+# recording before epoching. MNE uses a zero-phase Hamming-windowed FIR.
+# For l_freq=0.4 at sf=100 Hz, MNE auto-computes l_trans_bandwidth = 0.4 Hz,
+# giving filter_length = round(3.3 * sf / l_trans_bw) = 825 taps.
+# We match this with gsignal::fir1 (Hamming window) + filtfilt.
 .bandpass_filter <- function(sig, sr, l_freq = 0.4, h_freq = 30) {
   nyq    <- sr / 2
-  h_safe <- min(h_freq, nyq * 0.95)   # clamp to below Nyquist
-  if (h_safe <= l_freq) return(sig)   # no valid passband; return unfiltered
-  bf <- gsignal::butter(5L, c(l_freq / nyq, h_safe / nyq), type = "pass")
-  as.vector(gsignal::filtfilt(bf, sig))
+  h_safe <- min(h_freq, nyq * 0.95)
+  if (h_safe <= l_freq) return(sig)
+
+  # Compute MNE-equivalent filter length:
+  # l_trans_bandwidth = min(max(l_freq * 0.25, 2.0), l_freq)
+  # filter_length = round(3.3 * sr / l_trans_bw)  [must be odd]
+  l_trans   <- min(max(l_freq * 0.25, 2.0), l_freq)
+  h_trans   <- min(max(h_safe * 0.25, 2.0), nyq - h_safe)
+  min_trans <- min(l_trans, h_trans)
+  n_taps    <- as.integer(round(3.3 * sr / min_trans))
+  if (n_taps %% 2L == 0L) n_taps <- n_taps + 1L   # ensure odd (Type I FIR)
+
+  b <- gsignal::fir1(
+    n      = n_taps - 1L,
+    w      = c(l_freq / nyq, h_safe / nyq),
+    type   = "bandpass",
+    window = gsignal::hamming(n_taps)
+  )
+  as.vector(gsignal::filtfilt(b, sig))
 }
 
 # ── Spectral helpers ──────────────────────────────────────────────────────────
@@ -44,7 +60,7 @@
 .median_bias <- function(n) {
   n_half <- (n - 1L) %/% 2L
   if (n_half < 1L) return(1)
-  ii_2 <- 2 * seq_len(n_half)      # 2*[1, 2, ..., (n-1)//2]
+  ii_2 <- 2 * seq_len(n_half)
   1 + sum(1 / (ii_2 + 1) - 1 / ii_2)
 }
 
@@ -60,17 +76,15 @@
   if (length(starts) == 0L)
     return(list(freq = freqs, spec = rep(NA_real_, n_freq)))
 
-  # Normalisation: sum(win^2) * fs  (matches scipy one-sided PSD scaling)
   scale <- sum(wvec ^ 2) * sr
 
   pgrams <- vapply(starts, function(s) {
     ft  <- stats::fft(sig[s:(s + win_n - 1L)] * wvec)[seq_len(n_freq)]
     psd <- Mod(ft) ^ 2 / scale
-    psd[seq(2L, n_freq - 1L)] <- 2 * psd[seq(2L, n_freq - 1L)]  # one-sided
+    psd[seq(2L, n_freq - 1L)] <- 2 * psd[seq(2L, n_freq - 1L)]
     psd
   }, numeric(n_freq))
 
-  # Bias-corrected median (scipy divides raw median by _median_bias)
   bias    <- .median_bias(length(starts))
   psd_med <- apply(pgrams, 1L, stats::median) / bias
   list(freq = freqs, spec = psd_med)
@@ -80,20 +94,18 @@
 # sdelta, fdelta, theta, alpha, sigma, beta (relative) + abspow.
 # Matches YASA: 5-second Hamming window, median averaging, abspow = trapz over freq_broad.
 .spectral_features <- function(sig, sr) {
-  win <- as.integer(5L * sr)      # 5-second window (win_sec=5 in YASA)
+  win <- as.integer(5L * sr)
   psd <- .welch_median_psd(sig, sr, win_n = win)
 
-  # Relative band powers
   bp <- vapply(.STAGING_BANDS, function(b) {
     idx <- psd$freq >= b[1] & psd$freq < b[2]
     if (!any(idx)) return(NA_real_)
     pracma::trapz(psd$freq[idx], psd$spec[idx])
   }, numeric(1))
 
-  total_bp <- sum(bp, na.rm = TRUE)
-  rel      <- bp / total_bp
+  total_bp  <- sum(bp, na.rm = TRUE)
+  rel       <- bp / total_bp
 
-  # abspow = trapz over freq_broad (0.4–30 Hz), separate from relative powers
   idx_broad <- psd$freq >= .FREQ_BROAD[1] & psd$freq <= .FREQ_BROAD[2]
   abspow    <- pracma::trapz(psd$freq[idx_broad], psd$spec[idx_broad])
 
@@ -101,14 +113,14 @@
 }
 
 # Spectral ratio features (EEG only).
-# Numerator uses full delta (sdelta + fdelta = 0.5–4 Hz), matching YASA.
+# Numerator uses full delta (sdelta + fdelta = 0.4–4 Hz), matching YASA.
 .spectral_ratios <- function(spec) {
   delta <- spec[["sdelta"]] + spec[["fdelta"]]
   c(
-    dt = delta            / spec[["theta"]],
-    ds = delta            / spec[["sigma"]],
-    db = delta            / spec[["beta"]],
-    at = spec[["alpha"]]  / spec[["theta"]]
+    dt = delta           / spec[["theta"]],
+    ds = delta           / spec[["sigma"]],
+    db = delta           / spec[["beta"]],
+    at = spec[["alpha"]] / spec[["theta"]]
   )
 }
 
@@ -150,7 +162,6 @@
   unname(stats::coef(stats::lm(log(Lk[valid]) ~ log(1 / k_seq[valid])))[2L])
 }
 
-# Normalised permutation entropy (order = 3, delay = 1, matching YASA defaults)
 .perm_entropy <- function(x, order = 3L, delay = 1L) {
   N <- length(x)
   n <- N - (order - 1L) * delay
@@ -167,7 +178,6 @@
 }
 
 .stat_features <- function(x) {
-  n   <- length(x)
   mu  <- mean(x)
   sig <- stats::sd(x)
   eps <- .Machine$double.eps
@@ -177,16 +187,16 @@
     std  = sig,
     iqr  = stats::IQR(x),
     skew = mean(zx ^ 3),
-    kurt = mean(zx ^ 4) - 3   # excess kurtosis
+    kurt = mean(zx ^ 4) - 3
   )
 }
 
 # ── Per-epoch feature vectors ─────────────────────────────────────────────────
-# Base names are alphabetical — must match model feature_names exactly.
+# Accept pre-filtered epoch signals — filtering is applied to the full recording
+# in .extract_staging_features before epoch extraction (matches YASA structure).
 
 # 21 EEG base features
 .eeg_epoch_features <- function(sig, sr) {
-  sig    <- .bandpass_filter(sig, sr)      # YASA pre-filters before all features
   spec   <- .spectral_features(sig, sr)
   ratios <- .spectral_ratios(spec)
   hjorth <- .hjorth(sig)
@@ -218,7 +228,6 @@
 
 # 17 EOG base features (no ratio features)
 .eog_epoch_features <- function(sig, sr) {
-  sig    <- .bandpass_filter(sig, sr)
   spec   <- .spectral_features(sig, sr)
   hjorth <- .hjorth(sig)
   stats  <- .stat_features(sig)
@@ -245,7 +254,6 @@
 
 # 11 EMG base features (absolute power + nonlinear only, no spectral bands)
 .emg_epoch_features <- function(sig, sr) {
-  sig    <- .bandpass_filter(sig, sr)
   spec   <- .spectral_features(sig, sr)
   hjorth <- .hjorth(sig)
   stats  <- .stat_features(sig)
@@ -280,9 +288,8 @@
 # Triangular-weighted rolling mean, centered window of size k.
 # Matches pandas rolling(window=k, center=True, min_periods=1, win_type='triang').mean()
 .roll_triang_mean <- function(x, k = 15L) {
-  n    <- length(x)
-  half <- (k - 1L) %/% 2L
-  # Full triangular weights: [1, 2, ..., half+1, ..., 2, 1]
+  n      <- length(x)
+  half   <- (k - 1L) %/% 2L
   w_full <- c(seq_len(half + 1L), seq(half, 1L))
   vapply(seq_len(n), function(i) {
     i_start <- max(1L, i - half)
@@ -304,10 +311,8 @@
     nm  <- base_names[i]
     col <- as.vector(mat[, i])
 
-    # _c7min_norm: triangular rolling mean → robust_scale
     c7 <- .robust_scale(.roll_triang_mean(col, k = 15L))
 
-    # _p2min_norm: uniform rolling mean (right-aligned, k=4) → robust_scale
     p2_raw <- as.vector(zoo::rollapply(col, 4L, mean, fill = NA,
                                         partial = TRUE, align = "right"))
     p2 <- .robust_scale(p2_raw)
@@ -342,12 +347,23 @@
   n  <- psg$n_epochs
   sr <- function(ch) psg$channel_map$sample_rate[psg$channel_map$label == ch]
 
+  # Filter the full recording first, then extract epochs.
+  # Matches YASA: filter_data(self.data, ...) then sliding_window(data_filt[i], ...).
+  filter_and_epoch <- function(ch) {
+    sr_ch    <- sr(ch)
+    ep_len   <- as.integer(psg$epoch_s * sr_ch)
+    sig_filt <- .bandpass_filter(psg$edf$signals[[ch]]$signal, sr_ch)
+    lapply(seq_len(n), function(i) {
+      start <- (i - 1L) * ep_len + 1L
+      sig_filt[start:(start + ep_len - 1L)]
+    })
+  }
+
   # ── EEG ──────────────────────────────────────────────────────────────────
-  eeg_sr  <- sr(eeg_ch)
-  eeg_mat <- do.call(rbind, lapply(seq_len(n), function(i)
-    .eeg_epoch_features(psg$epochs[[i]][[eeg_ch]], eeg_sr)
-  ))
-  eeg_out <- .add_norm_variants(eeg_mat, "eeg_")
+  eeg_sr     <- sr(eeg_ch)
+  eeg_epochs <- filter_and_epoch(eeg_ch)
+  eeg_mat    <- do.call(rbind, lapply(eeg_epochs, .eeg_epoch_features, sr = eeg_sr))
+  eeg_out    <- .add_norm_variants(eeg_mat, "eeg_")
 
   # ── Time ─────────────────────────────────────────────────────────────────
   time_hour <- (seq_len(n) - 1L) * psg$epoch_s / 3600
@@ -359,11 +375,10 @@
                 "iqr","kurt","nzc","perm","petrosian","sdelta","sigma",
                 "skew","std","theta")
   if (!is.na(eog_ch)) {
-    eog_sr  <- sr(eog_ch)
-    eog_mat <- do.call(rbind, lapply(seq_len(n), function(i)
-      .eog_epoch_features(psg$epochs[[i]][[eog_ch]], eog_sr)
-    ))
-    eog_out <- .add_norm_variants(eog_mat, "eog_")
+    eog_sr     <- sr(eog_ch)
+    eog_epochs <- filter_and_epoch(eog_ch)
+    eog_mat    <- do.call(rbind, lapply(eog_epochs, .eog_epoch_features, sr = eog_sr))
+    eog_out    <- .add_norm_variants(eog_mat, "eog_")
   } else {
     eog_out <- .na_channel_matrix(n, "eog_", eog_base)
   }
@@ -372,11 +387,10 @@
   emg_base <- c("abspow","hcomp","higuchi","hmob","iqr","kurt","nzc",
                 "perm","petrosian","skew","std")
   if (!is.na(emg_ch)) {
-    emg_sr  <- sr(emg_ch)
-    emg_mat <- do.call(rbind, lapply(seq_len(n), function(i)
-      .emg_epoch_features(psg$epochs[[i]][[emg_ch]], emg_sr)
-    ))
-    emg_out <- .add_norm_variants(emg_mat, "emg_")
+    emg_sr     <- sr(emg_ch)
+    emg_epochs <- filter_and_epoch(emg_ch)
+    emg_mat    <- do.call(rbind, lapply(emg_epochs, .emg_epoch_features, sr = emg_sr))
+    emg_out    <- .add_norm_variants(emg_mat, "emg_")
   } else {
     emg_out <- .na_channel_matrix(n, "emg_", emg_base)
   }
