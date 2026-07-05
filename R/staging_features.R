@@ -36,6 +36,7 @@
 .odd_ext_fir <- function(x, n) {
   nx <- length(x)
   n  <- min(n, nx - 1L)
+  if (n == 0L) return(x)
   c(
     2 * x[1L] - x[seq.int(n + 1L, 2L,      by = -1L)],
     x,
@@ -213,8 +214,7 @@
   n_freq <- win_n %/% 2L + 1L
   freqs  <- seq(0, sr / 2, length.out = n_freq)
   starts <- seq(1L, length(sig) - win_n + 1L, by = hop)
-
-  if (length(starts) == 0L)
+  if (length(sig) < win_n || length(starts) == 0L)
     return(list(freq = freqs, spec = rep(NA_real_, n_freq)))
 
   scale  <- sum(wvec ^ 2) * sr
