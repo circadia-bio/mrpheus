@@ -43,8 +43,7 @@ OUT_DIR = pathlib.Path(__file__).parent.parent / "inst" / "filters"
 UP        = 100
 DOWN      = 1
 N_ZEROS   = 10          # scipy default: upfirdn half_len = n_zeros * max(up,down)
-KAISER_BETA = 5.0       # scipy default Kaiser window parameter
-WINDOW    = ("kaiser", KAISER_BETA)
+WINDOW    = 'boxcar'    # MNE's raw.resample() uses boxcar (not scipy's kaiser default)
 
 
 def design_resample_poly_filter(up, down, n_zeros, window):
@@ -108,14 +107,14 @@ def main():
         "up_reduced":    int(up_r),
         "down_reduced":  int(dn_r),
         "n_zeros":       N_ZEROS,
-        "kaiser_beta":   KAISER_BETA,
+        "window":        str(WINDOW),
         "n_taps":        int(n),
         "half_len":      int(half_len),
         "cutoff_norm":   float(cutoff),
         "scipy_version": scipy.__version__,
         "description": (
             "Internal FIR anti-aliasing filter from scipy.signal.resample_poly "
-            f"for up={UP}, down={DOWN}. Kaiser window (beta={KAISER_BETA}), "
+            f"for up={UP}, down={DOWN}. window='{WINDOW}' matching MNE raw.resample(), "
             f"{n} taps. Coefficients are already scaled by up={UP}. "
             "Apply via polyphase decomposition: split into 100 branches of "
             f"ceil({n}/100)=21 taps each."
