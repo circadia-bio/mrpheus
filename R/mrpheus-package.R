@@ -7,6 +7,8 @@
 #' @importFrom stats predict quantile sd var
 #' @importFrom utils read.table
 #' @importFrom zoo rollapply
+#' @useDynLib mrpheus, .registration = TRUE
+#' @importFrom Rcpp sourceCpp
 ## usethis namespace: end
 NULL
 
