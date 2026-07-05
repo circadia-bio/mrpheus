@@ -180,7 +180,7 @@ cassette recording, with posterior probability figures.">
       <img src="../logo.svg" class="logo" alt=""><h1>Sleep Staging: Live Walkthrough (SC4001E0)</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/circadia-bio/mrpheus/blob/v0.1.2/vignettes/articles/sleep-staging-demo.Rmd" class="external-link"><code>vignettes/articles/sleep-staging-demo.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/circadia-bio/mrpheus/blob/main/vignettes/articles/sleep-staging-demo.Rmd" class="external-link"><code>vignettes/articles/sleep-staging-demo.Rmd</code></a></small>
       <div class="d-none name"><code>sleep-staging-demo.Rmd</code></div>
     </div>
 
@@ -202,18 +202,37 @@ recording is daytime Wake; the sleep period is approximately 7–8
 hours.</p>
 <hr>
 <div class="section level2">
-<h2 id="load-and-stage">Load and stage<a class="anchor" aria-label="anchor" href="#load-and-stage"></a>
+<h2 id="pipeline">Pipeline<a class="anchor" aria-label="anchor" href="#pipeline"></a>
 </h2>
+<p>The code below shows the full pipeline. Results are loaded from a
+pre-computed dataset bundled with the package (the EDF is too large to
+include, but the staging output is identical).</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_edf.html">read_edf</a></span><span class="op">(</span><span class="st">"~/mne_data/physionet-sleep-data/SC4001E0-PSG.edf"</span><span class="op">)</span></span>
-<span><span class="va">psg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_psg.html">prepare_psg</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">staging</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stage_epochs.html">stage_epochs</a></span><span class="op">(</span></span>
+<span><span class="va">psg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_psg.html">prepare_psg</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">staging</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stage_epochs.html">stage_epochs</a></span><span class="op">(</span></span>
 <span>  <span class="va">psg</span>,</span>
 <span>  eeg_channel <span class="op">=</span> <span class="st">"EEG Fpz-Cz"</span>,</span>
 <span>  eog_channel <span class="op">=</span> <span class="st">"EOG horizontal"</span>,</span>
 <span>  emg_channel <span class="op">=</span> <span class="st">"EMG submental"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">staging</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2,650 × 7</span></span></span>
+<span><span class="co">#&gt;    epoch stage prob_N1 prob_N2 prob_N3 prob_REM prob_W</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>     1 W     0.111   0.008<span style="text-decoration: underline;">03</span> 0.001<span style="text-decoration: underline;">92</span>  0.033<span style="text-decoration: underline;">5</span>   0.846</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>     2 W     0.008<span style="text-decoration: underline;">78</span> 0.012<span style="text-decoration: underline;">1</span>  0.003<span style="text-decoration: underline;">64</span>  0.002<span style="text-decoration: underline;">33</span>  0.973</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>     3 W     0.002<span style="text-decoration: underline;">61</span> 0.004<span style="text-decoration: underline;">09</span> 0.001<span style="text-decoration: underline;">78</span>  0.002<span style="text-decoration: underline;">69</span>  0.989</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>     4 W     0.062<span style="text-decoration: underline;">1</span>  0.057<span style="text-decoration: underline;">5</span>  0.009<span style="text-decoration: underline;">01</span>  0.022<span style="text-decoration: underline;">0</span>   0.849</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>     5 W     0.102   0.143   0.026<span style="text-decoration: underline;">0</span>   0.084<span style="text-decoration: underline;">5</span>   0.644</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>     6 W     0.009<span style="text-decoration: underline;">21</span> 0.011<span style="text-decoration: underline;">0</span>  0.013<span style="text-decoration: underline;">7</span>   0.009<span style="text-decoration: underline;">35</span>  0.957</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>     7 W     0.002<span style="text-decoration: underline;">34</span> 0.006<span style="text-decoration: underline;">47</span> 0.005<span style="text-decoration: underline;">81</span>  0.003<span style="text-decoration: underline;">78</span>  0.982</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>     8 W     0.004<span style="text-decoration: underline;">75</span> 0.019<span style="text-decoration: underline;">6</span>  0.009<span style="text-decoration: underline;">73</span>  0.100    0.866</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>     9 W     0.007<span style="text-decoration: underline;">50</span> 0.023<span style="text-decoration: underline;">1</span>  0.009<span style="text-decoration: underline;">10</span>  0.015<span style="text-decoration: underline;">1</span>   0.945</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span>    10 W     0.004<span style="text-decoration: underline;">82</span> 0.014<span style="text-decoration: underline;">1</span>  0.002<span style="text-decoration: underline;">46</span>  0.026<span style="text-decoration: underline;">4</span>   0.952</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2,640 more rows</span></span></span></code></pre></div>
 <hr>
 </div>
 <div class="section level2">
@@ -229,7 +248,15 @@ hours.</p>
 <span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">stage</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">stage_summary</span></span></code></pre></div>
+<span><span class="va">stage_summary</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 5 × 4</span></span></span>
+<span><span class="co">#&gt;   stage     n duration_h   pct</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> W      <span style="text-decoration: underline;">1</span>792      14.9   67.6</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> N1       91       0.76   3.4</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> N2      352       2.93  13.3</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> N3      197       1.64   7.4</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> REM     218       1.82   8.2</span></span></code></pre></div>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">stage_summary</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">stage</span>, y <span class="op">=</span> <span class="va">duration_h</span>, fill <span class="op">=</span> <span class="va">stage</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
@@ -249,10 +276,11 @@ hours.</p>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">12</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
-<span>    legend.position <span class="op">=</span> <span class="st">"none"</span>,</span>
+<span>    legend.position    <span class="op">=</span> <span class="st">"none"</span>,</span>
 <span>    panel.grid.major.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>    plot.subtitle <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="st">"#7C5432"</span>, size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span>    plot.subtitle      <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="st">"#7C5432"</span>, size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
+<p><img src="sleep-staging-demo_files/figure-html/fig-distribution-1.png" class="r-plt" alt="" width="100%"></p>
 <p>Wake accounts for the majority of the recording because the cassette
 started at ~16:13 local time and ran continuously through the night and
 into the following afternoon.</p>
@@ -268,9 +296,9 @@ model’s confidence at each point in time.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">staging</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">epoch</span>, <span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"prob_"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">pivot_longer</span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"prob_"</span><span class="op">)</span>, names_to <span class="op">=</span> <span class="st">"stage"</span>, values_to <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_longer.html" class="external-link">pivot_longer</a></span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"prob_"</span><span class="op">)</span>, names_to <span class="op">=</span> <span class="st">"stage"</span>, values_to <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    stage  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"prob_"</span>, <span class="st">""</span>, <span class="va">stage</span><span class="op">)</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"W"</span>, <span class="st">"N1"</span>, <span class="st">"N2"</span>, <span class="st">"N3"</span>, <span class="st">"REM"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    stage  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"prob_"</span>, <span class="st">""</span>, <span class="va">stage</span><span class="op">)</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"N3"</span>, <span class="st">"N2"</span>, <span class="st">"N1"</span>, <span class="st">"REM"</span>, <span class="st">"W"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>    time_h <span class="op">=</span> <span class="op">(</span><span class="va">epoch</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span> <span class="op">*</span> <span class="fl">30</span> <span class="op">/</span> <span class="fl">3600</span></span>
 <span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">time_h</span>, y <span class="op">=</span> <span class="va">stage</span>, fill <span class="op">=</span> <span class="va">prob</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
@@ -289,10 +317,11 @@ model’s confidence at each point in time.</p>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">12</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
-<span>    plot.subtitle   <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="st">"#7C5432"</span>, size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
-<span>    panel.grid      <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>    axis.text.y     <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span></span>
+<span>    plot.subtitle <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="st">"#7C5432"</span>, size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
+<span>    panel.grid    <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>    axis.text.y   <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
+<p><img src="sleep-staging-demo_files/figure-html/fig-heatmap-full-1.png" class="r-plt" alt="" width="100%"></p>
 <p>The dark band in the <strong>W</strong> row spanning the first ~8
 hours and last ~5 hours reflects the daytime Wake periods before and
 after sleep. The sleep period (roughly hours 8.5–17) is visible as
@@ -306,19 +335,12 @@ sustained activity in the <strong>N2</strong>, <strong>N3</strong>, and
 <p>Zooming into the sleep window (starting from just before lights-out
 at ~30,600 s ≈ hour 8.5) makes the ultradian architecture clearer.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Approximate sleep period: first annotation is at 30630 s</span></span>
-<span><span class="va">sleep_start_epoch</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">floor</a></span><span class="op">(</span><span class="fl">30630</span> <span class="op">/</span> <span class="fl">30</span><span class="op">)</span>   <span class="co"># ≈ epoch 1021</span></span>
-<span><span class="va">sleep_end_epoch</span>   <span class="op">&lt;-</span> <span class="fl">1950L</span>               <span class="co"># conservative end of sleep</span></span>
-<span></span>
-<span><span class="va">staging_sleep</span> <span class="op">&lt;-</span> <span class="va">staging</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">epoch</span> <span class="op">&gt;=</span> <span class="va">sleep_start_epoch</span> <span class="op">-</span> <span class="fl">20L</span>,</span>
-<span>         <span class="va">epoch</span> <span class="op">&lt;=</span> <span class="va">sleep_end_epoch</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">staging_sleep</span> <span class="op">|&gt;</span></span>
+<code class="sourceCode R"><span><span class="va">staging</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">epoch</span> <span class="op">&gt;=</span> <span class="fl">1001L</span>, <span class="va">epoch</span> <span class="op">&lt;=</span> <span class="fl">1950L</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">epoch</span>, <span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"prob_"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">pivot_longer</span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"prob_"</span><span class="op">)</span>, names_to <span class="op">=</span> <span class="st">"stage"</span>, values_to <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_longer.html" class="external-link">pivot_longer</a></span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"prob_"</span><span class="op">)</span>, names_to <span class="op">=</span> <span class="st">"stage"</span>, values_to <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    stage  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"prob_"</span>, <span class="st">""</span>, <span class="va">stage</span><span class="op">)</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"W"</span>, <span class="st">"N1"</span>, <span class="st">"N2"</span>, <span class="st">"N3"</span>, <span class="st">"REM"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    stage  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"prob_"</span>, <span class="st">""</span>, <span class="va">stage</span><span class="op">)</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"N3"</span>, <span class="st">"N2"</span>, <span class="st">"N1"</span>, <span class="st">"REM"</span>, <span class="st">"W"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>    time_h <span class="op">=</span> <span class="op">(</span><span class="va">epoch</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span> <span class="op">*</span> <span class="fl">30</span> <span class="op">/</span> <span class="fl">3600</span></span>
 <span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">time_h</span>, y <span class="op">=</span> <span class="va">stage</span>, fill <span class="op">=</span> <span class="va">prob</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
@@ -333,24 +355,24 @@ at ~30,600 s ≈ hour 8.5) makes the ultradian architecture clearer.</p>
 <span>    x        <span class="op">=</span> <span class="st">"Time from recording start (hours)"</span>,</span>
 <span>    y        <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>    title    <span class="op">=</span> <span class="st">"Sleep Period — Posterior Probabilities"</span>,</span>
-<span>    subtitle <span class="op">=</span> <span class="st">"SC4001E0 · lights-out to end of recording"</span></span>
+<span>    subtitle <span class="op">=</span> <span class="st">"SC4001E0 · lights-out to end of sleep"</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">12</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
-<span>    plot.subtitle   <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="st">"#7C5432"</span>, size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
-<span>    panel.grid      <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>    axis.text.y     <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span></span>
+<span>    plot.subtitle <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="st">"#7C5432"</span>, size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
+<span>    panel.grid    <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>    axis.text.y   <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
+<p><img src="sleep-staging-demo_files/figure-html/fig-heatmap-sleep-1.png" class="r-plt" alt="" width="100%"></p>
 <hr>
 </div>
 <div class="section level2">
 <h2 id="model-confidence">Model confidence<a class="anchor" aria-label="anchor" href="#model-confidence"></a>
 </h2>
 <p>High posterior probabilities indicate epochs the model is unambiguous
-about (e.g. consolidated N2 or Wake). Lower values reflect genuine
-signal ambiguity at stage transitions or in epochs with mixed
-features.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+about. Lower values reflect genuine signal ambiguity at stage
+transitions or in epochs with mixed features.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">staging</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
 <span>    stage      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">stage</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"W"</span>, <span class="st">"N1"</span>, <span class="st">"N2"</span>, <span class="st">"N3"</span>, <span class="st">"REM"</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -368,9 +390,8 @@ features.</p>
 <span>    subtitle <span class="op">=</span> <span class="st">"SC4001E0 — 2,650 epochs"</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">12</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
-<span>    plot.subtitle <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="st">"#7C5432"</span>, size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>plot.subtitle <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="st">"#7C5432"</span>, size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><img src="sleep-staging-demo_files/figure-html/fig-confidence-1.png" class="r-plt" alt="" width="100%"></p>
 <p>Most epochs concentrate near 1.0, reflecting high model confidence.
 The lower-confidence tail consists primarily of <strong>N1</strong>
 epochs and brief transitions between stages.</p>
@@ -382,7 +403,7 @@ epochs and brief transitions between stages.</p>
 <p>The <code>staging</code> tibble can be passed directly to
 <strong>hypnor</strong> for hypnogram visualisation and sleep
 architecture metrics:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">hypnogram</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/export_hypnogram.html">export_hypnogram</a></span><span class="op">(</span></span>
 <span>  <span class="va">staging</span>,</span>
 <span>  epoch_s        <span class="op">=</span> <span class="fl">30</span>,</span>

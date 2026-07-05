@@ -20,15 +20,16 @@ is daytime Wake; the sleep period is approximately 7–8 hours.
 
 ------------------------------------------------------------------------
 
-## Load and stage
+## Pipeline
+
+The code below shows the full pipeline. Results are loaded from a
+pre-computed dataset bundled with the package (the EDF is too large to
+include, but the staging output is identical).
 
 ``` r
 
 rec <- read_edf("~/mne_data/physionet-sleep-data/SC4001E0-PSG.edf")
 psg <- prepare_psg(rec)
-```
-
-``` r
 
 staging <- stage_epochs(
   psg,
@@ -36,6 +37,25 @@ staging <- stage_epochs(
   eog_channel = "EOG horizontal",
   emg_channel = "EMG submental"
 )
+```
+
+``` r
+
+staging
+#> # A tibble: 2,650 × 7
+#>    epoch stage prob_N1 prob_N2 prob_N3 prob_REM prob_W
+#>    <int> <chr>   <dbl>   <dbl>   <dbl>    <dbl>  <dbl>
+#>  1     1 W     0.111   0.00803 0.00192  0.0335   0.846
+#>  2     2 W     0.00878 0.0121  0.00364  0.00233  0.973
+#>  3     3 W     0.00261 0.00409 0.00178  0.00269  0.989
+#>  4     4 W     0.0621  0.0575  0.00901  0.0220   0.849
+#>  5     5 W     0.102   0.143   0.0260   0.0845   0.644
+#>  6     6 W     0.00921 0.0110  0.0137   0.00935  0.957
+#>  7     7 W     0.00234 0.00647 0.00581  0.00378  0.982
+#>  8     8 W     0.00475 0.0196  0.00973  0.100    0.866
+#>  9     9 W     0.00750 0.0231  0.00910  0.0151   0.945
+#> 10    10 W     0.00482 0.0141  0.00246  0.0264   0.952
+#> # ℹ 2,640 more rows
 ```
 
 ------------------------------------------------------------------------
@@ -54,6 +74,14 @@ stage_summary <- staging |>
   arrange(stage)
 
 stage_summary
+#> # A tibble: 5 × 4
+#>   stage     n duration_h   pct
+#>   <fct> <int>      <dbl> <dbl>
+#> 1 W      1792      14.9   67.6
+#> 2 N1       91       0.76   3.4
+#> 3 N2      352       2.93  13.3
+#> 4 N3      197       1.64   7.4
+#> 5 REM     218       1.82   8.2
 ```
 
 ``` r
@@ -76,11 +104,13 @@ stage_summary |>
   ) +
   theme_minimal(base_size = 12) +
   theme(
-    legend.position = "none",
+    legend.position    = "none",
     panel.grid.major.x = element_blank(),
-    plot.subtitle = element_text(colour = "#7C5432", size = 10)
+    plot.subtitle      = element_text(colour = "#7C5432", size = 10)
   )
 ```
+
+![](sleep-staging-demo_files/figure-html/fig-distribution-1.png)
 
 Wake accounts for the majority of the recording because the cassette
 started at ~16:13 local time and ran continuously through the night and
@@ -101,7 +131,7 @@ staging |>
   select(epoch, starts_with("prob_")) |>
   pivot_longer(starts_with("prob_"), names_to = "stage", values_to = "prob") |>
   mutate(
-    stage  = factor(sub("prob_", "", stage), levels = c("W", "N1", "N2", "N3", "REM")),
+    stage  = factor(sub("prob_", "", stage), levels = c("N3", "N2", "N1", "REM", "W")),
     time_h = (epoch - 1L) * 30 / 3600
   ) |>
   ggplot(aes(x = time_h, y = stage, fill = prob)) +
@@ -120,11 +150,13 @@ staging |>
   ) +
   theme_minimal(base_size = 12) +
   theme(
-    plot.subtitle   = element_text(colour = "#7C5432", size = 10),
-    panel.grid      = element_blank(),
-    axis.text.y     = element_text(face = "bold")
+    plot.subtitle = element_text(colour = "#7C5432", size = 10),
+    panel.grid    = element_blank(),
+    axis.text.y   = element_text(face = "bold")
   )
 ```
+
+![](sleep-staging-demo_files/figure-html/fig-heatmap-full-1.png)
 
 The dark band in the **W** row spanning the first ~8 hours and last ~5
 hours reflects the daytime Wake periods before and after sleep. The
@@ -140,22 +172,12 @@ Zooming into the sleep window (starting from just before lights-out at
 
 ``` r
 
-# Approximate sleep period: first annotation is at 30630 s
-sleep_start_epoch <- floor(30630 / 30)   # ≈ epoch 1021
-sleep_end_epoch   <- 1950L               # conservative end of sleep
-
-staging_sleep <- staging |>
-  filter(epoch >= sleep_start_epoch - 20L,
-         epoch <= sleep_end_epoch)
-```
-
-``` r
-
-staging_sleep |>
+staging |>
+  filter(epoch >= 1001L, epoch <= 1950L) |>
   select(epoch, starts_with("prob_")) |>
   pivot_longer(starts_with("prob_"), names_to = "stage", values_to = "prob") |>
   mutate(
-    stage  = factor(sub("prob_", "", stage), levels = c("W", "N1", "N2", "N3", "REM")),
+    stage  = factor(sub("prob_", "", stage), levels = c("N3", "N2", "N1", "REM", "W")),
     time_h = (epoch - 1L) * 30 / 3600
   ) |>
   ggplot(aes(x = time_h, y = stage, fill = prob)) +
@@ -170,23 +192,25 @@ staging_sleep |>
     x        = "Time from recording start (hours)",
     y        = NULL,
     title    = "Sleep Period — Posterior Probabilities",
-    subtitle = "SC4001E0 · lights-out to end of recording"
+    subtitle = "SC4001E0 · lights-out to end of sleep"
   ) +
   theme_minimal(base_size = 12) +
   theme(
-    plot.subtitle   = element_text(colour = "#7C5432", size = 10),
-    panel.grid      = element_blank(),
-    axis.text.y     = element_text(face = "bold")
+    plot.subtitle = element_text(colour = "#7C5432", size = 10),
+    panel.grid    = element_blank(),
+    axis.text.y   = element_text(face = "bold")
   )
 ```
+
+![](sleep-staging-demo_files/figure-html/fig-heatmap-sleep-1.png)
 
 ------------------------------------------------------------------------
 
 ## Model confidence
 
 High posterior probabilities indicate epochs the model is unambiguous
-about (e.g. consolidated N2 or Wake). Lower values reflect genuine
-signal ambiguity at stage transitions or in epochs with mixed features.
+about. Lower values reflect genuine signal ambiguity at stage
+transitions or in epochs with mixed features.
 
 ``` r
 
@@ -207,10 +231,10 @@ staging |>
     subtitle = "SC4001E0 — 2,650 epochs"
   ) +
   theme_minimal(base_size = 12) +
-  theme(
-    plot.subtitle = element_text(colour = "#7C5432", size = 10)
-  )
+  theme(plot.subtitle = element_text(colour = "#7C5432", size = 10))
 ```
+
+![](sleep-staging-demo_files/figure-html/fig-confidence-1.png)
 
 Most epochs concentrate near 1.0, reflecting high model confidence. The
 lower-confidence tail consists primarily of **N1** epochs and brief
