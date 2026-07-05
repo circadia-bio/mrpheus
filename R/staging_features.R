@@ -420,8 +420,9 @@
     emg_out <- .na_channel_matrix(n, "emg_", emg_base)
   }
 
-  # ── Assemble in model order: EEG (63) | time (2) | EOG (51) | EMG (33) ──
+  # ── Assemble and sort alphabetically — matches YASA's features.sort_index() ──
   feat_mat <- cbind(eeg_out, time_out, eog_out, emg_out)
+  feat_mat <- feat_mat[, order(colnames(feat_mat))]
 
   stopifnot(ncol(feat_mat) == 149L)
 
