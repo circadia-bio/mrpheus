@@ -372,12 +372,25 @@
   n  <- psg$n_epochs
   sr <- function(ch) psg$channel_map$sample_rate[psg$channel_map$label == ch]
 
-  # Filter the full recording first, then extract epochs.
-  # Matches YASA: filter_data(self.data, ...) then sliding_window(data_filt[i], ...).
+  # Resample to 100 Hz, filter the full recording, then extract epochs.
+  # Matches YASA: raw_pick.resample(100) → filter_data() → sliding_window().
+  # All features are always computed at 100 Hz regardless of native channel rate.
+  SR_TARGET <- 100L
+
   filter_and_epoch <- function(ch) {
-    sr_ch    <- sr(ch)
-    ep_len   <- as.integer(psg$epoch_s * sr_ch)
-    sig_filt <- .bandpass_filter(psg$edf$signals[[ch]]$signal, sr_ch)
+    sig_raw <- psg$edf$signals[[ch]]$signal
+    sr_orig <- sr(ch)
+
+    # Resample to 100 Hz if needed (e.g. EMG at 1 Hz in Sleep-EDF cassette)
+    if (sr_orig != SR_TARGET) {
+      n_out   <- as.integer(round(length(sig_raw) * SR_TARGET / sr_orig))
+      t_in    <- seq(0, by = 1 / sr_orig,   length.out = length(sig_raw))
+      t_out   <- seq(0, by = 1 / SR_TARGET, length.out = n_out)
+      sig_raw <- stats::approx(t_in, sig_raw, xout = t_out, rule = 2L)$y
+    }
+
+    ep_len   <- as.integer(psg$epoch_s * SR_TARGET)
+    sig_filt <- .bandpass_filter(sig_raw, SR_TARGET)
     lapply(seq_len(n), function(i) {
       start <- (i - 1L) * ep_len + 1L
       sig_filt[start:(start + ep_len - 1L)]
@@ -385,9 +398,8 @@
   }
 
   # ── EEG ──────────────────────────────────────────────────────────────────
-  eeg_sr     <- sr(eeg_ch)
   eeg_epochs <- filter_and_epoch(eeg_ch)
-  eeg_mat    <- do.call(rbind, lapply(eeg_epochs, .eeg_epoch_features, sr = eeg_sr))
+  eeg_mat    <- do.call(rbind, lapply(eeg_epochs, .eeg_epoch_features, sr = SR_TARGET))
   eeg_out    <- .add_norm_variants(eeg_mat, "eeg_")
 
   # ── Time ─────────────────────────────────────────────────────────────────
@@ -400,9 +412,8 @@
                 "iqr","kurt","nzc","perm","petrosian","sdelta","sigma",
                 "skew","std","theta")
   if (!is.na(eog_ch)) {
-    eog_sr     <- sr(eog_ch)
     eog_epochs <- filter_and_epoch(eog_ch)
-    eog_mat    <- do.call(rbind, lapply(eog_epochs, .eog_epoch_features, sr = eog_sr))
+    eog_mat    <- do.call(rbind, lapply(eog_epochs, .eog_epoch_features, sr = SR_TARGET))
     eog_out    <- .add_norm_variants(eog_mat, "eog_")
   } else {
     eog_out <- .na_channel_matrix(n, "eog_", eog_base)
@@ -412,9 +423,8 @@
   emg_base <- c("abspow","hcomp","higuchi","hmob","iqr","kurt","nzc",
                 "perm","petrosian","skew","std")
   if (!is.na(emg_ch)) {
-    emg_sr     <- sr(emg_ch)
     emg_epochs <- filter_and_epoch(emg_ch)
-    emg_mat    <- do.call(rbind, lapply(emg_epochs, .emg_epoch_features, sr = emg_sr))
+    emg_mat    <- do.call(rbind, lapply(emg_epochs, .emg_epoch_features, sr = SR_TARGET))
     emg_out    <- .add_norm_variants(emg_mat, "emg_")
   } else {
     emg_out <- .na_channel_matrix(n, "emg_", emg_base)
