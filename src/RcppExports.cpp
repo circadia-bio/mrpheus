@@ -10,6 +10,19 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// resample_poly_cpp
+NumericVector resample_poly_cpp(NumericVector x, NumericVector h, int up);
+RcppExport SEXP _mrpheus_resample_poly_cpp(SEXP xSEXP, SEXP hSEXP, SEXP upSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type h(hSEXP);
+    Rcpp::traits::input_parameter< int >::type up(upSEXP);
+    rcpp_result_gen = Rcpp::wrap(resample_poly_cpp(x, h, up));
+    return rcpp_result_gen;
+END_RCPP
+}
 // perm_entropy_cpp
 double perm_entropy_cpp(NumericVector x, int order, int delay);
 RcppExport SEXP _mrpheus_perm_entropy_cpp(SEXP xSEXP, SEXP orderSEXP, SEXP delaySEXP) {
@@ -49,6 +62,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_mrpheus_resample_poly_cpp", (DL_FUNC) &_mrpheus_resample_poly_cpp, 3},
     {"_mrpheus_perm_entropy_cpp", (DL_FUNC) &_mrpheus_perm_entropy_cpp, 3},
     {"_mrpheus_higuchi_fd_cpp", (DL_FUNC) &_mrpheus_higuchi_fd_cpp, 2},
     {"_mrpheus_roll_triang_mean_cpp", (DL_FUNC) &_mrpheus_roll_triang_mean_cpp, 2},
