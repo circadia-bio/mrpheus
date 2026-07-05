@@ -125,6 +125,7 @@
 
 # Compute Welch PSD with bias-corrected median averaging over segments.
 # Matches YASA/scipy.signal.welch(average='median').
+# Uses mvfft() for a single batched C-level FFT over all segments.
 .welch_median_psd <- function(sig, sr, win_n, overlap = 0.5) {
   wvec   <- gsignal::hamming(win_n)
   hop    <- max(1L, as.integer(win_n * (1 - overlap)))
@@ -135,16 +136,22 @@
   if (length(starts) == 0L)
     return(list(freq = freqs, spec = rep(NA_real_, n_freq)))
 
-  scale <- sum(wvec ^ 2) * sr
+  scale  <- sum(wvec ^ 2) * sr
+  n_segs <- length(starts)
 
-  pgrams <- vapply(starts, function(s) {
-    ft  <- stats::fft(sig[s:(s + win_n - 1L)] * wvec)[seq_len(n_freq)]
-    psd <- Mod(ft) ^ 2 / scale
-    psd[seq(2L, n_freq - 1L)] <- 2 * psd[seq(2L, n_freq - 1L)]
-    psd
-  }, numeric(n_freq))
+  # Build the segment matrix with vectorised indexing (single C-level op)
+  idx_mat <- matrix(
+    rep(seq_len(win_n), n_segs) + rep((starts - 1L), each = win_n),
+    nrow = win_n
+  )
+  seg_mat <- matrix(sig[idx_mat] * wvec, nrow = win_n)  # apply Hamming window
 
-  bias    <- .median_bias(length(starts))
+  # Batch FFT: one C call for all segments, keep one-sided frequencies
+  ft_mat  <- mvfft(seg_mat)[seq_len(n_freq), , drop = FALSE]
+  pgrams  <- Mod(ft_mat) ^ 2 / scale
+  pgrams[seq(2L, n_freq - 1L), ] <- 2 * pgrams[seq(2L, n_freq - 1L), ]
+
+  bias    <- .median_bias(n_segs)
   psd_med <- apply(pgrams, 1L, stats::median) / bias
   list(freq = freqs, spec = psd_med)
 }
@@ -213,36 +220,11 @@
   log10(N) / (log10(N) + log10(N / (N + 0.4 * nzc)))
 }
 
-.higuchi_fd <- function(x, kmax = 10L) {
-  N     <- length(x)
-  k_seq <- seq_len(kmax)
-  Lk    <- vapply(k_seq, function(k) {
-    Lmk <- vapply(seq_len(k), function(m) {
-      idx <- seq.int(m, N, by = k)
-      if (length(idx) < 2L) return(0)
-      (N - 1L) / (floor((N - m) / k) * k ^ 2L) * sum(abs(diff(x[idx])))
-    }, numeric(1))
-    mean(Lmk[Lmk > 0])
-  }, numeric(1))
-  valid <- Lk > 0
-  if (sum(valid) < 2L) return(NA_real_)
-  unname(stats::coef(stats::lm(log(Lk[valid]) ~ log(1 / k_seq[valid])))[2L])
-}
+.higuchi_fd <- function(x, kmax = 10L) higuchi_fd_cpp(x, kmax)
 
-.perm_entropy <- function(x, order = 3L, delay = 1L) {
-  N <- length(x)
-  n <- N - (order - 1L) * delay
-  if (n <= 0L) return(NA_real_)
+.perm_entropy <- function(x, order = 3L, delay = 1L) perm_entropy_cpp(x, order, delay)
 
-  lags     <- seq(0L, (order - 1L) * delay, by = delay)
-  idx_mat  <- outer(seq_len(n), lags, "+")
-  embedded <- matrix(x[as.vector(idx_mat)], nrow = n, ncol = order)
-
-  pat_str <- apply(t(apply(embedded, 1L, order)), 1L, paste, collapse = "")
-  freqs   <- as.vector(table(pat_str)) / n
-  h       <- -sum(freqs * log(freqs + .Machine$double.eps))
-  h / log(factorial(order))
-}
+.roll_triang_mean <- function(x, k = 15L) roll_triang_mean_cpp(x, k)
 
 .stat_features <- function(x) {
   mu  <- mean(x)
