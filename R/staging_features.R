@@ -423,12 +423,11 @@
     sig_raw <- psg$edf$signals[[ch]]$signal
     sr_orig <- sr(ch)
 
-    # Resample to 100 Hz if needed (e.g. EMG at 1 Hz in Sleep-EDF cassette)
+    # Resample to 100 Hz if needed — matches YASA's raw_pick.resample(100).
+    # Use gsignal::resample (polyphase Kaiser FIR) not stats::approx (linear),
+    # to match scipy.signal.resample_poly used internally by MNE.
     if (sr_orig != SR_TARGET) {
-      n_out   <- as.integer(round(length(sig_raw) * SR_TARGET / sr_orig))
-      t_in    <- seq(0, by = 1 / sr_orig,   length.out = length(sig_raw))
-      t_out   <- seq(0, by = 1 / SR_TARGET, length.out = n_out)
-      sig_raw <- stats::approx(t_in, sig_raw, xout = t_out, rule = 2L)$y
+      sig_raw <- as.vector(gsignal::resample(sig_raw, SR_TARGET, sr_orig))
     }
 
     ep_len   <- as.integer(psg$epoch_s * SR_TARGET)
