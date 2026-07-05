@@ -1,3 +1,60 @@
+# mrpheus 0.1.2
+
+### AASM sleep staging — validated parity with YASA
+
+The `stage_epochs()` pipeline now achieves validated numerical parity with
+the YASA Python reference implementation (Vallat & Walker, 2021), producing
+77.8% epoch-level agreement against scored ground truth on the Sleep-EDF
+Cassette dataset — matching YASA's own 77.7% on the same recording.
+
+**Feature extraction fixes (149-feature LightGBM matrix):**
+
+* Filter: replaced Butterworth with exact 825-tap MNE Hamming FIR coefficients
+  bundled in `inst/filters/mne_bandpass_100hz.csv`; applied as a single
+  zero-phase FFT pass (not `filtfilt`, which squares the response).
+* EMG resampling: ported MNE's `_resample_fft` algorithm exactly — npad='auto'
+  pads to the next power of 2 for fast FFTs, reflect-limited padding, correct
+  conjugate-Nyquist placement in the zero-padded frequency domain.
+* Welch PSD: periodic (DFT-even) Hamming window matching
+  `scipy.signal.get_window('hamming', N, fftbins=True)`; segment detrending
+  (`detrend='constant'`); bias-corrected median averaging.
+* Band integration: composite Simpson's rule matching `scipy.integrate.simpson`
+  (odd N: standard 1/3; even N: 1/3 on first N-3 points + 3/8 on last 4);
+  inclusive frequency bounds.
+* Petrosian FD: fixed to count local extrema (sign changes in consecutive
+  first differences) rather than zero crossings of x — matching antropy's
+  convention.
+* Rolling normalisation: `_c7min_norm` now uses a C++ triangular rolling
+  mean via `roll_triang_mean_cpp`; `_p2min_norm` uses right-aligned
+  `zoo::rollapply`; both followed by `robust_scale`.
+
+**Model prediction fixes:**
+
+* Feature ordering: `stage_epochs()` reads the model's `feature_names=` line
+  from the bundled `.txt` file and reorders columns to match the EEG | time |
+  EOG | EMG order the model was trained with (LightGBM R passes matrices by
+  position, not by name).
+* LightGBM v4 compatibility: `predict()` now returns a matrix directly;
+  removed the deprecated `reshape=TRUE` argument.
+* Label mapping: class indices follow sklearn `LabelEncoder` alphabetical
+  order — N1=0, N2=1, N3=2, REM=3, W=4.
+
+**Performance:**
+
+* Three inner loops ported to Rcpp C++: `perm_entropy_cpp`,
+  `higuchi_fd_cpp`, `roll_triang_mean_cpp`. Full-day staging
+  (2650 epochs × 3 channels) completes in ~40 s.
+
+**Documentation:**
+
+* New vignette: *Automatic AASM Sleep Staging* — full pipeline API with
+  PhysioNet download instructions.
+* New pkgdown article: *Sleep Staging: Live Walkthrough (SC4001E0)* —
+  fully executed on a real Sleep-EDF cassette recording with posterior
+  probability figures.
+* 56 new unit tests covering all staging feature helpers, Rcpp functions,
+  and edge cases. `test-staging-features.R` now has 149 passing tests.
+
 # mrpheus 0.1.1
 
 ### Scope

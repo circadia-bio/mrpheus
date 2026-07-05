@@ -78,12 +78,30 @@ stage_epochs <- function(psg,
 
   features <- .extract_staging_features(psg, eeg_channel, eog_channel, emg_channel)
 
-  model <- lightgbm::lgb.load(model_path)
+  model    <- lightgbm::lgb.load(model_path)
   feat_mat <- as.matrix(features[, -1])
 
-  probs <- predict(model, feat_mat, reshape = TRUE)
-  colnames(probs) <- c("prob_W", "prob_N1", "prob_N2", "prob_N3", "prob_REM")
-  stage_labels <- c("W", "N1", "N2", "N3", "REM")
+  # LightGBM R passes matrices by position, not by name. The model was trained
+  # with EEG|time|EOG|EMG order (not alphabetical). Read the expected order
+  # from the model file and reorder columns accordingly.
+  model_feat_line <- grep("^feature_names=",
+                          readLines(model_path, warn = FALSE), value = TRUE)
+  if (length(model_feat_line) == 1L) {
+    model_feat_order <- strsplit(
+      sub("^feature_names=", "", model_feat_line), " "
+    )[[1L]]
+    feat_mat <- feat_mat[, model_feat_order, drop = FALSE]
+  }
+
+  probs <- predict(model, feat_mat)
+  # LightGBM v4.x returns a matrix directly for multiclass (no reshape needed).
+  # Older versions returned a flat vector that needed matrix(..., byrow=TRUE).
+  if (!is.matrix(probs))
+    probs <- matrix(probs, ncol = 5L, byrow = TRUE)
+  # LightGBM was trained with sklearn LabelEncoder which assigns class indices
+  # in alphabetical order: N1=0, N2=1, N3=2, REM=3, W=4.
+  colnames(probs) <- c("prob_N1", "prob_N2", "prob_N3", "prob_REM", "prob_W")
+  stage_labels <- c("N1", "N2", "N3", "REM", "W")
   stage <- stage_labels[apply(probs, 1, which.max)]
 
   out <- tibble::tibble(
@@ -100,19 +118,4 @@ stage_epochs <- function(psg,
   out
 }
 
-# Internal feature extraction — must match YASA's Python pipeline exactly.
-# See data-raw/validate_feature_parity.R for bit-exact validation tests.
-.extract_staging_features <- function(psg, eeg_ch, eog_ch, emg_ch) {
-  cli::cli_alert_info("Extracting staging features...")
-
-  bp <- compute_band_power(psg, channels = eeg_ch, relative = TRUE)
-
-  # TODO: add Hjorth parameters, EOG/EMG covariance, and epoch-context
-  # features (running mean/std over +/-1 epoch) to match full YASA feature set.
-  # Feature parity must be validated against yasa.SleepStaging._features()
-  # before the model output can be trusted.
-
-  bp |>
-    dplyr::rename_with(~ paste0("eeg_", .), -c(epoch, channel, total_power)) |>
-    dplyr::select(-channel, -total_power)
-}
+# Feature extraction is implemented in R/staging_features.R.

@@ -51,3 +51,8 @@ rsconnect/
 # macOS metadata
 .DS_Store
 **/.DS_Store
+src/*.o
+src/*.so
+data-raw/diagnose_emg.R
+src/*.o
+src/*.so
