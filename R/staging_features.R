@@ -24,31 +24,18 @@
 )
 
 # ── Pre-filter helper ────────────────────────────────────────────────────────
-# YASA calls filter_data(self.data, sf, l_freq=0.4, h_freq=30) on the FULL
-# recording before epoching. MNE uses a zero-phase Hamming-windowed FIR.
-# For l_freq=0.4 at sf=100 Hz, MNE auto-computes l_trans_bandwidth = 0.4 Hz,
-# giving filter_length = round(3.3 * sf / l_trans_bw) = 825 taps.
-# We match this with gsignal::fir1 (Hamming window) + filtfilt.
-.bandpass_filter <- function(sig, sr, l_freq = 0.4, h_freq = 30) {
-  nyq    <- sr / 2
-  h_safe <- min(h_freq, nyq * 0.95)
-  if (h_safe <= l_freq) return(sig)
+# YASA resamples all data to 100 Hz then calls MNE's filter_data with
+# l_freq=0.4, h_freq=30. The exact FIR coefficients were extracted once via
+# data-raw/extract_mne_filter.py and are bundled in inst/filters/. This
+# eliminates any Python dependency at runtime while preserving exact parity.
+.bandpass_filter <- function(sig, sr) {
+  # Load bundled MNE coefficients (designed for sr = 100 Hz)
+  coef_path <- system.file("filters", "mne_bandpass_100hz.csv",
+                            package = "mrpheus")
+  if (!nzchar(coef_path))
+    cli::cli_abort("Filter coefficients not found. Run data-raw/extract_mne_filter.py.")
 
-  # Compute MNE-equivalent filter length:
-  # l_trans_bandwidth = min(max(l_freq * 0.25, 2.0), l_freq)
-  # filter_length = round(3.3 * sr / l_trans_bw)  [must be odd]
-  l_trans   <- min(max(l_freq * 0.25, 2.0), l_freq)
-  h_trans   <- min(max(h_safe * 0.25, 2.0), nyq - h_safe)
-  min_trans <- min(l_trans, h_trans)
-  n_taps    <- as.integer(round(3.3 * sr / min_trans))
-  if (n_taps %% 2L == 0L) n_taps <- n_taps + 1L   # ensure odd (Type I FIR)
-
-  b <- gsignal::fir1(
-    n      = n_taps - 1L,
-    w      = c(l_freq / nyq, h_safe / nyq),
-    type   = "pass",
-    window = gsignal::hamming(n_taps)
-  )
+  b <- scan(coef_path, quiet = TRUE)
   as.vector(gsignal::filtfilt(b, sig))
 }
 
