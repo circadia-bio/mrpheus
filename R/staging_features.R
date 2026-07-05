@@ -204,7 +204,11 @@
 # Matches YASA/scipy.signal.welch(average='median').
 # Uses mvfft() for a single batched C-level FFT over all segments.
 .welch_median_psd <- function(sig, sr, win_n, overlap = 0.5) {
-  wvec   <- gsignal::hamming(win_n)
+  # Periodic (DFT-even) Hamming window — matches scipy.signal.get_window('hamming', N, fftbins=True)
+  # which is what scipy.signal.welch uses internally. The periodic window has
+  # sum(w^2) = N*(0.54^2 + 0.46^2/2) exactly; the symmetric window used by
+  # gsignal::hamming gives a slightly different sum(w^2), biasing abspow by ~0.2%.
+  wvec   <- 0.54 - 0.46 * cos(2 * pi * seq.int(0L, win_n - 1L) / win_n)
   hop    <- max(1L, as.integer(win_n * (1 - overlap)))
   n_freq <- win_n %/% 2L + 1L
   freqs  <- seq(0, sr / 2, length.out = n_freq)
