@@ -6,25 +6,14 @@ description: |
 ---
 
 ```{r setup, include = FALSE}
-edf_path <- "~/mne_data/physionet-sleep-data/SC4001E0-PSG.edf"
-has_data  <- file.exists(edf_path)
-
 knitr::opts_chunk$set(
   collapse  = TRUE,
   comment   = "#>",
-  eval      = has_data,
   fig.width = 10,
   fig.height = 4,
   dpi       = 150,
   out.width = "100%"
 )
-
-if (!has_data) {
-  message(
-    "SC4001E0-PSG.edf not found — chunks skipped. ",
-    "See the 'Automatic AASM Sleep Staging' vignette for download instructions."
-  )
-}
 ```
 
 ```{r packages, message = FALSE}
@@ -45,14 +34,16 @@ daytime Wake; the sleep period is approximately 7–8 hours.
 
 ---
 
-## Load and stage
+## Pipeline
 
-```{r load}
+The code below shows the full pipeline. Results are loaded from a
+pre-computed dataset bundled with the package (the EDF is too large to
+include, but the staging output is identical).
+
+```{r pipeline, eval = FALSE}
 rec <- read_edf("~/mne_data/physionet-sleep-data/SC4001E0-PSG.edf")
 psg <- prepare_psg(rec)
-```
 
-```{r stage, cache = TRUE}
 staging <- stage_epochs(
   psg,
   eeg_channel = "EEG Fpz-Cz",
@@ -61,9 +52,29 @@ staging <- stage_epochs(
 )
 ```
 
+```{r load-precomputed, include = FALSE}
+staging <- readRDS(
+  system.file("extdata", "SC4001E0_staging.rds", package = "mrpheus")
+)
+```
+
+```{r peek}
+staging
+```
+
 ---
 
 ## Stage distribution
+
+```{r palette, include = FALSE}
+stage_pal <- c(
+  W   = "#AAAAAA",   # neutral grey — awake
+  N1  = "#B07C3A",   # ochre — transition
+  N2  = "#6A7840",   # olive — light sleep
+  N3  = "#014370",   # navy — deep sleep
+  REM = "#B83E2C"    # vermillion — active dreaming
+)
+```
 
 ```{r distribution-table}
 stage_summary <- staging |>
@@ -76,16 +87,6 @@ stage_summary <- staging |>
   arrange(stage)
 
 stage_summary
-```
-
-```{r palette, include = FALSE}
-stage_pal <- c(
-  W   = "#AAAAAA",   # neutral grey — awake
-  N1  = "#B07C3A",   # ochre — transition
-  N2  = "#6A7840",   # olive — light sleep
-  N3  = "#014370",   # navy — deep sleep
-  REM = "#B83E2C"    # vermillion — active dreaming
-)
 ```
 
 ```{r fig-distribution, fig.height = 3.5}
@@ -107,9 +108,9 @@ stage_summary |>
   ) +
   theme_minimal(base_size = 12) +
   theme(
-    legend.position = "none",
+    legend.position    = "none",
     panel.grid.major.x = element_blank(),
-    plot.subtitle = element_text(colour = "#7C5432", size = 10)
+    plot.subtitle      = element_text(colour = "#7C5432", size = 10)
   )
 ```
 
@@ -131,7 +132,7 @@ staging |>
   select(epoch, starts_with("prob_")) |>
   pivot_longer(starts_with("prob_"), names_to = "stage", values_to = "prob") |>
   mutate(
-    stage  = factor(sub("prob_", "", stage), levels = c("W", "N1", "N2", "N3", "REM")),
+    stage  = factor(sub("prob_", "", stage), levels = c("N3", "N2", "N1", "REM", "W")),
     time_h = (epoch - 1L) * 30 / 3600
   ) |>
   ggplot(aes(x = time_h, y = stage, fill = prob)) +
@@ -150,9 +151,9 @@ staging |>
   ) +
   theme_minimal(base_size = 12) +
   theme(
-    plot.subtitle   = element_text(colour = "#7C5432", size = 10),
-    panel.grid      = element_blank(),
-    axis.text.y     = element_text(face = "bold")
+    plot.subtitle = element_text(colour = "#7C5432", size = 10),
+    panel.grid    = element_blank(),
+    axis.text.y   = element_text(face = "bold")
   )
 ```
 
@@ -168,22 +169,13 @@ and **REM** rows.
 Zooming into the sleep window (starting from just before lights-out at
 ~30,600 s ≈ hour 8.5) makes the ultradian architecture clearer.
 
-```{r sleep-window}
-# Approximate sleep period: first annotation is at 30630 s
-sleep_start_epoch <- floor(30630 / 30)   # ≈ epoch 1021
-sleep_end_epoch   <- 1950L               # conservative end of sleep
-
-staging_sleep <- staging |>
-  filter(epoch >= sleep_start_epoch - 20L,
-         epoch <= sleep_end_epoch)
-```
-
 ```{r fig-heatmap-sleep, fig.height = 3.5}
-staging_sleep |>
+staging |>
+  filter(epoch >= 1001L, epoch <= 1950L) |>
   select(epoch, starts_with("prob_")) |>
   pivot_longer(starts_with("prob_"), names_to = "stage", values_to = "prob") |>
   mutate(
-    stage  = factor(sub("prob_", "", stage), levels = c("W", "N1", "N2", "N3", "REM")),
+    stage  = factor(sub("prob_", "", stage), levels = c("N3", "N2", "N1", "REM", "W")),
     time_h = (epoch - 1L) * 30 / 3600
   ) |>
   ggplot(aes(x = time_h, y = stage, fill = prob)) +
@@ -198,13 +190,13 @@ staging_sleep |>
     x        = "Time from recording start (hours)",
     y        = NULL,
     title    = "Sleep Period — Posterior Probabilities",
-    subtitle = "SC4001E0 · lights-out to end of recording"
+    subtitle = "SC4001E0 · lights-out to end of sleep"
   ) +
   theme_minimal(base_size = 12) +
   theme(
-    plot.subtitle   = element_text(colour = "#7C5432", size = 10),
-    panel.grid      = element_blank(),
-    axis.text.y     = element_text(face = "bold")
+    plot.subtitle = element_text(colour = "#7C5432", size = 10),
+    panel.grid    = element_blank(),
+    axis.text.y   = element_text(face = "bold")
   )
 ```
 
@@ -212,9 +204,9 @@ staging_sleep |>
 
 ## Model confidence
 
-High posterior probabilities indicate epochs the model is unambiguous about
-(e.g. consolidated N2 or Wake). Lower values reflect genuine signal ambiguity
-at stage transitions or in epochs with mixed features.
+High posterior probabilities indicate epochs the model is unambiguous about.
+Lower values reflect genuine signal ambiguity at stage transitions or in
+epochs with mixed features.
 
 ```{r fig-confidence, fig.height = 3.5}
 staging |>
@@ -234,9 +226,7 @@ staging |>
     subtitle = "SC4001E0 — 2,650 epochs"
   ) +
   theme_minimal(base_size = 12) +
-  theme(
-    plot.subtitle = element_text(colour = "#7C5432", size = 10)
-  )
+  theme(plot.subtitle = element_text(colour = "#7C5432", size = 10))
 ```
 
 Most epochs concentrate near 1.0, reflecting high model confidence. The
