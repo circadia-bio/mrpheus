@@ -23,41 +23,50 @@
   beta   = c(16,  30)
 )
 
-.ABSPOW_RANGE <- c(0.5, 40)
+# ── Pre-filter helper ────────────────────────────────────────────────────────
+# YASA bandpasses all channels to 0.3–35 Hz before computing any feature
+# (spectral and time-domain alike). A 5th-order zero-phase Butterworth with
+# gsignal::filtfilt is used here — not bit-exact with MNE's FIR, but
+# functionally equivalent for staging purposes.
+.bandpass_filter <- function(sig, sr, l_freq = 0.3, h_freq = 35) {
+  nyq <- sr / 2
+  bf  <- gsignal::butter(5L, c(l_freq / nyq, h_freq / nyq), type = "pass")
+  as.vector(gsignal::filtfilt(bf, sig))
+}
 
 # ── Spectral helpers ──────────────────────────────────────────────────────────
 
 # Compute Welch PSD and return named vector of band features:
-# sdelta, fdelta, theta, alpha, sigma, beta (relative) + abspow (absolute).
+# sdelta, fdelta, theta, alpha, sigma, beta (relative) + abspow.
+# abspow = sum of all 6 band powers (matching YASA), NOT a 0.5–40 Hz integral.
 .spectral_features <- function(sig, sr) {
   nfft <- 2L ^ ceiling(log2(4 * sr))   # 4-second Welch window
 
   psd <- gsignal::pwelch(sig, fs = sr, window = nfft,
                           overlap = 0.5, nfft = nfft)
 
-  # Absolute total power (0.5–40 Hz) — stored as abspow
-  idx_total <- psd$freq >= .ABSPOW_RANGE[1] & psd$freq <= .ABSPOW_RANGE[2]
-  abspow    <- pracma::trapz(psd$freq[idx_total], psd$spec[idx_total])
-
-  # Absolute band powers, then normalise to relative
+  # Absolute band powers
   bp <- vapply(.STAGING_BANDS, function(b) {
     idx <- psd$freq >= b[1] & psd$freq < b[2]
     if (!any(idx)) return(NA_real_)
     pracma::trapz(psd$freq[idx], psd$spec[idx])
   }, numeric(1))
 
-  total_bp <- sum(bp, na.rm = TRUE)
-  rel      <- bp / total_bp
+  # abspow = sum of all 6 bands (0.5–30 Hz), matching YASA
+  abspow   <- sum(bp, na.rm = TRUE)
+  rel      <- bp / abspow
 
   c(rel, abspow = abspow)
 }
 
 # Spectral ratio features (EEG only).
+# Numerator uses full delta (sdelta + fdelta = 0.5–4 Hz), matching YASA.
 .spectral_ratios <- function(spec) {
+  delta <- spec[["sdelta"]] + spec[["fdelta"]]
   c(
-    dt = spec[["sdelta"]] / spec[["theta"]],
-    ds = spec[["sdelta"]] / spec[["sigma"]],
-    db = spec[["sdelta"]] / spec[["beta"]],
+    dt = delta            / spec[["theta"]],
+    ds = delta            / spec[["sigma"]],
+    db = delta            / spec[["beta"]],
     at = spec[["alpha"]]  / spec[["theta"]]
   )
 }
@@ -136,6 +145,7 @@
 
 # 21 EEG base features
 .eeg_epoch_features <- function(sig, sr) {
+  sig    <- .bandpass_filter(sig, sr)      # YASA pre-filters before all features
   spec   <- .spectral_features(sig, sr)
   ratios <- .spectral_ratios(spec)
   hjorth <- .hjorth(sig)
@@ -167,6 +177,7 @@
 
 # 17 EOG base features (no ratio features)
 .eog_epoch_features <- function(sig, sr) {
+  sig    <- .bandpass_filter(sig, sr)
   spec   <- .spectral_features(sig, sr)
   hjorth <- .hjorth(sig)
   stats  <- .stat_features(sig)
@@ -193,6 +204,7 @@
 
 # 11 EMG base features (absolute power + nonlinear only, no spectral bands)
 .emg_epoch_features <- function(sig, sr) {
+  sig    <- .bandpass_filter(sig, sr)
   spec   <- .spectral_features(sig, sr)
   hjorth <- .hjorth(sig)
   stats  <- .stat_features(sig)
