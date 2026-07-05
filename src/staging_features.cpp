@@ -1,9 +1,9 @@
 // src/staging_features.cpp
 //
 // C++ implementations of the per-epoch feature functions that are bottlenecks
-// in pure R: perm_entropy, higuchi_fd, and roll_triang_mean.
+// in pure R: perm_entropy, higuchi_fd, roll_triang_mean, and resample_poly.
 //
-// Each function mirrors its R counterpart exactly — same algorithm, same
+// Each function mirrors its R/Python counterpart exactly — same algorithm, same
 // numerical output — but at C++ speed.  The R wrappers in staging_features.R
 // call these directly; the pure-R fallbacks are kept for reference.
 //
@@ -14,6 +14,60 @@
 #include <cmath>
 #include <vector>
 using namespace Rcpp;
+
+// ── resample_poly_cpp ────────────────────────────────────────────────────────────────────
+// Polyphase integer upsampler matching scipy.signal.resample_poly(x, up, 1).
+//
+// scipy.signal.resample_poly calls upfirdn(h, x, up, 1) then trims the output:
+//   full_out = upfirdn(h, x, up, 1)       # length = N*up + nh - 1
+//   out      = full_out[n_pre : n_pre + N*up]  where n_pre = nh // 2
+//
+// The polyphase decomposition of h into `up` branches:
+//   poly[p][j] = h[p + j*up]   for p = 0..up-1, j = 0..ceil(nh/up)-1
+//
+// upfirdn output at position k:
+//   y[k] = sum_j h[k%up + j*up] * x[k//up - j]   (zero-padding for out-of-bounds x)
+//
+// By computing y[n_pre .. n_pre+N*up-1] directly, we exactly replicate the
+// scipy/upfirdn output without materialising the zero-inserted signal.
+//
+// [[Rcpp::export]]
+NumericVector resample_poly_cpp(NumericVector x, NumericVector h, int up) {
+    int N   = x.size();
+    int nh  = h.size();            // 2001
+    int n_pre     = nh / 2;        // = 1000  (filter half-delay in output samples)
+    int max_taps  = (nh + up - 1) / up;   // = ceil(2001/100) = 21
+    int out_len   = N * up;
+
+    // Build polyphase matrix: poly[p][j] = h[p + j*up]
+    std::vector<std::vector<double>> poly(
+        up, std::vector<double>(max_taps, 0.0)
+    );
+    for (int p = 0; p < up; p++) {
+        for (int j = 0; j < max_taps; j++) {
+            int idx = p + j * up;
+            if (idx < nh) poly[p][j] = h[idx];
+        }
+    }
+
+    NumericVector out(out_len);
+
+    // Compute y[k] for k = n_pre .. n_pre + out_len - 1
+    // (equivalent to scipy's trim: full[n_pre : n_pre + N*up])
+    for (int i = 0; i < out_len; i++) {
+        int k         = i + n_pre;   // position in full upfirdn output
+        int phase     = k % up;
+        int input_idx = k / up;      // floor(k / up)
+
+        double sum = 0.0;
+        for (int j = 0; j < max_taps; j++) {
+            int in_j = input_idx - j;
+            if (in_j >= 0 && in_j < N) sum += poly[phase][j] * x[in_j];
+        }
+        out[i] = sum;
+    }
+    return out;
+}
 
 // ── perm_entropy_cpp ─────────────────────────────────────────────────────────
 // Matches antropy.perm_entropy(x, order=3, delay=1, normalize=True).

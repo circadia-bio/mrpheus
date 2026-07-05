@@ -1,0 +1,13 @@
+{
+  "up": 100,
+  "down": 1,
+  "up_reduced": 100,
+  "down_reduced": 1,
+  "n_zeros": 10,
+  "kaiser_beta": 5.0,
+  "n_taps": 2001,
+  "half_len": 1000,
+  "cutoff_norm": 0.01,
+  "scipy_version": "1.18.0",
+  "description": "Internal FIR anti-aliasing filter from scipy.signal.resample_poly for up=100, down=1. Kaiser window (beta=5.0), 2001 taps. Coefficients are already scaled by up=100. Apply via polyphase decomposition: split into 100 branches of ceil(2001/100)=21 taps each."
+}

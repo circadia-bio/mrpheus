@@ -406,10 +406,13 @@
     sr_orig <- sr(ch)
 
     # Resample to 100 Hz if needed — matches YASA's raw_pick.resample(100).
-    # Use gsignal::resample (polyphase Kaiser FIR) not stats::approx (linear),
-    # to match scipy.signal.resample_poly used internally by MNE.
+    # Uses scipy-equivalent polyphase upsampling (resample_poly_cpp) for
+    # bit-exact parity with scipy.signal.resample_poly(x, up=100, down=1).
     if (sr_orig != SR_TARGET) {
-      sig_raw <- as.vector(gsignal::resample(sig_raw, SR_TARGET, sr_orig))
+      h_path  <- system.file("filters", "resample_poly_100hz.csv",
+                              package = "mrpheus")
+      h_coefs <- scan(h_path, quiet = TRUE)
+      sig_raw <- resample_poly_cpp(sig_raw, h_coefs, as.integer(SR_TARGET / sr_orig))
     }
 
     ep_len   <- as.integer(psg$epoch_s * SR_TARGET)
