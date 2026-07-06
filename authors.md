@@ -11,7 +11,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/circadia-bio/mrpheus/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/circadia-bio/mrpheus/blob/v0.1.3/DESCRIPTION)
 
 França L, Leocadio-Miguel M (2026). *mrpheus: Raw Physiological Signal
 Analysis for Biological Rhythms Research*. R package version 0.1.3,
