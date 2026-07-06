@@ -259,6 +259,7 @@ articles:
       - mri-physiology
       - sleep-staging
       - eeg-preprocessing
+      - spectral-analysis
   - title: "Live demos"
     desc: "Fully executed examples requiring external data."
     navbar: ~
