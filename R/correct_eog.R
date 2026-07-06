@@ -97,7 +97,7 @@ correct_eog_regression <- function(psg,
 
   for (ch in eeg_channels) {
     eeg_sig                  <- edf$signals[[ch]]$signal
-    beta                     <- .lm.fit(X, eeg_sig)$coefficients
+    beta                     <- stats::.lm.fit(X, eeg_sig)$coefficients
     edf$signals[[ch]]$signal <- eeg_sig - X %*% beta
   }
 
