@@ -196,5 +196,5 @@ test_that("compute_band_power delta power is higher for a delta-band signal", {
   bp <- compute_band_power(psg_delta, relative = TRUE)
   # Delta should be the dominant band
   band_cols <- c("delta", "theta", "alpha", "sigma", "beta", "gamma")
-  expect_equal(which.max(unlist(bp[band_cols])), 1L)  # delta is column 1
+  expect_equal(unname(which.max(unlist(bp[band_cols]))), 1L)  # delta is column 1
 })
