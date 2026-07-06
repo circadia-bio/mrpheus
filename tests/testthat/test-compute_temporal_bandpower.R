@@ -118,7 +118,7 @@ test_that("relative_power sums to 1 within each time window", {
   d   <- make_tbp_psg()
   out <- compute_temporal_bandpower(d$psg, d$hypno)
   totals <- tapply(out$relative_power, out$time_hours, sum, na.rm = TRUE)
-  expect_equal(unname(totals), rep(1, length(totals)), tolerance = 1e-10)
+  expect_equal(as.vector(totals), rep(1, length(totals)), tolerance = 1e-10)
 })
 
 test_that("delta band dominates a delta-enriched signal", {

@@ -117,6 +117,11 @@ compute_temporal_bandpower <- function(psg,
   n_epochs <- psg$n_epochs
   epoch_s  <- psg$epoch_s
 
+  if (as.integer(window_epochs) > n_epochs)
+    cli::cli_abort(
+      "{.arg window_epochs} ({window_epochs}) exceeds total epochs ({n_epochs})."
+    )
+
   starts <- seq(1L, n_epochs - as.integer(window_epochs) + 1L,
                 by = as.integer(step_epochs))
 
