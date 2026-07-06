@@ -142,7 +142,9 @@ correct_eog_regression <- function(psg,
 #' @param threshold Numeric. Absolute Pearson correlation threshold above
 #'   which a component is flagged as EOG-related. Default `0.35`.
 #' @param fun Character. Contrast function passed to [fastICA::fastICA()].
-#'   `"logcosh"` (default) or `"exp"`.
+#'   `"logcosh"` (default) or `"exp"`. The R method is used internally for
+#'   robustness across channel counts; this is slower than the C backend but
+#'   avoids matrix-conformality errors on small channel sets.
 #' @param verbose Logical. Print progress messages. Default `TRUE`.
 #'
 #' @return A new `mrpheus_psg` with cleaned EEG signals and re-segmented
@@ -182,8 +184,13 @@ correct_eog_ica <- function(psg,
     cli::cli_abort("No EEG channels found. Supply {.arg eeg_channels} explicitly.")
 
   n_eeg        <- length(eeg_channels)
+  if (n_eeg < 2L)
+    cli::cli_abort(
+      "ICA requires at least 2 EEG channels; found {n_eeg}. \n  Use {.fn correct_eog_regression} for single-channel recordings."
+    )
+
   n_components <- if (is.null(n_components)) min(6L, n_eeg) else
-                    min(as.integer(n_components), n_eeg)
+                    min(as.integer(n_components), n_eeg - 1L)
 
   if (verbose)
     cli::cli_alert_info(
@@ -191,15 +198,16 @@ correct_eog_ica <- function(psg,
        threshold = {threshold}."
     )
 
-  # EEG data matrix: samples x channels
+  # EEG data matrix: samples x channels (always a matrix, even for 1 channel)
   eeg_mat <- do.call(cbind, lapply(eeg_channels, function(ch)
     edf$signals[[ch]]$signal))
+  if (!is.matrix(eeg_mat)) eeg_mat <- matrix(eeg_mat, ncol = 1L)
 
   ica <- fastICA::fastICA(eeg_mat,
                            n.comp   = n_components,
                            alg.typ  = "parallel",
                            fun      = fun,
-                           method   = "C",
+                           method   = "R",
                            verbose  = FALSE)
 
   # EOG reference matrix: samples x eog_channels

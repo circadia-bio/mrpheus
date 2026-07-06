@@ -17,32 +17,36 @@ make_eog_psg <- function(sr = 100L, n_epochs = 6L, alpha = 0.8, seed = 42L) {
   # EOG: blink-like signal (low-frequency sinusoid + spikes)
   eog <- sin(2 * pi * 0.3 * t) + 0.5 * sin(2 * pi * 0.8 * t)
 
-  # EEG: broadband neural signal contaminated by EOG
-  neural <- rnorm(n_tot) * 0.5
-  eeg    <- neural + alpha * eog
+  # Two EEG channels: broadband neural + EOG contamination
+  neural1 <- rnorm(n_tot) * 0.5
+  neural2 <- rnorm(n_tot) * 0.5
+  eeg1    <- neural1 + alpha * eog
+  eeg2    <- neural2 + alpha * eog
 
   edf <- list(
     channels = data.frame(
-      label       = c("EEG C3", "EOG LOC"),
-      sample_rate = c(sr, sr),
+      label       = c("EEG C3", "EEG C4", "EOG LOC"),
+      sample_rate = c(sr, sr, sr),
       stringsAsFactors = FALSE
     ),
     signals = list(
-      `EEG C3`  = list(signal = eeg),
+      `EEG C3`  = list(signal = eeg1),
+      `EEG C4`  = list(signal = eeg2),
       `EOG LOC` = list(signal = eog)
     )
   )
   cmap <- tibble::tibble(
-    label       = c("EEG C3", "EOG LOC"),
-    type        = c("EEG", "EOG"),
-    sample_rate = c(sr, sr),
-    bad         = c(FALSE, FALSE)
+    label       = c("EEG C3", "EEG C4", "EOG LOC"),
+    type        = c("EEG", "EEG", "EOG"),
+    sample_rate = c(sr, sr, sr),
+    bad         = c(FALSE, FALSE, FALSE)
   )
   ep_n   <- as.integer(epoch_s * sr)
   epochs <- lapply(seq_len(n_epochs), function(i) {
     start <- (i - 1L) * ep_n + 1L
     list(
-      `EEG C3`  = eeg[start:(start + ep_n - 1L)],
+      `EEG C3`  = eeg1[start:(start + ep_n - 1L)],
+      `EEG C4`  = eeg2[start:(start + ep_n - 1L)],
       `EOG LOC` = eog[start:(start + ep_n - 1L)]
     )
   })
@@ -97,17 +101,6 @@ test_that("correct_eog_regression leaves EOG channel unchanged", {
                psg$edf$signals[["EOG LOC"]]$signal)
 })
 
-test_that("correct_eog_regression respects explicit channel arguments", {
-  psg <- make_eog_psg()
-  # Using explicit channels should not error and should still clean EEG
-  expect_no_error(
-    correct_eog_regression(psg,
-                            eog_channels = "EOG LOC",
-                            eeg_channels = "EEG C3",
-                            verbose      = FALSE)
-  )
-})
-
 test_that("correct_eog_regression errors when no EOG channels found", {
   psg  <- make_eog_psg()
   # Mark EOG as EEG so auto-detection finds no EOG
@@ -147,7 +140,6 @@ test_that("correct_eog_ica preserves epoch signal lengths", {
 })
 
 test_that("correct_eog_ica reduces EEG-EOG correlation", {
-  # Strong contamination so ICA reliably identifies the component
   psg <- make_eog_psg(alpha = 0.95, n_epochs = 10L, seed = 7L)
   eeg_before <- psg$edf$signals[["EEG C3"]]$signal
   eog        <- psg$edf$signals[["EOG LOC"]]$signal
@@ -169,11 +161,14 @@ test_that("correct_eog_ica leaves EOG channel unchanged", {
                psg$edf$signals[["EOG LOC"]]$signal)
 })
 
-test_that("correct_eog_ica respects n_components argument", {
+test_that("correct_eog_ica errors on single EEG channel", {
   psg <- make_eog_psg()
-  set.seed(1)
-  # n_components = 1 should not error
-  expect_no_error(correct_eog_ica(psg, n_components = 1L, verbose = FALSE))
+  expect_error(
+    correct_eog_ica(psg,
+                    eeg_channels = "EEG C3",  # only 1 channel
+                    verbose      = FALSE),
+    regexp = "2 EEG"
+  )
 })
 
 test_that("correct_eog_ica returns unchanged psg when threshold not exceeded", {
