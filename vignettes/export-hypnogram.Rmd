@@ -1,0 +1,215 @@
+---
+title: "Hypnogram Export and Sleep Architecture"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Hypnogram Export and Sleep Architecture}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  eval     = FALSE
+)
+```
+
+`export_hypnogram()` takes the staging tibble from `stage_epochs()`,
+pre-computes AASM sleep architecture metrics, and returns an
+`mrpheus_hypnogram` object ready for downstream use with `hypnor`.
+
+> **Note** — All code blocks use `eval = FALSE` because they require a local
+> EDF file. For a fully-executed walkthrough see the companion article:
+> [Hypnogram: Live Walkthrough](https://mrpheus.circadia-lab.uk/articles/hypnogram-demo.html)
+
+---
+
+## Quick start
+
+```r
+library(mrpheus)
+
+rec    <- read_edf("SC4001E0-PSG.edf")
+psg    <- prepare_psg(rec) |> preprocess_psg()
+stages <- stage_epochs(psg, eeg_channel = "EEG Fpz-Cz",
+                           eog_channel = "EOG horizontal",
+                           emg_channel = "EMG submental")
+
+hyp <- export_hypnogram(
+  stages,
+  epoch_s        = 30,
+  start_time     = rec$header$startTime,
+  participant_id = "sub-001"
+)
+
+hyp
+#> -- mrpheus hypnogram --------
+#> i Epochs:      958 x 30 s
+#> i Participant: sub-001
+#> i Source:      mrpheus / AASM
+#> -- Sleep architecture -------
+#>   TIB:  479 min  |  SPT:  461.5 min
+#>   TST:  432.5 min  |  WASO: 29 min
+#>   SE:   90.3 %    |  SME:  93.7 %
+#>   SOL:  8.5 min   |  Lat_REM (AASM): 71.5 min
+#>   N1:   6.1 %  |  N2:  52.4 %  |  N3: 18.2 %  |  REM: 23.3 %
+```
+
+---
+
+## Sleep architecture metrics
+
+All metrics are stored in the `sleep_architecture` attribute as a named list.
+All durations are in **minutes**; efficiency and stage percentages are in
+**percent**.
+
+```r
+arch <- attr(hyp, "sleep_architecture")
+names(arch)
+#>  [1] "TIB"          "SPT"          "WASO"         "TST"
+#>  [5] "N1"           "N2"           "N3"           "REM"
+#>  [9] "NREM"         "SOL"          "Lat_N1"       "Lat_N2"
+#> [13] "Lat_N3"       "Lat_REM"      "Lat_REM_AASM" "pct_N1"
+#> [17] "pct_N2"       "pct_N3"       "pct_REM"      "pct_NREM"
+#> [21] "SE"           "SME"
+```
+
+### Duration metrics
+
+| Metric | Definition |
+|--------|-----------|
+| `TIB` | Time in Bed: total recording duration |
+| `SPT` | Sleep Period Time: duration from first to last sleep epoch |
+| `WASO` | Wake After Sleep Onset: wake time within SPT |
+| `TST` | Total Sleep Time: N1 + N2 + N3 + REM within SPT (artefact epochs excluded) |
+| `N1`, `N2`, `N3`, `REM`, `NREM` | Duration of each sleep stage |
+
+### Latency metrics
+
+All latencies are measured from the **start of the recording** (matching
+YASA's convention), except `Lat_REM_AASM` which follows the AASM manual.
+
+| Metric | Definition |
+|--------|-----------|
+| `SOL` | Sleep Onset Latency: time to first sleep epoch |
+| `Lat_N1` | Latency to first N1 epoch |
+| `Lat_N2` | Latency to first N2 epoch |
+| `Lat_N3` | Latency to first N3 epoch |
+| `Lat_REM` | Latency to first REM epoch (from recording start) |
+| `Lat_REM_AASM` | REM latency from sleep onset = `Lat_REM - SOL` |
+
+> **YASA vs AASM REM latency:** YASA reports `Lat_REM` from the start of
+> the recording. The AASM scoring manual defines REM latency from sleep onset.
+> mrpheus returns both: use `Lat_REM_AASM` for clinical reporting and
+> comparisons with human-scored PSG data.
+
+### Efficiency and stage percentages
+
+| Metric | Definition |
+|--------|-----------|
+| `SE` | Sleep Efficiency: TST / TIB × 100 |
+| `SME` | Sleep Maintenance Efficiency: TST / SPT × 100 |
+| `pct_N1`, `pct_N2`, `pct_N3`, `pct_REM`, `pct_NREM` | Stage duration as % of TST |
+
+---
+
+## Parity with YASA
+
+The metrics are a direct R port of `yasa.sleep_statistics()` and produce
+identical values. The conversion from epoch counts to minutes uses
+`epoch_s / 60` per epoch, matching YASA's `sf_hyp = 1 / epoch_s` approach.
+
+```r
+# YASA reference (Python):
+# hypno = [0,0,1,1,1,2,2,2,3,3,3,2,3,3,4,4,4,4,0,0]
+# yasa.sleep_statistics(hypno, sf_hyp=1/30)
+# => TIB=10, SPT=8, WASO=0, TST=8, SOL=1, Lat_REM=7, SE=80, SME=100
+
+# mrpheus R equivalent:
+hypno <- as.integer(c(0,0,1,1,1,2,2,2,3,3,3,2,3,3,4,4,4,4,0,0))
+stages_ref <- tibble::tibble(epoch = seq_along(hypno), stage = hypno)
+hyp_ref    <- export_hypnogram(stages_ref, epoch_s = 30)
+arch_ref   <- attr(hyp_ref, "sleep_architecture")
+
+arch_ref$TIB       # 10   (minutes)
+arch_ref$TST       # 8
+arch_ref$SE        # 80   (%)
+arch_ref$SOL       # 1    (minutes)
+arch_ref$Lat_REM   # 7    (minutes)
+arch_ref$SME       # 100  (%)
+```
+
+---
+
+## Working with the metrics
+
+### As a data frame
+
+Convert to a one-row tibble for easy downstream use in summary tables or
+linear models:
+
+```r
+arch_df <- tibble::as_tibble(attr(hyp, "sleep_architecture"))
+arch_df
+#> # A tibble: 1 x 22
+#>     TIB   SPT  WASO   TST    N1    N2    N3   REM  NREM   SOL ...
+```
+
+### Across multiple participants
+
+Apply `export_hypnogram()` across a list of staging results and bind:
+
+```r
+hyp_list <- lapply(staging_list, export_hypnogram, epoch_s = 30)
+
+arch_all <- dplyr::bind_rows(
+  lapply(hyp_list, function(h) tibble::as_tibble(attr(h, "sleep_architecture"))),
+  .id = "participant"
+)
+```
+
+### In a linear model
+
+```r
+# Example: does TST predict delta power?
+bp_delta <- compute_band_power(psg, relative = TRUE) |>
+  dplyr::summarise(mean_delta = mean(delta, na.rm = TRUE))
+
+model_data <- dplyr::bind_cols(
+  tibble::as_tibble(attr(hyp, "sleep_architecture")),
+  bp_delta
+)
+
+lm(mean_delta ~ TST + SE, data = model_data)
+```
+
+---
+
+## Passing to hypnor
+
+Once `hypnor` is installed, the `mrpheus_hypnogram` object passes directly
+to `hypnor::new_hypnogram()`, which accepts all attached attributes:
+
+```r
+# Future usage once hypnor is available:
+hyp_obj <- hypnor::new_hypnogram(hyp)
+hypnor::plot_hypnogram(hyp_obj)
+hypnor::sleep_cycles(hyp_obj)
+```
+
+The interface contract: `hypnor::new_hypnogram()` reads `epoch_s`,
+`start_time`, `participant_id`, `source`, `resolution`, and
+`sleep_architecture` from the object attributes.
+
+---
+
+## References
+
+Iber C (2007). *The AASM Manual for the Scoring of Sleep and Associated
+Events: Rules, Terminology and Technical Specifications*. American Academy
+of Sleep Medicine.
+
+Vallat R, Walker MP (2021). An open-source, high-performance tool for
+automated sleep staging. *eLife*, 10, e70092.
+<https://doi.org/10.7554/eLife.70092>

@@ -260,6 +260,7 @@ articles:
       - sleep-staging
       - eeg-preprocessing
       - spectral-analysis
+      - export-hypnogram
   - title: "Live demos"
     desc: "Fully executed examples requiring external data."
     navbar: ~

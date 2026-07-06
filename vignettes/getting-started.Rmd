@@ -24,11 +24,6 @@ and EEG — and extracts features spanning three rhythm domains: **cardiac**
 (QRS detection, HRV), **respiratory** (apnoea detection, respiratory metrics),
 and **neural** (spindles, slow oscillations, automatic AASM sleep staging).
 
-The name is spelled as *Mrpheus* but carries a silent **m**, pronounced as
-*Orpheus* — carrying both myths at once. Morpheus, god of dreams, gives the
-package its subject; Orpheus, who descended into the underworld to navigate
-the unconscious, gives it its spirit.
-
 mrpheus is part of the [Circadia Lab](https://circadia-lab.uk) R ecosystem:
 
 | Package | Purpose |
@@ -44,49 +39,88 @@ mrpheus is part of the [Circadia Lab](https://circadia-lab.uk) R ecosystem:
 
 ## Installation
 
+Install from [r-universe](https://circadia-bio.r-universe.dev) (recommended
+— pre-built binaries, no compiler required):
+
 ```r
-# install.packages("pak")
-pak::pak("circadia-bio/mrpheus")
+install.packages(
+  "mrpheus",
+  repos = c("https://circadia-bio.r-universe.dev", "https://cloud.r-project.org")
+)
 ```
 
-The staging model is bundled — no additional setup required.
+Or install the development version directly from GitHub:
+
+```r
+# install.packages("remotes")
+remotes::install_github("circadia-bio/mrpheus")
+```
 
 ---
 
 ## PSG pipeline
 
-### Reading a recording
-
-`read_edf()` wraps `edfReader` with consistent output formatting:
+The standard pipeline runs in seven steps. Each step produces a clean,
+typed object that passes to the next function.
 
 ```r
 library(mrpheus)
 
-rec <- read_edf("recordings/psg_001.edf")
-rec
+# 1. Read
+rec <- read_edf("psg_001.edf")
+
+# 2. Epoch and classify channels
+psg <- prepare_psg(rec)
+
+# 3. Preprocess
+psg <- preprocess_psg(psg)
+
+# 4. EOG correction
+psg <- correct_eog_regression(psg)   # or correct_eog_ica()
+
+# 5. Stage
+stages <- stage_epochs(psg,
+                       eeg_channel = "EEG Fpz-Cz",
+                       eog_channel = "EOG horizontal",
+                       emg_channel = "EMG chin")
+
+# 6. Spectral analysis
+bp  <- compute_band_power(psg, relative = TRUE)
+tbp <- compute_temporal_bandpower(psg, hypno = stages$stage)
+
+# 7. Export
+hyp <- export_hypnogram(stages, start_time = rec$header$startTime,
+                        participant_id = "sub-001")
+attr(hyp, "sleep_architecture")
 ```
 
-```
-## mrpheus EDF recording
-## ℹ Path: recordings/psg_001.edf
-## ℹ Duration: 7.98 hours
-## ℹ Channels: 14
-## # A tibble: 14 × 3
-##   label              sample_rate transducer
-##   <chr>                    <dbl> <chr>
-## 1 EEG Fpz-Cz                 100 AgAgCl electrode
-## 2 EEG Pz-Oz                  100 AgAgCl electrode
-## 3 EOG horizontal              100 AgAgCl electrode
-## ...
-```
+The sections below walk through each step in detail.
 
-Pass `only_header = TRUE` to inspect channels without loading signal data:
+---
+
+### 1. Reading a recording
+
+`read_edf()` wraps `edfReader` with consistent output:
 
 ```r
-hdr <- read_edf("recordings/psg_001.edf", only_header = TRUE)
+rec <- read_edf("psg_001.edf")
+rec
+#> mrpheus EDF recording
+#> i Path: psg_001.edf
+#> i Duration: 7.98 hours
+#> i Channels: 14
 ```
 
-### Preparing a recording
+Pass `only_header = TRUE` to inspect the channel list without loading signal
+data:
+
+```r
+hdr <- read_edf("psg_001.edf", only_header = TRUE)
+```
+
+---
+
+### 2. Preparing a recording
 
 `prepare_psg()` segments the recording into 30-second epochs, classifies
 channels by type (EEG, EOG, EMG, ECG, RESP), and flags flat or bad channels:
@@ -94,19 +128,15 @@ channels by type (EEG, EOG, EMG, ECG, RESP), and flags flat or bad channels:
 ```r
 psg <- prepare_psg(rec)
 psg
-```
-
-```
-## mrpheus PSG
-## ℹ Epochs: 958 × 30 s
-## ℹ Recording: 7.98 h
-## # A tibble: 14 × 4
-##   label              type  sample_rate   bad
-##   <chr>              <chr>       <dbl> <lgl>
-## 1 EEG Fpz-Cz         EEG           100 FALSE
-## 2 EEG Pz-Oz          EEG           100 FALSE
-## 3 EOG horizontal      EOG           100 FALSE
-## ...
+#> mrpheus PSG
+#> i Epochs: 958 x 30 s
+#> i Recording: 7.98 h
+#> # A tibble: 14 x 4
+#>   label              type  sample_rate   bad
+#>   <chr>              <chr>       <dbl> <lgl>
+#> 1 EEG Fpz-Cz         EEG           100 FALSE
+#> 2 EOG horizontal      EOG           100 FALSE
+#> ...
 ```
 
 Channel classification uses regex patterns which can be overridden:
@@ -118,131 +148,165 @@ psg <- prepare_psg(rec,
 )
 ```
 
-### Artefact detection
+---
 
-`detect_artifacts()` flags epochs with excessive amplitude or high-frequency
-(muscle) contamination:
+### 3. Preprocessing
+
+`preprocess_psg()` applies the standard EEG preprocessing pipeline to the
+full continuous signal before re-epoching. The steps are:
+
+| Step | Default |
+|------|---------|
+| Channel renaming | Optional — maps linked-ear names to 10-20 labels |
+| DC removal | Subtracts per-channel mean |
+| Powerline detection | Compares PSD at 50 and 60 Hz; picks the dominant one |
+| Notch filter | 2nd-order Butterworth bandstop at powerline + harmonics |
+| Bandpass filter | EEG 0.3–35 Hz · EOG 0.3–15 Hz · EMG 10–99 Hz · ECG 0.5–40 Hz |
 
 ```r
-art <- detect_artifacts(psg)
+psg <- preprocess_psg(
+  psg,
+  channel_rename = c("C3-A2" = "C3", "C4-A1" = "C4")  # if needed
+)
 ```
 
-```
-## ℹ Artefact epochs: 12 / 958 (1.3%)
+The individual filter functions (`remove_dc()`, `detect_powerline()`,
+`notch_filter()`, `bandpass_filter()`) are also exported and work on any
+plain numeric vector. See `vignette("eeg-preprocessing")` for details.
+
+---
+
+### 4. EOG artefact correction
+
+Two methods are available. Both operate on the continuous signal and return a
+cleaned `mrpheus_psg`.
+
+**Regression** (fast, deterministic, works with a single EEG channel):
+
+```r
+psg <- correct_eog_regression(psg)
 ```
 
-### Spectral analysis
+**ICA** (better for 4+ EEG channels, stochastic):
 
-`compute_band_power()` estimates PSD via Welch's method and integrates within
-standard EEG bands per epoch per channel:
+```r
+psg <- correct_eog_ica(psg, n_components = 6L, threshold = 0.35)
+```
+
+See `vignette("eeg-preprocessing")` for guidance on which method to choose.
+
+---
+
+### 5. Automatic sleep staging
+
+`stage_epochs()` stages each epoch using a pre-trained LightGBM model ported
+from YASA (Vallat & Walker, 2021). Validated at 77.8 % epoch accuracy on the
+Sleep-EDF Cassette dataset.
+
+```r
+stages <- stage_epochs(
+  psg,
+  eeg_channel = "EEG Fpz-Cz",
+  eog_channel = "EOG horizontal",
+  emg_channel = "EMG chin"
+)
+stages
+#> # A tibble: 958 x 7
+#>   epoch stage prob_W prob_N1 prob_N2 prob_N3 prob_REM
+#>   <int> <int>  <dbl>   <dbl>   <dbl>   <dbl>    <dbl>
+#> 1     1     0  0.921   0.042   0.022   0.008    0.007
+#> 2     2     0  0.874   0.081   0.031   0.007    0.007
+#> 3     3     1  0.312   0.448   0.185   0.032    0.023
+```
+
+Stage codes follow the YASA/AASM convention: 0 = Wake, 1 = N1, 2 = N2,
+3 = N3, 4 = REM, -1 = Artefact.
+
+---
+
+### 6. Spectral analysis
+
+**Band power per epoch:**
 
 ```r
 bp <- compute_band_power(psg, relative = TRUE)
+#> # A tibble: 958 x 9
+#>   epoch channel    delta theta alpha sigma  beta gamma total_power
 ```
 
-```
-## # A tibble: 958 × 9
-##   epoch channel    delta theta alpha sigma  beta gamma total_power
-##   <int> <chr>      <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>       <dbl>
-## 1     1 EEG Fpz-Cz 0.412 0.183 0.142 0.089 0.112 0.062          NA
-## ...
-```
-
-`compute_spectrogram()` returns a time × frequency power matrix:
+**Temporal band power across the night:**
 
 ```r
-sg <- compute_spectrogram(psg, channel = "EEG Fpz-Cz", db = TRUE)
+tbp <- compute_temporal_bandpower(psg, hypno = stages$stage)
+#> # A tibble: 220 x 7
+#>   time_hours epoch_start epoch_end dominant_stage band  power relative_power
 ```
 
-### Sleep event detection
+See `vignette("spectral-analysis")` for visualisation examples.
+
+**Sleep event detection:**
 
 ```r
 sp <- compute_spindles(psg, channel = "EEG Fpz-Cz")
 so <- compute_slow_oscillations(psg, channel = "EEG Fpz-Cz")
 ```
 
-### Automatic sleep staging
-
-`stage_epochs()` stages each epoch using a pre-trained LightGBM model ported
-from [YASA](https://github.com/raphaelvallat/yasa) (Vallat & Walker, 2021):
+**Artefact detection:**
 
 ```r
-staging <- stage_epochs(
-  psg,
-  eeg_channel = "EEG Fpz-Cz",
-  eog_channel = "EOG horizontal",
-  emg_channel = "EMG chin",
-  artefacts   = art
-)
-staging
+art <- detect_artifacts(psg)
+#> i Artefact epochs: 12 / 958 (1.3%)
 ```
 
-```
-## # A tibble: 958 × 7
-##   epoch stage prob_W prob_N1 prob_N2 prob_N3 prob_REM
-##   <int> <chr>  <dbl>   <dbl>   <dbl>   <dbl>    <dbl>
-## 1     1 W      0.921   0.042   0.022   0.008    0.007
-## 2     2 W      0.874   0.081   0.031   0.007    0.007
-## 3     3 N1     0.312   0.448   0.185   0.032    0.023
-## ...
-```
+---
 
-Stages follow AASM nomenclature: `W`, `N1`, `N2`, `N3`, `REM`. Artefact
-epochs are coded `NA`.
+### 7. Exporting the hypnogram
 
-### Exporting to hypnor
+`export_hypnogram()` wraps the staging tibble in the `mrpheus_hypnogram` S3
+class and pre-computes AASM sleep architecture metrics:
 
 ```r
-hypnogram <- export_hypnogram(
-  staging,
+hyp <- export_hypnogram(
+  stages,
   epoch_s        = 30,
   start_time     = rec$header$startTime,
-  participant_id = "P001"
+  participant_id = "sub-001"
 )
-
-hypnor::plot_hypnogram(hypnogram)
-hypnor::compute_architecture(hypnogram)
+hyp
+#> -- mrpheus hypnogram --------
+#> i Epochs:      958 x 30 s
+#> i Participant: sub-001
+#> i Source:      mrpheus / AASM
+#> -- Sleep architecture -------
+#>   TIB:  479 min  |  SPT:  461.5 min
+#>   TST:  432.5 min  |  WASO: 29 min
+#>   SE:   90.3 %    |  SME:  93.7 %
+#>   SOL:  8.5 min   |  Lat_REM (AASM): 71.5 min
+#>   N1:   6.1 %  |  N2:  52.4 %  |  N3: 18.2 %  |  REM: 23.3 %
 ```
 
-### Full PSG pipeline
+Access the full metrics list:
 
 ```r
-library(mrpheus)
-
-rec      <- read_edf("recordings/psg_001.edf")
-psg      <- prepare_psg(rec)
-art      <- detect_artifacts(psg)
-bp       <- compute_band_power(psg, relative = TRUE)
-sp       <- compute_spindles(psg)
-so       <- compute_slow_oscillations(psg)
-staging  <- stage_epochs(psg, artefacts = art)
-hypnogram <- export_hypnogram(staging, start_time = rec$header$startTime)
+arch <- attr(hyp, "sleep_architecture")
+arch$TST      # total sleep time (minutes)
+arch$SE       # sleep efficiency (%)
+arch$Lat_REM_AASM  # REM latency from sleep onset (AASM definition)
 ```
+
+See `vignette("export-hypnogram")` for a full description of all metrics.
 
 ---
 
 ## MRI physiology pipeline
 
 For recordings acquired alongside fMRI, mrpheus reads Philips PMU `.log`
-files and runs Pan-Tompkins QRS detection to produce cardiac regressors.
+files and runs Pan-Tompkins QRS detection:
 
 ```r
-# Read Philips PMU log (wBTU wireless VCG system, 496 Hz)
 rec <- read_philips_physlog("sub-01_ses-01_physlog.log")
-
-# Detect QRS complexes
 qrs <- detect_qrs(as.double(rec$C[, "v1raw"]), fs = rec$HDR$sfreq)
-
-# Instantaneous HR signal
 hr  <- compute_hr_signal(qrs)
-
-# RR intervals per TR for BOLD regression
-rr_tr <- approx(
-  x      = qrs$qrs_i[-1] / rec$HDR$sfreq,
-  y      = diff(qrs$qrs_i) / rec$HDR$sfreq,
-  xout   = seq(0, n_vols * TR, by = TR),
-  method = "constant"
-)$y
 ```
 
 See `vignette("mri-physiology")` for the full workflow including scan-window
@@ -252,14 +316,12 @@ alignment and RR-per-TR computation.
 
 ## References
 
-Vallat, R., & Walker, M. P. (2021). An open-source, high-performance tool for
+Vallat R, Walker MP (2021). An open-source, high-performance tool for
 automated sleep staging. *eLife*, 10, e70092.
 <https://doi.org/10.7554/eLife.70092>
 
-Mölle, M., Marshall, L., Gais, S., & Born, J. (2002). Grouping of spindle
-activity during slow oscillations in human non-rapid eye movement sleep.
-*Journal of Neuroscience*, 22(24), 10941–10947.
+Iber C (2007). The AASM Manual for the Scoring of Sleep and Associated
+Events. American Academy of Sleep Medicine.
 
-Pan J, Tompkins WJ. (1985). A real-time QRS detection algorithm.
-*IEEE Trans Biomed Eng*, 32(3):230–236.
-<https://doi.org/10.1109/TBME.1985.325532>
+Pan J, Tompkins WJ (1985). A real-time QRS detection algorithm. *IEEE Trans
+Biomed Eng*, 32(3), 230–236. <https://doi.org/10.1109/TBME.1985.325532>
