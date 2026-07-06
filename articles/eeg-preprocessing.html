@@ -143,6 +143,7 @@
     <li><a class="dropdown-item" href="../articles/mri-physiology.html">MRI physiological signal processing</a></li>
     <li><a class="dropdown-item" href="../articles/sleep-staging.html">Automatic AASM Sleep Staging</a></li>
     <li><a class="dropdown-item" href="../articles/eeg-preprocessing.html">PSG Preprocessing Pipeline</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral-analysis.html">Spectral Analysis of Sleep EEG</a></li>
     <li><a class="dropdown-item" href="../articles/sleep-staging-demo.html">Sleep Staging: Live Walkthrough (SC4001E0)</a></li>
   </ul>
 </li>
@@ -381,6 +382,113 @@ separate MNE-matched FIR bandpass internally —
 <code><a href="../reference/preprocess_psg.html">preprocess_psg()</a></code> filtering and staging filtering are
 independent.</p>
 <hr>
+</div>
+<div class="section level2">
+<h2 id="eog-artefact-correction">EOG artefact correction<a class="anchor" aria-label="anchor" href="#eog-artefact-correction"></a>
+</h2>
+<p>Ocular artefacts (blinks, saccades, slow drift) contaminate EEG
+channels through volume conduction from the eyes. mrpheus provides two
+correction methods, both operating on the continuous signal and
+returning a new <code>mrpheus_psg</code> with cleaned epochs.</p>
+<div class="section level3">
+<h3 id="regression-based-correction">Regression-based correction<a class="anchor" aria-label="anchor" href="#regression-based-correction"></a>
+</h3>
+<p><code><a href="../reference/correct_eog_regression.html">correct_eog_regression()</a></code> regresses each EEG channel on
+the EOG reference channels and replaces the EEG with the residuals. This
+removes both transient blinks and slow ocular drift without requiring
+blink event detection.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">psg_eog</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/correct_eog_regression.html">correct_eog_regression</a></span><span class="op">(</span><span class="va">psg_clean</span><span class="op">)</span></span></code></pre></div>
+<p>This is the recommended method when:</p>
+<ul>
+<li>You have one or two EOG channels and want a fast, deterministic
+result.</li>
+<li>The recording has relatively few EEG channels (fewer than 4).</li>
+<li>Slow drift contamination is a concern alongside blinks.</li>
+</ul>
+<p>You can restrict which channels are used:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">psg_eog</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/correct_eog_regression.html">correct_eog_regression</a></span><span class="op">(</span></span>
+<span>  <span class="va">psg_clean</span>,</span>
+<span>  eog_channels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"EOG LOC"</span>, <span class="st">"EOG ROC"</span><span class="op">)</span>,</span>
+<span>  eeg_channels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"EEG C3"</span>, <span class="st">"EEG C4"</span>, <span class="st">"EEG O1"</span>, <span class="st">"EEG O2"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="ica-based-correction">ICA-based correction<a class="anchor" aria-label="anchor" href="#ica-based-correction"></a>
+</h3>
+<p><code><a href="../reference/correct_eog_ica.html">correct_eog_ica()</a></code> decomposes the EEG into independent
+components via FastICA, identifies those whose time courses correlate
+with the EOG channels above a threshold, and subtracts their
+contribution.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">psg_eog</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/correct_eog_ica.html">correct_eog_ica</a></span><span class="op">(</span><span class="va">psg_clean</span><span class="op">)</span></span></code></pre></div>
+<p>Key parameters:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">psg_eog</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/correct_eog_ica.html">correct_eog_ica</a></span><span class="op">(</span></span>
+<span>  <span class="va">psg_clean</span>,</span>
+<span>  n_components <span class="op">=</span> <span class="fl">6L</span>,    <span class="co"># default: min(6, n_eeg_channels)</span></span>
+<span>  threshold    <span class="op">=</span> <span class="fl">0.35</span>   <span class="co"># default: Pearson |r| above which a component is flagged</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>ICA requires at least 2 EEG channels. For recordings with fewer than
+3–4 EEG channels, regression is more reliable. The
+<code>threshold</code> controls sensitivity: lower values flag more
+components (more aggressive removal, risk of removing genuine signal);
+higher values are more conservative.</p>
+</div>
+<div class="section level3">
+<h3 id="which-method-to-choose">Which method to choose?<a class="anchor" aria-label="anchor" href="#which-method-to-choose"></a>
+</h3>
+<table class="table">
+<thead><tr class="header">
+<th></th>
+<th>Regression</th>
+<th>ICA</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Minimum EEG channels</td>
+<td>1</td>
+<td>2 (3+ recommended)</td>
+</tr>
+<tr class="even">
+<td>Removes slow drift</td>
+<td>Yes</td>
+<td>Partial</td>
+</tr>
+<tr class="odd">
+<td>Removes blink transients</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td>Deterministic</td>
+<td>Yes</td>
+<td>No (seed-dependent)</td>
+</tr>
+<tr class="odd">
+<td>Computation</td>
+<td>Fast</td>
+<td>Slower</td>
+</tr>
+</tbody>
+</table>
+<p>For a standard overnight PSG with 4+ EEG channels, ICA generally
+produces cleaner results. For a 2-channel ambulatory recording, use
+regression.</p>
+</div>
+<div class="section level3">
+<h3 id="full-pipeline">Full pipeline<a class="anchor" aria-label="anchor" href="#full-pipeline"></a>
+</h3>
+<p>Putting it all together:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rec</span>     <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_edf.html">read_edf</a></span><span class="op">(</span><span class="st">"SC4001E0-PSG.edf"</span><span class="op">)</span></span>
+<span><span class="va">psg</span>     <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_psg.html">prepare_psg</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
+<span><span class="va">psg</span>     <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preprocess_psg.html">preprocess_psg</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
+<span><span class="va">psg</span>     <span class="op">&lt;-</span> <span class="fu"><a href="../reference/correct_eog_regression.html">correct_eog_regression</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span>   <span class="co"># or correct_eog_ica()</span></span>
+<span><span class="va">stages</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stage_epochs.html">stage_epochs</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span></code></pre></div>
+<hr>
+</div>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>

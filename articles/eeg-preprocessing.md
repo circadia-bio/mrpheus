@@ -202,6 +202,100 @@ filtering and staging filtering are independent.
 
 ------------------------------------------------------------------------
 
+## EOG artefact correction
+
+Ocular artefacts (blinks, saccades, slow drift) contaminate EEG channels
+through volume conduction from the eyes. mrpheus provides two correction
+methods, both operating on the continuous signal and returning a new
+`mrpheus_psg` with cleaned epochs.
+
+### Regression-based correction
+
+[`correct_eog_regression()`](https://mrpheus.circadia-lab.uk/reference/correct_eog_regression.md)
+regresses each EEG channel on the EOG reference channels and replaces
+the EEG with the residuals. This removes both transient blinks and slow
+ocular drift without requiring blink event detection.
+
+``` r
+
+psg_eog <- correct_eog_regression(psg_clean)
+```
+
+This is the recommended method when:
+
+- You have one or two EOG channels and want a fast, deterministic
+  result.
+- The recording has relatively few EEG channels (fewer than 4).
+- Slow drift contamination is a concern alongside blinks.
+
+You can restrict which channels are used:
+
+``` r
+
+psg_eog <- correct_eog_regression(
+  psg_clean,
+  eog_channels = c("EOG LOC", "EOG ROC"),
+  eeg_channels = c("EEG C3", "EEG C4", "EEG O1", "EEG O2")
+)
+```
+
+### ICA-based correction
+
+[`correct_eog_ica()`](https://mrpheus.circadia-lab.uk/reference/correct_eog_ica.md)
+decomposes the EEG into independent components via FastICA, identifies
+those whose time courses correlate with the EOG channels above a
+threshold, and subtracts their contribution.
+
+``` r
+
+psg_eog <- correct_eog_ica(psg_clean)
+```
+
+Key parameters:
+
+``` r
+
+psg_eog <- correct_eog_ica(
+  psg_clean,
+  n_components = 6L,    # default: min(6, n_eeg_channels)
+  threshold    = 0.35   # default: Pearson |r| above which a component is flagged
+)
+```
+
+ICA requires at least 2 EEG channels. For recordings with fewer than 3–4
+EEG channels, regression is more reliable. The `threshold` controls
+sensitivity: lower values flag more components (more aggressive removal,
+risk of removing genuine signal); higher values are more conservative.
+
+### Which method to choose?
+
+|                          | Regression | ICA                 |
+|--------------------------|------------|---------------------|
+| Minimum EEG channels     | 1          | 2 (3+ recommended)  |
+| Removes slow drift       | Yes        | Partial             |
+| Removes blink transients | Yes        | Yes                 |
+| Deterministic            | Yes        | No (seed-dependent) |
+| Computation              | Fast       | Slower              |
+
+For a standard overnight PSG with 4+ EEG channels, ICA generally
+produces cleaner results. For a 2-channel ambulatory recording, use
+regression.
+
+### Full pipeline
+
+Putting it all together:
+
+``` r
+
+rec     <- read_edf("SC4001E0-PSG.edf")
+psg     <- prepare_psg(rec)
+psg     <- preprocess_psg(psg)
+psg     <- correct_eog_regression(psg)   # or correct_eog_ica()
+stages  <- stage_epochs(psg)
+```
+
+------------------------------------------------------------------------
+
 ## References
 
 Kemp B, Zwinderman A, Tuk B, Kamphuisen H, Oberyé J (2000). Analysis of

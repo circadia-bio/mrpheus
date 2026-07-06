@@ -148,6 +148,7 @@
     <li><a class="dropdown-item" href="articles/mri-physiology.html">MRI physiological signal processing</a></li>
     <li><a class="dropdown-item" href="articles/sleep-staging.html">Automatic AASM Sleep Staging</a></li>
     <li><a class="dropdown-item" href="articles/eeg-preprocessing.html">PSG Preprocessing Pipeline</a></li>
+    <li><a class="dropdown-item" href="articles/spectral-analysis.html">Spectral Analysis of Sleep EEG</a></li>
     <li><a class="dropdown-item" href="articles/sleep-staging-demo.html">Sleep Staging: Live Walkthrough (SC4001E0)</a></li>
   </ul>
 </li>
@@ -179,95 +180,35 @@
 </h1>
 </div>
 <p><strong>Raw physiological signal analysis for biological rhythms research.</strong></p>
-<p><a href="https://www.r-project.org/" class="external-link"><img src="https://img.shields.io/badge/R-%3E%3D4.1-276DC3" alt="R"></a> <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a> <a href="https://github.com/circadia-bio" class="external-link"><img src="https://img.shields.io/badge/circadia--bio-GitHub-014370" alt="Circadia Lab"></a></p>
-<hr>
-<blockquote>
-<p>⚠️ <strong>mrpheus is in early development and has not been formally tested.</strong> The API may change without notice, estimation results have not yet been validated against a reference implementation, and the package has not undergone peer review. Use with caution and verify outputs independently before using in any research context.</p>
-</blockquote>
+<p><a href="https://circadia-bio.r-universe.dev/mrpheus" class="external-link"><img src="https://circadia-bio.r-universe.dev/badges/mrpheus" alt="r-universe"></a> <a href="https://www.r-project.org/" class="external-link"><img src="https://img.shields.io/badge/R-%3E%3D4.1-276DC3" alt="R"></a> <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a> <a href="https://github.com/circadia-bio" class="external-link"><img src="https://img.shields.io/badge/circadia--bio-GitHub-014370" alt="Circadia Lab"></a></p>
 <hr>
 <div class="section level2">
 <h2 id="open_book-what-is-mrpheus">📖 What is mrpheus?<a class="anchor" aria-label="anchor" href="#open_book-what-is-mrpheus"></a>
 </h2>
-<p><code>mrpheus</code> is the raw signal layer of the <a href="https://github.com/circadia-bio" class="external-link">Circadia Lab</a> R ecosystem. It ingests and processes multi-modal physiological recordings — polysomnography (EDF/EDF+), MRI-concurrent physiological logs (Philips PMU), and EEG — extracting features across the biological rhythms that connect sleep, cardiac function, and neural activity.</p>
-<p>The package covers three rhythm domains: <strong>cardiac</strong> (QRS detection, HRV), <strong>respiratory</strong> (apnoea detection, respiratory metrics), and <strong>neural</strong> (spindles, slow oscillations, automatic AASM sleep staging). Staged hypnograms pass downstream to <code>hypnor</code>; derived metrics pass to <code>syncR</code>.</p>
-<p>The name is spelled as <em>Morpheus</em> but carries a silent <strong>m</strong>, so it is pronounced as <em>Orpheus</em> — a portmanteau of both myths simultaneously. Morpheus, the god of dreams, gives the package its subject matter. Orpheus, who descended into the underworld to navigate the unconscious, gives it its spirit. Sleep is both.</p>
-<blockquote>
-<p><em>“He calmed the savage beasts with song, as mrpheus calms your raw signals into stages.”</em></p>
-</blockquote>
-<div class="section level3">
-<h3 id="the-orpheus-mosaic-palette">The Orpheus Mosaic Palette<a class="anchor" aria-label="anchor" href="#the-orpheus-mosaic-palette"></a>
-</h3>
-<p>The package ships a data object <code>palette_orpheus</code> — 8 colours extracted from the <a href="https://en.wikipedia.org/wiki/Orpheus" class="external-link">Roman mosaic <em>Orpheus Charming the Animals</em></a> (3rd century AD, Palermo Archaeological Museum), the image that inspired the package name:</p>
-<table class="table">
-<thead><tr>
-<th>Name</th>
-<th>Hex</th>
-<th>Source</th>
-</tr></thead>
-<tbody>
-<tr>
-<td>sand</td>
-<td><code>#CDB992</code></td>
-<td>warm background tessera</td>
-</tr>
-<tr>
-<td>vermillion</td>
-<td><code>#B83E2C</code></td>
-<td>Orpheus’s robe</td>
-</tr>
-<tr>
-<td>olive</td>
-<td><code>#6A7840</code></td>
-<td>tree and vegetation</td>
-</tr>
-<tr>
-<td>umber</td>
-<td><code>#7C5432</code></td>
-<td>animal fur and earth</td>
-</tr>
-<tr>
-<td>bistre</td>
-<td><code>#3C2212</code></td>
-<td>shadows and outlines</td>
-</tr>
-<tr>
-<td>ochre</td>
-<td><code>#B07C3A</code></td>
-<td>warm amber accent</td>
-</tr>
-<tr>
-<td>slate</td>
-<td><code>#6C8284</code></td>
-<td>birds; dusty teal-grey</td>
-</tr>
-<tr>
-<td>ivory</td>
-<td><code>#EAD6AA</code></td>
-<td>highlights</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">scales</span><span class="fu">::</span><span class="fu"><a href="https://scales.r-lib.org/reference/show_col.html" class="external-link">show_col</a></span><span class="op">(</span><span class="fu">mrpheus</span><span class="fu">::</span><span class="va"><a href="reference/palette_orpheus.html">palette_orpheus</a></span><span class="op">)</span></span></code></pre></div>
+<p><code>mrpheus</code> is the raw signal layer of the <a href="https://github.com/circadia-bio" class="external-link">Circadia Lab</a> R ecosystem. It ingests and processes multi-modal physiological recordings — polysomnography (EDF/EDF+), MRI-concurrent physiological logs (Philips PMU), and EEG — and extracts features across three biological rhythm domains: <strong>cardiac</strong> (QRS detection, HRV), <strong>respiratory</strong> (apnoea detection, respiratory metrics), and <strong>neural</strong> (sleep spindles, slow oscillations, automatic AASM sleep staging).</p>
+<p>Staged hypnograms and derived metrics pass downstream to <code>hypnor</code> and <code>syncR</code> for cross-modal linking.</p>
+<p>The name is spelled as <em>Morpheus</em> but carries a silent <strong>m</strong>, pronounced as <em>Orpheus</em> — carrying both myths at once. Morpheus, god of dreams, gives the package its subject; Orpheus, who descended into the underworld to navigate the unconscious, gives it its spirit.</p>
 <hr>
-</div>
 </div>
 <div class="section level2">
 <h2 id="sparkles-features">✨ Features<a class="anchor" aria-label="anchor" href="#sparkles-features"></a>
 </h2>
 <ul>
-<li>📂 <strong>EDF/EDF+ ingestion</strong> — <code><a href="reference/read_edf.html">read_edf()</a></code> / <code><a href="reference/prepare_psg.html">prepare_psg()</a></code>: channel inventory, epoch segmentation, bad-channel flagging</li>
-<li>🏥 <strong>Philips PMU ingestion</strong> — <code><a href="reference/read_philips_physlog.html">read_philips_physlog()</a></code>: wBTU / wired / custom presets, event markers, scan-window alignment</li>
+<li>📂 <strong>EDF/EDF+ ingestion</strong> — <code><a href="reference/read_edf.html">read_edf()</a></code>, <code><a href="reference/prepare_psg.html">prepare_psg()</a></code>: channel inventory, epoch segmentation, bad-channel flagging</li>
+<li>🧹 <strong>Preprocessing pipeline</strong> — <code><a href="reference/preprocess_psg.html">preprocess_psg()</a></code>: channel renaming, DC removal, powerline notch (50/60 Hz + harmonics), per-channel-type bandpass filtering; operates on the full continuous signal before re-epoching</li>
+<li>🔊 <strong>Signal filters</strong> — <code><a href="reference/remove_dc.html">remove_dc()</a></code>, <code><a href="reference/detect_powerline.html">detect_powerline()</a></code>, <code><a href="reference/notch_filter.html">notch_filter()</a></code>, <code><a href="reference/bandpass_filter.html">bandpass_filter()</a></code>: exported functions that work on any plain numeric vector</li>
+<li>👁️ <strong>EOG artefact correction</strong> — <code><a href="reference/correct_eog_regression.html">correct_eog_regression()</a></code> (linear regression, no blink detection required), <code><a href="reference/correct_eog_ica.html">correct_eog_ica()</a></code> (FastICA, threshold-based component rejection)</li>
 <li>🚫 <strong>Artefact detection</strong> — <code><a href="reference/detect_artifacts.html">detect_artifacts()</a></code>: amplitude and muscle contamination flagging</li>
-<li>📊 <strong>Spectral analysis</strong> — <code><a href="reference/compute_band_power.html">compute_band_power()</a></code> (δ/θ/α/σ/β/γ per epoch), <code><a href="reference/compute_spectrogram.html">compute_spectrogram()</a></code>
+<li>📊 <strong>Spectral analysis</strong> — <code><a href="reference/compute_band_power.html">compute_band_power()</a></code> (δ/θ/α/σ/β/γ per epoch, YASA-validated Welch PSD), <code><a href="reference/compute_temporal_bandpower.html">compute_temporal_bandpower()</a></code> (sliding-window band power across the full night), <code><a href="reference/compute_spectrogram.html">compute_spectrogram()</a></code>
 </li>
 <li>🔁 <strong>Sleep event detection</strong> — <code><a href="reference/compute_spindles.html">compute_spindles()</a></code>, <code><a href="reference/compute_slow_oscillations.html">compute_slow_oscillations()</a></code>
 </li>
-<li>🛏️ <strong>Automatic AASM staging</strong> — <code><a href="reference/stage_epochs.html">stage_epochs()</a></code>: pre-trained LightGBM model ported from <a href="https://github.com/raphaelvallat/yasa" class="external-link">YASA</a> (Vallat &amp; Walker, 2021)</li>
+<li>🛏️ <strong>Automatic AASM staging</strong> — <code><a href="reference/stage_epochs.html">stage_epochs()</a></code>: pre-trained LightGBM model ported from <a href="https://github.com/raphaelvallat/yasa" class="external-link">YASA</a> (Vallat &amp; Walker, 2021); 77.8 % epoch accuracy on Sleep-EDF Cassette</li>
 <li>🫁 <strong>Respiratory metrics</strong> — <code><a href="reference/detect_apneas.html">detect_apneas()</a></code>, <code><a href="reference/compute_ahi.html">compute_ahi()</a></code>, <code><a href="reference/compute_odi.html">compute_odi()</a></code>
 </li>
 <li>💓 <strong>Cardiac rhythm</strong> — <code><a href="reference/detect_qrs.html">detect_qrs()</a></code> (Pan-Tompkins), <code><a href="reference/compute_hr_signal.html">compute_hr_signal()</a></code>, <code><a href="reference/compute_hrv_sleep.html">compute_hrv_sleep()</a></code>
 </li>
+<li>🏥 <strong>Philips PMU ingestion</strong> — <code><a href="reference/read_philips_physlog.html">read_philips_physlog()</a></code>: wBTU / wired / custom presets, event markers, scan-window alignment</li>
 <li>🔗 <strong>Ecosystem handoffs</strong> — <code><a href="reference/export_hypnogram.html">export_hypnogram()</a></code> → <code>hypnor</code>; derived metrics → <code>syncR</code>
 </li>
 </ul>
@@ -278,34 +219,39 @@
 </h2>
 <pre><code>mrpheus/
 ├── R/
-│   ├── mrpheus-package.R       # package doc + palette_orpheus
-│   ├── read_edf.R              # read_edf(), print.mrpheus_edf
-│   ├── prepare_psg.R           # prepare_psg(), print.mrpheus_psg
-│   ├── read_philips_physlog.R  # read_philips_physlog(), print.mrpheus_physlog
-│   ├── detect_artifacts.R      # detect_artifacts()
-│   ├── detect_qrs.R            # detect_qrs(), print.mrpheus_qrs
-│   ├── compute_band_power.R    # compute_band_power()
-│   ├── compute_spectrogram.R   # compute_spectrogram()
-│   ├── compute_spindles.R      # compute_spindles()
+│   ├── mrpheus-package.R           # package doc + palette_orpheus
+│   ├── read_edf.R                  # read_edf(), print.mrpheus_edf
+│   ├── prepare_psg.R               # prepare_psg(), print.mrpheus_psg
+│   ├── signal_filters.R            # remove_dc(), detect_powerline(),
+│   │                               #   notch_filter(), bandpass_filter()
+│   ├── preprocess_psg.R            # preprocess_psg()
+│   ├── correct_eog.R               # correct_eog_regression(), correct_eog_ica()
+│   ├── detect_artifacts.R          # detect_artifacts()
+│   ├── compute_band_power.R        # compute_band_power()
+│   ├── compute_temporal_bandpower.R# compute_temporal_bandpower()
+│   ├── compute_spectrogram.R       # compute_spectrogram()
+│   ├── compute_spindles.R          # compute_spindles()
 │   ├── compute_slow_oscillations.R
-│   ├── compute_hr_signal.R     # compute_hr_signal()
-│   ├── compute_hrv_sleep.R     # compute_hrv_sleep()
-│   ├── stage_epochs.R          # stage_epochs()
-│   ├── export_hypnogram.R      # export_hypnogram()
-│   └── detect_apneas.R         # detect_apneas(), compute_ahi(), compute_odi()
+│   ├── compute_hr_signal.R         # compute_hr_signal()
+│   ├── compute_hrv_sleep.R         # compute_hrv_sleep()
+│   ├── stage_epochs.R              # stage_epochs()
+│   ├── staging_features.R          # internal YASA feature extraction
+│   ├── export_hypnogram.R          # export_hypnogram()
+│   ├── detect_qrs.R                # detect_qrs(), print.mrpheus_qrs
+│   ├── detect_apneas.R             # detect_apneas(), compute_ahi(), compute_odi()
+│   └── read_philips_physlog.R      # read_philips_physlog()
 ├── inst/
-│   ├── extdata/
-│   │   └── example_physlog.log # synthetic Philips PMU log (vignette data)
-│   └── models/
-│       └── yasa_staging.txt    # serialised LightGBM model (see data-raw/)
-├── data-raw/
-│   ├── fetch_yasa_model.py     # extracts model from YASA Python package
-│   ├── create_example_physlog.R # generates inst/extdata/example_physlog.log
-│   └── palette_orpheus.R       # generates palette_orpheus data object
+│   ├── extdata/                    # example_physlog.log
+│   ├── filters/                    # MNE FIR + resample poly coefficients
+│   └── models/                     # serialised LightGBM staging model
+├── data-raw/                       # model extraction, parity validation scripts
 ├── tests/testthat/
 ├── vignettes/
 │   ├── getting-started.Rmd
-│   └── mri-physiology.Rmd
+│   ├── mri-physiology.Rmd
+│   ├── sleep-staging.Rmd
+│   ├── eeg-preprocessing.Rmd
+│   └── spectral-analysis.Rmd
 ├── _pkgdown.yml
 └── DESCRIPTION</code></pre>
 <hr>
@@ -314,22 +260,28 @@
 <h2 id="rocket-getting-started">🚀 Getting Started<a class="anchor" aria-label="anchor" href="#rocket-getting-started"></a>
 </h2>
 <div class="section level3">
-<h3 id="prerequisites">Prerequisites<a class="anchor" aria-label="anchor" href="#prerequisites"></a>
-</h3>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># R &gt;= 4.1</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"edfReader"</span>, <span class="st">"gsignal"</span>, <span class="st">"pracma"</span>, <span class="st">"lightgbm"</span>,</span>
-<span>                   <span class="st">"dplyr"</span>, <span class="st">"tibble"</span>, <span class="st">"cli"</span>, <span class="st">"rlang"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
 <h3 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"circadia-bio/mrpheus"</span><span class="op">)</span></span></code></pre></div>
-<p>The staging model is bundled — no additional setup required.</p>
+<p>Install from <a href="https://circadia-bio.r-universe.dev" class="external-link">r-universe</a> (recommended — pre-built binaries, no compiler required):</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span></span>
+<span>  <span class="st">"mrpheus"</span>,</span>
+<span>  repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://circadia-bio.r-universe.dev"</span>, <span class="st">"https://cloud.r-project.org"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Or install the development version from GitHub:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"circadia-bio/mrpheus"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="basic-pipeline">Basic pipeline<a class="anchor" aria-label="anchor" href="#basic-pipeline"></a>
+<h3 id="prerequisites">Prerequisites<a class="anchor" aria-label="anchor" href="#prerequisites"></a>
+</h3>
+<p>The staging model requires LightGBM. If the r-universe binary does not install it automatically:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"lightgbm"</span><span class="op">)</span>   <span class="co"># CRAN binary</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="full-psg-pipeline">Full PSG pipeline<a class="anchor" aria-label="anchor" href="#full-psg-pipeline"></a>
 </h3>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mrpheus.circadia-lab.uk">mrpheus</a></span><span class="op">)</span></span>
@@ -338,21 +290,28 @@
 <span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_edf.html">read_edf</a></span><span class="op">(</span><span class="st">"psg_001.edf"</span><span class="op">)</span></span>
 <span><span class="va">psg</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/prepare_psg.html">prepare_psg</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 2. Artefacts</span></span>
-<span><span class="va">art</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/detect_artifacts.html">detect_artifacts</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
+<span><span class="co"># 2. Preprocess</span></span>
+<span><span class="va">psg</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/preprocess_psg.html">preprocess_psg</a></span><span class="op">(</span></span>
+<span>  <span class="va">psg</span>,</span>
+<span>  channel_rename <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"C3-A2"</span> <span class="op">=</span> <span class="st">"C3"</span>, <span class="st">"C4-A1"</span> <span class="op">=</span> <span class="st">"C4"</span><span class="op">)</span>  <span class="co"># if needed</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 3. Band power</span></span>
+<span><span class="co"># 3. EOG correction</span></span>
+<span><span class="va">psg</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/correct_eog_regression.html">correct_eog_regression</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span>   <span class="co"># or correct_eog_ica()</span></span>
+<span></span>
+<span><span class="co"># 4. Stage</span></span>
+<span><span class="va">stages</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/stage_epochs.html">stage_epochs</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 5. Band power</span></span>
 <span><span class="va">bp</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_band_power.html">compute_band_power</a></span><span class="op">(</span><span class="va">psg</span>, relative <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">tbp</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_temporal_bandpower.html">compute_temporal_bandpower</a></span><span class="op">(</span><span class="va">psg</span>, hypno <span class="op">=</span> <span class="va">stages</span><span class="op">$</span><span class="va">stage</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 4. Events</span></span>
+<span><span class="co"># 6. Events</span></span>
 <span><span class="va">sp</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_spindles.html">compute_spindles</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
 <span><span class="va">so</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_slow_oscillations.html">compute_slow_oscillations</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 5. Stage</span></span>
-<span><span class="va">staging</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/stage_epochs.html">stage_epochs</a></span><span class="op">(</span><span class="va">psg</span>, artefacts <span class="op">=</span> <span class="va">art</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 6. Export to hypnor</span></span>
-<span><span class="va">hypnogram</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/export_hypnogram.html">export_hypnogram</a></span><span class="op">(</span><span class="va">staging</span>, start_time <span class="op">=</span> <span class="va">rec</span><span class="op">$</span><span class="va">header</span><span class="op">$</span><span class="va">startTime</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># 7. Export to hypnor</span></span>
+<span><span class="va">hypnogram</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/export_hypnogram.html">export_hypnogram</a></span><span class="op">(</span><span class="va">stages</span>, start_time <span class="op">=</span> <span class="va">rec</span><span class="op">$</span><span class="va">header</span><span class="op">$</span><span class="va">startTime</span><span class="op">)</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -374,17 +333,27 @@
 <tr>
 <td><code>gsignal</code></td>
 <td>≥ 0.3.5</td>
-<td>Digital filtering, Welch PSD</td>
+<td>IIR filter design, Welch PSD</td>
 </tr>
 <tr>
 <td><code>pracma</code></td>
 <td>≥ 2.4.2</td>
-<td>Numerical integration (trapz)</td>
+<td>Numerical utilities</td>
 </tr>
 <tr>
 <td><code>lightgbm</code></td>
 <td>≥ 4.0.0</td>
 <td>YASA staging model inference</td>
+</tr>
+<tr>
+<td><code>fastICA</code></td>
+<td>≥ 1.2-0</td>
+<td>ICA decomposition for EOG correction</td>
+</tr>
+<tr>
+<td><code>zoo</code></td>
+<td>≥ 1.8.0</td>
+<td>Rolling window operations</td>
 </tr>
 <tr>
 <td><code>dplyr</code></td>
@@ -406,8 +375,28 @@
 <td>≥ 1.1.0</td>
 <td>Error handling</td>
 </tr>
+<tr>
+<td><code>Rcpp</code></td>
+<td>≥ 1.0.10</td>
+<td>C++ rolling statistics</td>
+</tr>
 </tbody>
 </table>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="page_facing_up-citation">📄 Citation<a class="anchor" aria-label="anchor" href="#page_facing_up-citation"></a>
+</h2>
+<p>If you use the automatic sleep staging feature, please also cite the YASA paper:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">vallat2021</span>,</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="dt">author</span>  = {Vallat, Raphael and Walker, Matthew P},</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="dt">title</span>   = {An open-source, high-performance tool for automated sleep staging},</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="dt">journal</span> = {eLife},</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="dt">volume</span>  = {10},</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  <span class="dt">pages</span>   = {e70092},</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  <span class="dt">year</span>    = {2021},</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>  <span class="dt">doi</span>     = {10.7554/eLife.70092}</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>}</span></code></pre></div>
 <hr>
 </div>
 <div class="section level2">
@@ -443,9 +432,9 @@
 <h2 id="handshake-related-tools">🤝 Related Tools<a class="anchor" aria-label="anchor" href="#handshake-related-tools"></a>
 </h2>
 <ul>
-<li>🌊 <a href="https://github.com/circadia-bio/zeitR" class="external-link"><strong>zeitR</strong></a> — wrist actigraphy analysis and circadian metrics</li>
-<li>😴 <a href="https://github.com/circadia-bio/hypnor" class="external-link"><strong>hypnor</strong></a> — hypnogram handling, plotting, and architecture metrics</li>
-<li>🔗 <a href="https://github.com/circadia-bio/syncR" class="external-link"><strong>syncR</strong></a> — unified participant-indexed database (actigraphy + sleep diary + PSG)</li>
+<li>🌊 <a href="https://zeitr.circadia-lab.uk" class="external-link"><strong>zeitR</strong></a> — wrist actigraphy analysis and circadian metrics</li>
+<li>😴 <a href="https://github.com/circadia-bio/hypnor" class="external-link"><strong>hypnor</strong></a> — hypnogram handling, sleep architecture metrics, and visualisation</li>
+<li>🔗 <a href="https://github.com/circadia-bio/syncR" class="external-link"><strong>syncR</strong></a> — unified participant-indexed database (actigraphy + PSG + diary)</li>
 <li>🧠 <a href="https://github.com/circadia-bio/boldR" class="external-link"><strong>boldR</strong></a> — fMRIPrep BOLD derivatives → parcellated analysis</li>
 <li>📋 <a href="https://github.com/circadia-bio/tallieR" class="external-link"><strong>tallieR</strong></a> — sociodemographics and questionnaires</li>
 <li>📓 <a href="https://github.com/circadia-bio/slumbR" class="external-link"><strong>slumbR</strong></a> — sleep diary processing</li>

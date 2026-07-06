@@ -13,6 +13,8 @@
   Staging](https://mrpheus.circadia-lab.uk/articles/sleep-staging.md):
 - [PSG Preprocessing
   Pipeline](https://mrpheus.circadia-lab.uk/articles/eeg-preprocessing.md):
+- [Spectral Analysis of Sleep
+  EEG](https://mrpheus.circadia-lab.uk/articles/spectral-analysis.md):
 
 ### Live demos
 
