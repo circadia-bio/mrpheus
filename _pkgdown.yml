@@ -179,6 +179,21 @@ reference:
     contents:
       - read_edf
       - prepare_psg
+      - preprocess_psg
+
+  - title: "Signal filtering"
+    desc: "Low-level filter functions for physiological signals."
+    contents:
+      - remove_dc
+      - detect_powerline
+      - notch_filter
+      - bandpass_filter
+
+  - title: "EOG correction"
+    desc: "Remove ocular artefacts from EEG channels."
+    contents:
+      - correct_eog_regression
+      - correct_eog_ica
 
   - title: "Artefacts"
     desc: "Detect and flag artefact epochs."
@@ -189,6 +204,7 @@ reference:
     desc: "Power spectral density and time-frequency representations."
     contents:
       - compute_band_power
+      - compute_temporal_bandpower
       - compute_spectrogram
 
   - title: "Event detection"
@@ -242,6 +258,7 @@ articles:
     contents:
       - mri-physiology
       - sleep-staging
+      - eeg-preprocessing
   - title: "Live demos"
     desc: "Fully executed examples requiring external data."
     navbar: ~

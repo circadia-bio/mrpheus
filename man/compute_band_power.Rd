@@ -7,47 +7,64 @@
 compute_band_power(
   psg,
   channels = NULL,
-  bands = list(delta = c(0.5, 4), theta = c(4, 8), alpha = c(8, 13), sigma = c(13, 16),
-    beta = c(16, 30), gamma = c(30, 40)),
+  bands = list(delta = c(0.5, 4), theta = c(4, 8), alpha = c(8, 12), sigma = c(12, 16),
+    beta = c(16, 30), gamma = c(30, 45)),
   relative = FALSE,
-  window_s = 4,
-  overlap = 0.5
+  win_sec = 4,
+  noverlap = 200L,
+  nfft = 1024L
 )
 }
 \arguments{
 \item{psg}{An \code{mrpheus_psg} object from \code{\link[=prepare_psg]{prepare_psg()}}.}
 
-\item{channels}{Character vector. EEG channel labels. If \code{NULL} (default),
-all non-bad EEG channels are used.}
+\item{channels}{Character vector. Channel labels to include. If \code{NULL}
+(default), all non-bad EEG channels are used.}
 
-\item{bands}{Named list of length-2 numeric vectors defining frequency bands.
-Default:
+\item{bands}{Named list of length-2 numeric vectors defining frequency bands
+in Hz. Default matches YASA's \code{bandpower()}:
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{list(delta = c(0.5, 4), theta = c(4, 8), alpha = c(8, 13),
-     sigma = c(13, 16), beta = c(16, 30), gamma = c(30, 40))
+\if{html}{\out{<div class="sourceCode">}}\preformatted{list(delta = c(0.5, 4), theta = c(4, 8), alpha = c(8, 12),
+     sigma = c(12, 16), beta = c(16, 30), gamma = c(30, 45))
 }\if{html}{\out{</div>}}}
 
-\item{relative}{Logical. If \code{TRUE}, return relative band power (band / total
-power in 0.5–40 Hz). Default \code{FALSE}.}
+\item{relative}{Logical. If \code{TRUE}, each band power is divided by the sum
+of all band powers (dimensionless). Matches YASA \code{relative = True}.
+Default \code{FALSE}.}
 
-\item{window_s}{Numeric. Welch window length in seconds. Default \code{4}.}
+\item{win_sec}{Numeric. Welch window length in seconds. Default \code{4}.}
 
-\item{overlap}{Numeric in [0, 1). Fractional overlap between Welch windows.
-Default \code{0.5}.}
+\item{noverlap}{Integer. Number of overlapping samples between Welch windows.
+Default \code{200}. Must be less than \code{win_sec * sample_rate}.}
+
+\item{nfft}{Integer. FFT length. Default \code{1024}. If smaller than the window
+length in samples it is automatically raised to the next power of 2.}
 }
 \value{
-A tibble with columns \code{epoch}, \code{channel}, one column per band, and
-\code{total_power}. Units are µV²/Hz (or dimensionless if \code{relative = TRUE}).
+A tibble with columns \code{epoch}, \code{channel}, one column per named band,
+and \code{total_power} (sum of all band powers, in V^2/Hz units before any
+relative scaling).
 }
 \description{
 Estimates power spectral density (PSD) using Welch's method and integrates
-power within standard EEG frequency bands (delta, theta, alpha, sigma, beta,
-gamma) for each epoch and each specified channel. Mirrors the band-power
-feature extraction used by YASA's staging pipeline.
+power within standard EEG frequency bands for each epoch and channel.
+}
+\details{
+The Welch implementation matches \code{scipy.signal.welch} with YASA's default
+parameters (\code{win_sec = 4}, \code{noverlap = 200}, \code{nfft = 1024}, Hann window,
+constant detrend, mean averaging). Relative power matches YASA's
+\code{relative = True} behaviour: each band is divided by the sum of all band
+powers (not the total PSD integral).
 }
 \examples{
 \dontrun{
 bp <- compute_band_power(psg)
 bp <- compute_band_power(psg, channels = "EEG Fpz-Cz", relative = TRUE)
+
+# Custom bands
+bp <- compute_band_power(
+  psg,
+  bands = list(slow = c(0.5, 1), delta = c(1, 4), theta = c(4, 8))
+)
 }
 }

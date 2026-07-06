@@ -1,3 +1,48 @@
+# mrpheus 0.1.3
+
+### PSG preprocessing pipeline
+
+Full preprocessing pipeline from EDF to analysis-ready epochs, matching the
+companion Python/MNE notebook workflow.
+
+* `preprocess_psg()` — continuous-signal preprocessing pipeline: channel
+  renaming, DC removal, powerline notch filter (auto-detected 50/60 Hz +
+  harmonics), and channel-type-specific bandpass filtering (EEG/EOG/EMG/ECG).
+  Operates on the full continuous signal before re-epoching to avoid filter
+  discontinuities at epoch boundaries.
+* `remove_dc()`, `detect_powerline()`, `notch_filter()`, `bandpass_filter()` —
+  exported signal-level functions; each operates on a plain numeric vector
+  independently of the PSG pipeline.
+
+### EOG artefact correction
+
+* `correct_eog_regression()` — removes ocular artefacts via multiple linear
+  regression of each EEG channel on the EOG reference channels. Equivalent to
+  MNE's SSP projection approach without requiring blink event detection.
+* `correct_eog_ica()` — ICA-based EOG removal via `fastICA`. Components whose
+  time courses correlate with EOG channels above a threshold (default 0.35,
+  matching the notebook) are identified and subtracted.
+
+### Spectral analysis
+
+* `compute_band_power()` — rewritten Welch PSD matching `scipy.signal.welch`
+  with YASA defaults (`win_sec = 4`, `noverlap = 200`, `nfft = 1024`, Hann
+  window, constant detrend, mean averaging). Band integration now uses
+  composite Simpson's rule (`.scipy_simpson`) matching `scipy.integrate.simpson`.
+  Parity validated against `yasa.bandpower()`: absolute power MARE < 0.08 %,
+  relative power MARE < 0.8 % across all six standard bands.
+* `compute_temporal_bandpower()` — sliding-window band power analysis across
+  the full recording night. Returns a long-format tibble with one row per
+  (window, band) including `time_hours`, `dominant_stage`, `power`, and
+  `relative_power`. Mirrors `calculate_temporal_bandpower()` from the
+  companion notebook.
+
+### Dependencies
+
+* Added `fastICA (>= 1.2-0)` to `Imports` for `correct_eog_ica()`.
+
+---
+
 # mrpheus 0.1.2
 
 ### AASM sleep staging — validated parity with YASA
