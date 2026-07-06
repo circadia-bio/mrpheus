@@ -95,7 +95,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mrpheus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -110,6 +110,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with mrpheus</a></li>
     <li><a class="dropdown-item" href="../articles/mri-physiology.html">MRI physiological signal processing</a></li>
     <li><a class="dropdown-item" href="../articles/sleep-staging.html">Automatic AASM Sleep Staging</a></li>
+    <li><a class="dropdown-item" href="../articles/eeg-preprocessing.html">PSG Preprocessing Pipeline</a></li>
     <li><a class="dropdown-item" href="../articles/sleep-staging-demo.html">Sleep Staging: Live Walkthrough (SC4001E0)</a></li>
   </ul></li>
 <li class="nav-item dropdown">
@@ -155,6 +156,73 @@
 
         </dt>
         <dd>Prepare a PSG recording for analysis</dd>
+
+        <dt>
+
+          <code><a href="preprocess_psg.html">preprocess_psg()</a></code>
+
+        </dt>
+        <dd>Preprocess a PSG recording</dd>
+      </dl></div><div class="section level2">
+      <h2 id="signal-filtering">Signal filtering<a class="anchor" aria-label="anchor" href="#signal-filtering"></a></h2>
+
+      <div class="section-desc"><p>Low-level filter functions for physiological signals.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="remove_dc.html">remove_dc()</a></code>
+
+        </dt>
+        <dd>Remove DC offset from a signal</dd>
+
+        <dt>
+
+          <code><a href="detect_powerline.html">detect_powerline()</a></code>
+
+        </dt>
+        <dd>Auto-detect powerline frequency</dd>
+
+        <dt>
+
+          <code><a href="notch_filter.html">notch_filter()</a></code>
+
+        </dt>
+        <dd>Apply a notch (bandstop) filter to a signal</dd>
+
+        <dt>
+
+          <code><a href="bandpass_filter.html">bandpass_filter()</a></code>
+
+        </dt>
+        <dd>Apply a bandpass filter to a signal</dd>
+      </dl></div><div class="section level2">
+      <h2 id="eog-correction">EOG correction<a class="anchor" aria-label="anchor" href="#eog-correction"></a></h2>
+
+      <div class="section-desc"><p>Remove ocular artefacts from EEG channels.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="correct_eog_regression.html">correct_eog_regression()</a></code>
+
+        </dt>
+        <dd>Remove EOG artefacts using linear regression</dd>
+
+        <dt>
+
+          <code><a href="correct_eog_ica.html">correct_eog_ica()</a></code>
+
+        </dt>
+        <dd>Remove EOG artefacts using ICA</dd>
       </dl></div><div class="section level2">
       <h2 id="artefacts">Artefacts<a class="anchor" aria-label="anchor" href="#artefacts"></a></h2>
 
@@ -187,6 +255,13 @@
 
         </dt>
         <dd>Compute EEG band power per epoch</dd>
+
+        <dt>
+
+          <code><a href="compute_temporal_bandpower.html">compute_temporal_bandpower()</a></code>
+
+        </dt>
+        <dd>Compute temporal band power across a PSG recording</dd>
 
         <dt>
 

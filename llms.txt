@@ -263,6 +263,30 @@ Read and prepare PSG recordings.
   : Read an EDF or EDF+ recording
 - [`prepare_psg()`](https://mrpheus.circadia-lab.uk/reference/prepare_psg.md)
   : Prepare a PSG recording for analysis
+- [`preprocess_psg()`](https://mrpheus.circadia-lab.uk/reference/preprocess_psg.md)
+  : Preprocess a PSG recording
+
+## Signal filtering
+
+Low-level filter functions for physiological signals.
+
+- [`remove_dc()`](https://mrpheus.circadia-lab.uk/reference/remove_dc.md)
+  : Remove DC offset from a signal
+- [`detect_powerline()`](https://mrpheus.circadia-lab.uk/reference/detect_powerline.md)
+  : Auto-detect powerline frequency
+- [`notch_filter()`](https://mrpheus.circadia-lab.uk/reference/notch_filter.md)
+  : Apply a notch (bandstop) filter to a signal
+- [`bandpass_filter()`](https://mrpheus.circadia-lab.uk/reference/bandpass_filter.md)
+  : Apply a bandpass filter to a signal
+
+## EOG correction
+
+Remove ocular artefacts from EEG channels.
+
+- [`correct_eog_regression()`](https://mrpheus.circadia-lab.uk/reference/correct_eog_regression.md)
+  : Remove EOG artefacts using linear regression
+- [`correct_eog_ica()`](https://mrpheus.circadia-lab.uk/reference/correct_eog_ica.md)
+  : Remove EOG artefacts using ICA
 
 ## Artefacts
 
@@ -277,6 +301,8 @@ Power spectral density and time-frequency representations.
 
 - [`compute_band_power()`](https://mrpheus.circadia-lab.uk/reference/compute_band_power.md)
   : Compute EEG band power per epoch
+- [`compute_temporal_bandpower()`](https://mrpheus.circadia-lab.uk/reference/compute_temporal_bandpower.md)
+  : Compute temporal band power across a PSG recording
 - [`compute_spectrogram()`](https://mrpheus.circadia-lab.uk/reference/compute_spectrogram.md)
   : Compute a time-frequency spectrogram
 
@@ -356,6 +382,8 @@ Package-level documentation.
   processing](https://mrpheus.circadia-lab.uk/articles/mri-physiology.md):
 - [Automatic AASM Sleep
   Staging](https://mrpheus.circadia-lab.uk/articles/sleep-staging.md):
+- [PSG Preprocessing
+  Pipeline](https://mrpheus.circadia-lab.uk/articles/eeg-preprocessing.md):
 
 ### Live demos
 

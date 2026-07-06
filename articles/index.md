@@ -11,6 +11,8 @@
   processing](https://mrpheus.circadia-lab.uk/articles/mri-physiology.md):
 - [Automatic AASM Sleep
   Staging](https://mrpheus.circadia-lab.uk/articles/sleep-staging.md):
+- [PSG Preprocessing
+  Pipeline](https://mrpheus.circadia-lab.uk/articles/eeg-preprocessing.md):
 
 ### Live demos
 
