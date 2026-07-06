@@ -33,7 +33,7 @@ or \code{60L}). \code{NULL} (default) triggers auto-detection via
 \code{\link[=detect_powerline]{detect_powerline()}} on the first clean EEG channel.}
 
 \item{notch_harmonics}{Logical. Notch harmonics of \code{powerline_freq} up to
-Nyquist − 5 Hz. Default \code{TRUE}.}
+Nyquist - 5 Hz. Default \code{TRUE}.}
 
 \item{notch_bw_hz}{Numeric. Full bandwidth of each notch in Hz. Default \code{2}.}
 
