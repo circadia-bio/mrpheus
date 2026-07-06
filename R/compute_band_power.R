@@ -145,7 +145,7 @@ compute_band_power <- function(psg,
                             nfft     = nfft)
 
       band_power <- vapply(bands, function(b) {
-        idx <- psd$freq >= b[1] & psd$freq < b[2]
+        idx <- psd$freq >= b[1] & psd$freq <= b[2]
         if (!any(idx)) return(NA_real_)
         pracma::trapz(psd$freq[idx], psd$spec[idx])
       }, numeric(1))

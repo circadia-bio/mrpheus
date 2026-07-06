@@ -169,7 +169,7 @@ compute_temporal_bandpower <- function(psg,
     # Integrate per band
     band_power <- vapply(names(bands), function(bn) {
       b   <- bands[[bn]]
-      idx <- freq >= b[1L] & freq < b[2L]
+      idx <- freq >= b[1L] & freq <= b[2L]
       if (!any(idx)) return(NA_real_)
       pracma::trapz(freq[idx], avg_spec[idx])
     }, numeric(1L))
