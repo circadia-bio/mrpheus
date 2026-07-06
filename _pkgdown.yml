@@ -189,6 +189,12 @@ reference:
       - notch_filter
       - bandpass_filter
 
+  - title: "EOG correction"
+    desc: "Remove ocular artefacts from EEG channels."
+    contents:
+      - correct_eog_regression
+      - correct_eog_ica
+
   - title: "Artefacts"
     desc: "Detect and flag artefact epochs."
     contents:
