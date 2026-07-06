@@ -198,6 +198,7 @@ reference:
     desc: "Power spectral density and time-frequency representations."
     contents:
       - compute_band_power
+      - compute_temporal_bandpower
       - compute_spectrogram
 
   - title: "Event detection"
