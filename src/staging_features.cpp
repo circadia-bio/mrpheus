@@ -237,3 +237,167 @@ NumericVector roll_triang_mean_cpp(NumericVector x, int k = 15) {
     }
     return result;
 }
+
+// ── nzc_cpp ───────────────────────────────────────────────────────────────────
+// Matches R's .nzc: sum(diff(sign(x)) != 0L)
+// Counts the number of times the sign of x changes between consecutive samples
+// (zero crossings, including crossings through zero).
+//
+// sign(v) is -1 / 0 / +1 using the C ternary trick: (v > 0) - (v < 0).
+//
+// [[Rcpp::export]]
+int nzc_cpp(NumericVector x) {
+    int N     = x.size();
+    int count = 0;
+    for (int i = 0; i < N - 1; i++) {
+        int s1 = (x[i]     > 0.0) - (x[i]     < 0.0);
+        int s2 = (x[i + 1] > 0.0) - (x[i + 1] < 0.0);
+        if (s1 != s2) count++;
+    }
+    return count;
+}
+
+// ── petrosian_fd_cpp ──────────────────────────────────────────────────────────
+// Matches antropy.petrosian_fd and R's .petrosian_fd.
+//
+// nzc_p = sign changes in *consecutive first differences* of x
+//       = local extrema count (NOT zero crossings of x itself).
+// R equivalent: dx <- diff(x); sum((dx[-length(dx)] * dx[-1]) < 0)
+//
+// [[Rcpp::export]]
+double petrosian_fd_cpp(NumericVector x) {
+    int N = x.size();
+    if (N < 3) return NA_REAL;
+
+    int nzc_p = 0;
+    for (int i = 0; i < N - 2; i++) {
+        double d_curr = x[i + 1] - x[i];
+        double d_next = x[i + 2] - x[i + 1];
+        if (d_curr * d_next < 0.0) nzc_p++;
+    }
+
+    double logN = std::log10((double)N);
+    return logN / (logN + std::log10((double)N /
+                                     ((double)N + 0.4 * (double)nzc_p)));
+}
+
+// ── hjorth_cpp ────────────────────────────────────────────────────────────────
+// Matches R's .hjorth:
+//   hmob  = sqrt(var(diff(x))        / var(x))
+//   hcomp = sqrt(var(diff(diff(x))) / var(diff(x))) / hmob
+//
+// Bessel-corrected variance (divides by N-1) to match R's var().
+// Single O(N) pass avoids materialising diff() and diff(diff()) vectors.
+// Returns a named NumericVector c(hmob = ..., hcomp = ...).
+//
+// [[Rcpp::export]]
+NumericVector hjorth_cpp(NumericVector x) {
+    int N = x.size();
+    NumericVector na_out = NumericVector::create(
+        Named("hmob") = NA_REAL, Named("hcomp") = NA_REAL
+    );
+    if (N < 3) return na_out;
+
+    // Accumulate sums for x, d1=diff(x), d2=diff(diff(x)) in one pass
+    double sum_x  = 0, sum_x2  = 0;
+    double sum_d1 = 0, sum_d12 = 0;
+    double sum_d2 = 0, sum_d22 = 0;
+
+    for (int i = 0; i < N; i++) {
+        sum_x  += x[i];
+        sum_x2 += x[i] * x[i];
+        if (i < N - 1) {
+            double d1 = x[i + 1] - x[i];
+            sum_d1  += d1;
+            sum_d12 += d1 * d1;
+        }
+        if (i < N - 2) {
+            double d2 = x[i + 2] - 2.0 * x[i + 1] + x[i];
+            sum_d2  += d2;
+            sum_d22 += d2 * d2;
+        }
+    }
+
+    int Nd1 = N - 1, Nd2 = N - 2;
+
+    // Bessel-corrected variance: (sum_sq - sum^2/n) / (n-1)
+    double var_x  = (sum_x2  - sum_x  * sum_x  / (double)N)   / (double)(N   - 1);
+    double var_d1 = (sum_d12 - sum_d1 * sum_d1 / (double)Nd1) / (double)(Nd1 - 1);
+    double var_d2 = (sum_d22 - sum_d2 * sum_d2 / (double)Nd2) / (double)(Nd2 - 1);
+
+    double eps   = std::numeric_limits<double>::epsilon();
+    double hmob  = std::sqrt(var_d1 / (var_x  + eps));
+    double hcomp = std::sqrt(var_d2 / (var_d1 + eps)) / (hmob + eps);
+
+    return NumericVector::create(Named("hmob") = hmob, Named("hcomp") = hcomp);
+}
+
+// ── stat_features_cpp ─────────────────────────────────────────────────────────
+// Matches R's .stat_features: std, IQR (type-7 quantile), skewness, kurtosis.
+// Returns a named NumericVector c(std = ..., iqr = ..., skew = ..., kurt = ...).
+//
+// std  : Bessel-corrected (matches R's sd()).
+// IQR  : R type-7 linear interpolation on sorted copy — h = (n-1)*p (0-indexed).
+// skew : mean(z^3) where z = (x - mu) / sd.
+// kurt : mean(z^4) - 3  (excess kurtosis).
+//
+// [[Rcpp::export]]
+NumericVector stat_features_cpp(NumericVector x) {
+    int N = x.size();
+    double eps = std::numeric_limits<double>::epsilon();
+
+    // Mean (single pass)
+    double sum = 0.0;
+    for (int i = 0; i < N; i++) sum += x[i];
+    double mu = sum / (double)N;
+
+    // Bessel-corrected variance (two-pass for numerical stability)
+    double sum2 = 0.0;
+    for (int i = 0; i < N; i++) {
+        double d = x[i] - mu;
+        sum2 += d * d;
+    }
+    double var = (N > 1) ? sum2 / (double)(N - 1) : 0.0;
+    double sig = std::sqrt(var);
+
+    if (sig < eps) {
+        return NumericVector::create(
+            Named("std")  = 0.0, Named("iqr")  = 0.0,
+            Named("skew") = 0.0, Named("kurt") = 0.0
+        );
+    }
+
+    // Skewness and excess kurtosis (normalised moments)
+    double sum3 = 0.0, sum4 = 0.0;
+    for (int i = 0; i < N; i++) {
+        double z  = (x[i] - mu) / sig;
+        double z2 = z * z;
+        sum3 += z2 * z;
+        sum4 += z2 * z2;
+    }
+    double skew = sum3 / (double)N;
+    double kurt = sum4 / (double)N - 3.0;
+
+    // IQR via R type-7 quantile on a sorted copy
+    // h = (n-1)*p  (0-indexed float position), then linearly interpolate.
+    std::vector<double> xs(x.begin(), x.end());
+    std::sort(xs.begin(), xs.end());
+
+    auto quant7 = [&](double p) -> double {
+        double h    = (double)(N - 1) * p;
+        int    lo   = (int)std::floor(h);
+        int    hi   = lo + 1;
+        double frac = h - (double)lo;
+        if (hi >= N) return xs[N - 1];
+        return xs[lo] + frac * (xs[hi] - xs[lo]);
+    };
+
+    double iqr = quant7(0.75) - quant7(0.25);
+
+    return NumericVector::create(
+        Named("std")  = sig,
+        Named("iqr")  = iqr,
+        Named("skew") = skew,
+        Named("kurt") = kurt
+    );
+}

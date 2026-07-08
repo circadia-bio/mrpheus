@@ -1,3 +1,23 @@
+# mrpheus 0.1.4
+
+### Rcpp hot-path optimisation (Tier 1)
+
+Four more per-epoch feature functions ported to C++ for the staging pipeline:
+
+- `nzc_cpp`: zero-crossing count — single O(N) pass replacing `sum(diff(sign(x)) != 0)`
+- `petrosian_fd_cpp`: local extrema count + log formula — replaces `diff` + logical sum in R
+- `hjorth_cpp`: mobility and complexity — single O(N) pass accumulating all three variances
+  (x, diff(x), diff(diff(x))) without materialising intermediate vectors
+- `stat_features_cpp`: std, IQR (type-7 quantile), skewness, excess kurtosis — replaces
+  `sd()`, `IQR()` (which sorts), and two `mean()` calls per epoch
+
+All four are called ~3 000 times per recording (once per epoch × channel). Fixed a latent
+bug where the pure-R `vapply` definition of `.roll_triang_mean` in the normalisation
+section was shadowing `roll_triang_mean_cpp` on every `load_all()`, meaning the Rcpp
+version was never actually called. Now a single Rcpp-backed definition exists.
+
+All 22 parity checks pass (`dev/test_tier1_cpp.R`). `0 errors | 0 warnings | 0 notes`.
+
 # mrpheus 0.1.3
 
 ### PSG preprocessing pipeline

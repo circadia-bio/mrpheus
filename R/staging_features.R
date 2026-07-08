@@ -272,7 +272,7 @@
 }
 
 # Spectral ratio features (EEG only).
-# Numerator uses full delta (sdelta + fdelta = 0.4–4 Hz), matching YASA.
+# Numerator uses full delta (sdelta + fdelta = 0.4-4 Hz), matching YASA.
 .spectral_ratios <- function(spec) {
   delta <- spec[["sdelta"]] + spec[["fdelta"]]
   c(
@@ -285,28 +285,11 @@
 
 # ── Time-domain helpers ───────────────────────────────────────────────────────
 
-.nzc <- function(x) sum(diff(sign(x)) != 0L)
+.nzc <- function(x) nzc_cpp(x)
 
-.hjorth <- function(x) {
-  d1     <- diff(x)
-  d2     <- diff(d1)
-  var_x  <- stats::var(x)
-  var_d1 <- stats::var(d1)
-  var_d2 <- stats::var(d2)
-  eps    <- .Machine$double.eps
-  hmob   <- sqrt(var_d1 / (var_x  + eps))
-  hcomp  <- sqrt(var_d2 / (var_d1 + eps)) / (hmob + eps)
-  c(hmob = hmob, hcomp = hcomp)
-}
+.hjorth <- function(x) hjorth_cpp(x)
 
-.petrosian_fd <- function(x) {
-  N  <- length(x)
-  dx <- diff(x)
-  # antropy: sign changes in consecutive first differences = local extrema count
-  # NOT zero crossings of x (that would be .nzc(x))
-  nzc_p <- sum((dx[-length(dx)] * dx[-1L]) < 0L)
-  log10(N) / (log10(N) + log10(N / (N + 0.4 * nzc_p)))
-}
+.petrosian_fd <- function(x) petrosian_fd_cpp(x)
 
 .higuchi_fd <- function(x, kmax = 10L) higuchi_fd_cpp(x, kmax)
 
@@ -314,19 +297,7 @@
 
 .roll_triang_mean <- function(x, k = 15L) roll_triang_mean_cpp(x, k)
 
-.stat_features <- function(x) {
-  mu  <- mean(x)
-  sig <- stats::sd(x)
-  eps <- .Machine$double.eps
-  if (sig < eps) return(c(std = 0, iqr = 0, skew = 0, kurt = 0))
-  zx  <- (x - mu) / sig
-  c(
-    std  = sig,
-    iqr  = stats::IQR(x),
-    skew = mean(zx ^ 3),
-    kurt = mean(zx ^ 4) - 3
-  )
-}
+.stat_features <- function(x) stat_features_cpp(x)
 
 # ── Per-epoch feature vectors ─────────────────────────────────────────────────
 # Accept pre-filtered epoch signals — filtering happens on the full recording
@@ -411,8 +382,8 @@
 
 # ── Normalisation helpers ─────────────────────────────────────────────────────
 # YASA normalises via:
-#   _c7min_norm : triangular-weighted rolling mean (k=15, centered) → robust_scale
-#   _p2min_norm : uniform rolling mean (k=4, right-aligned)         → robust_scale
+#   _c7min_norm : triangular-weighted rolling mean (k=15, centered) -> robust_scale
+#   _p2min_norm : uniform rolling mean (k=4, right-aligned)         -> robust_scale
 # robust_scale = (x - median) / (q95 - q5)
 
 .robust_scale <- function(x, q_low = 0.05, q_high = 0.95) {
@@ -422,21 +393,8 @@
   (x - med) / (q[2L] - q[1L] + eps)
 }
 
-# Triangular-weighted rolling mean, centered window of size k.
-# Matches pandas rolling(window=k, center=True, min_periods=1, win_type='triang').mean()
-.roll_triang_mean <- function(x, k = 15L) {
-  n      <- length(x)
-  half   <- (k - 1L) %/% 2L
-  w_full <- c(seq_len(half + 1L), seq(half, 1L))
-  vapply(seq_len(n), function(i) {
-    i_start <- max(1L, i - half)
-    i_end   <- min(n, i + half)
-    w_start <- (i_start - (i - half)) + 1L
-    w_end   <- w_start + (i_end - i_start)
-    w_sub   <- w_full[w_start:w_end]
-    sum(x[i_start:i_end] * w_sub) / sum(w_sub)
-  }, numeric(1))
-}
+# .roll_triang_mean is defined in the time-domain helpers section above
+# (calls roll_triang_mean_cpp). Pure-R reference removed to avoid shadowing.
 
 # For each base feature column, add _c7min_norm and _p2min_norm, interleaved.
 .add_norm_variants <- function(mat, prefix) {
@@ -485,7 +443,7 @@
   sr <- function(ch) psg$channel_map$sample_rate[psg$channel_map$label == ch]
 
   # Resample to 100 Hz, filter the full recording, then extract epochs.
-  # Matches YASA: raw_pick.resample(100) → filter_data() → sliding_window().
+  # Matches YASA: raw_pick.resample(100) -> filter_data() -> sliding_window().
   # All features are always computed at 100 Hz regardless of native channel rate.
   SR_TARGET <- 100L
 
