@@ -1,3 +1,27 @@
+# mrpheus 0.1.5
+
+### Rcpp hot-path optimisation (Tiers 2-4)
+
+All remaining per-recording hot paths ported to C++:
+
+- `rowmedian_cpp`: row-wise median of the Welch periodogram matrix, replacing
+  `apply(pgrams, 1L, stats::median)` — eliminates ~750 000 R `median()` calls
+  per recording (251 freq bins x ~3 000 epochs)
+- `roll_right_mean_cpp`: right-aligned partial rolling mean (k=4), replacing
+  `zoo::rollapply` for the `_p2min_norm` normalisation step (49 calls/recording)
+- `robust_scale_cpp`: `(x - median) / (q95 - q5)` with type-7 quantile and
+  NA-awareness, replacing `median()` + `quantile()` for 49 normalisation calls
+- `roll_rms_cpp`: centered rolling RMS replacing `zoo::rollapply` in
+  `compute_spindles()` — runs on the full concatenated epoch signal per channel
+- `detect_so_candidates_cpp`: zero-crossing scan + duration/amplitude filtering
+  for slow oscillation detection, replacing the R `which()` + `lapply` loop
+  in `compute_slow_oscillations()`
+
+New file `src/event_detection.cpp` houses the event detection hot paths.
+Removed `zoo` from Imports — no longer used anywhere in the package.
+
+All new functions validated with `devtools::check()`: 0 errors | 0 warnings | 0 notes.
+
 # mrpheus 0.1.4
 
 ### Rcpp hot-path optimisation (Tier 1)

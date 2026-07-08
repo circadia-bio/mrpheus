@@ -4,7 +4,7 @@
 # All functions are package-private (prefixed with `.`) — not exported.
 #
 # Reproduces the YASA feature pipeline in pure R using base R, gsignal,
-# pracma, and zoo. The 149-feature matrix must match the Python implementation
+# and pracma. The 149-feature matrix must match the Python implementation
 # exactly; parity is validated in data-raw/validate_feature_parity.R.
 #
 # Reference: Vallat & Walker (2021), eLife 10:e70092.
@@ -120,7 +120,7 @@
   npad_right <- npad_total - npad_left
   npads      <- c(npad_left, npad_right)
 
-  # reflect_limited padding → power-of-2 length (fast FFT)
+  # reflect_limited padding -> power-of-2 length (fast FFT)
   x_pad    <- .mne_smart_pad(x, npads)
   orig_len <- length(x_pad)                      # = n_total
   new_len  <- as.integer(max(round(ratio * orig_len), 1L))
@@ -128,10 +128,10 @@
   to_rm_start <- as.integer(round(ratio * npads[1L]))
   to_rm_end   <- new_len - final_len - to_rm_start
 
-  # Forward FFT of padded signal (power-of-2 → fast)
+  # Forward FFT of padded signal (power-of-2 -> fast)
   X <- stats::fft(x_pad)
 
-  # Boxcar window: scale uniformly by new_len/orig_len (= ratio for npad balanced)
+  # Boxcar window: scale uniformly by new_len/orig_len
   X <- X * (new_len / orig_len)
 
   # Nyquist bin halved for upsampling (shorter=FALSE, use_len=orig_len, even length)
@@ -139,18 +139,14 @@
     X[orig_len %/% 2L + 1L] <- X[orig_len %/% 2L + 1L] * 0.5
 
   # Zero-pad in frequency domain (ideal sinc upsampling)
-  # The negative-frequency side (including conjugate Nyquist) must start at
-  # X[n_pos], not X[n_pos+1]. For even orig_len, the Nyquist bin X[n_pos] is
-  # real and appears at both the positive position (n_pos) AND the conjugate
-  # position at the end of X_new — exactly as numpy irfft constructs Y.
-  n_pos        <- orig_len %/% 2L + 1L   # DC + positive freqs + Nyquist
-  n_neg_total  <- orig_len - n_pos + 1L  # conj-Nyquist + pure negatives = n_pos-1
+  n_pos        <- orig_len %/% 2L + 1L
+  n_neg_total  <- orig_len - n_pos + 1L
   X_new <- complex(length.out = new_len)
   X_new[seq_len(n_pos)] <- X[seq_len(n_pos)]
   if (n_neg_total > 0L)
     X_new[seq.int(new_len - n_neg_total + 1L, new_len)] <- X[seq.int(n_pos, orig_len)]
 
-  # Inverse FFT (highly composite length → fast) then trim
+  # Inverse FFT then trim
   y_full <- Re(stats::fft(X_new, inverse = TRUE)) / new_len
   y_full[seq.int(to_rm_start + 1L, new_len - to_rm_end)]
 }
@@ -164,36 +160,27 @@
 .scipy_simpson <- function(y, dx) {
   N <- length(y)
   if (N < 2L) return(0)
-  if (N == 2L) return(dx * (y[1L] + y[2L]) / 2)   # degenerate: trapezoid
+  if (N == 2L) return(dx * (y[1L] + y[2L]) / 2)
 
   if (N %% 2L == 1L) {
-    # Odd N: standard composite 1/3 rule
-    # coefficients: 1 4 2 4 2 ... 4 1
     coef      <- rep(2, N)
     coef[seq(2L, N - 1L, by = 2L)] <- 4
     coef[c(1L, N)] <- 1
     return(dx / 3 * sum(coef * y))
   } else {
-    # Even N: standard 1/3 on first N-3 points (odd count) +
-    #          3/8 rule on last 4 points
     n_std   <- N - 3L
     s_total <- 0
-
     if (n_std >= 3L) {
       coef <- rep(2, n_std)
       coef[seq(2L, n_std - 1L, by = 2L)] <- 4
       coef[c(1L, n_std)] <- 1
       s_total <- dx / 3 * sum(coef * y[seq_len(n_std)])
     }
-
-    # Simpson's 3/8 on last 4 points
     s_total + 3 * dx / 8 * (y[N - 3L] + 3 * y[N - 2L] + 3 * y[N - 1L] + y[N])
   }
 }
 
-# Bias correction factor for the median of a chi-squared distribution.
-# scipy.signal.welch(average='median') divides by this before returning.
-# Matches scipy.signal.spectral._median_bias(n).
+# Bias correction factor matching scipy.signal.spectral._median_bias(n).
 .median_bias <- function(n) {
   n_half <- (n - 1L) %/% 2L
   if (n_half < 1L) return(1)
@@ -203,12 +190,10 @@
 
 # Compute Welch PSD with bias-corrected median averaging over segments.
 # Matches YASA/scipy.signal.welch(average='median').
-# Uses mvfft() for a single batched C-level FFT over all segments.
+# Uses mvfft() for a single batched C-level FFT over all segments;
+# rowmedian_cpp replaces apply(pgrams, 1L, stats::median).
 .welch_median_psd <- function(sig, sr, win_n, overlap = 0.5) {
   # Periodic (DFT-even) Hamming window — matches scipy.signal.get_window('hamming', N, fftbins=True)
-  # which is what scipy.signal.welch uses internally. The periodic window has
-  # sum(w^2) = N*(0.54^2 + 0.46^2/2) exactly; the symmetric window used by
-  # gsignal::hamming gives a slightly different sum(w^2), biasing abspow by ~0.2%.
   wvec   <- 0.54 - 0.46 * cos(2 * pi * seq.int(0L, win_n - 1L) / win_n)
   hop    <- max(1L, as.integer(win_n * (1 - overlap)))
   n_freq <- win_n %/% 2L + 1L
@@ -222,57 +207,43 @@
   scale  <- sum(wvec ^ 2) * sr
   n_segs <- length(starts)
 
-  # Build the segment matrix with vectorised indexing (single C-level op)
   idx_mat <- matrix(
     rep(seq_len(win_n), n_segs) + rep((starts - 1L), each = win_n),
     nrow = win_n
   )
   seg_mat <- matrix(sig[idx_mat], nrow = win_n)
-  # Detrend each segment by subtracting its mean — matches scipy detrend='constant'
   seg_mat <- sweep(seg_mat, 2L, colMeans(seg_mat), "-") * wvec
 
-  # Batch FFT: one C call for all segments, keep one-sided frequencies
   ft_mat  <- mvfft(seg_mat)[seq_len(n_freq), , drop = FALSE]
   pgrams  <- Mod(ft_mat) ^ 2 / scale
   pgrams[seq(2L, n_freq - 1L), ] <- 2 * pgrams[seq(2L, n_freq - 1L), ]
 
   bias    <- .median_bias(n_segs)
-  psd_med <- apply(pgrams, 1L, stats::median) / bias
+  psd_med <- rowmedian_cpp(pgrams) / bias
   list(freq = freqs, spec = psd_med)
 }
 
-# Compute Welch PSD and return named vector of band features:
-# sdelta, fdelta, theta, alpha, sigma, beta (relative) + abspow.
-# Matches YASA: 5-second Hamming window, median averaging.
-# Band powers: relative, computed via bandpower_from_psd_ndarray (simpson, inclusive bounds).
-# abspow: trapezoid over freq_broad (matches YASA's separate trapezoid call).
+# Compute Welch PSD and return named vector of band features.
 .spectral_features <- function(sig, sr) {
   win <- as.integer(5L * sr)
   psd <- .welch_median_psd(sig, sr, win_n = win)
-  dx  <- psd$freq[2L] - psd$freq[1L]   # frequency resolution
+  dx  <- psd$freq[2L] - psd$freq[1L]
 
-  # Band powers via Simpson's integration with INCLUSIVE upper bound.
-  # Matches YASA's bandpower_from_psd_ndarray (freqs >= b0 & freqs <= b1).
   bp <- vapply(.STAGING_BANDS, function(b) {
-    idx <- psd$freq >= b[1] & psd$freq <= b[2]   # inclusive
+    idx <- psd$freq >= b[1] & psd$freq <= b[2]
     if (!any(idx)) return(NA_real_)
     .scipy_simpson(psd$spec[idx], dx)
   }, numeric(1))
 
-  # Total power: Simpson's over full freq_broad range (denominator for relative powers).
-  # Matches YASA's: total_power = simpson(psd_trimmed, dx=res)
   idx_broad_full <- psd$freq >= .FREQ_BROAD[1] & psd$freq <= .FREQ_BROAD[2]
   total_power    <- .scipy_simpson(psd$spec[idx_broad_full], dx)
   rel            <- bp / total_power
 
-  # abspow: trapezoid over freq_broad, matching YASA's separate trapezoid call
   abspow <- pracma::trapz(psd$freq[idx_broad_full], psd$spec[idx_broad_full])
-
   c(rel, abspow = abspow)
 }
 
-# Spectral ratio features (EEG only).
-# Numerator uses full delta (sdelta + fdelta = 0.4-4 Hz), matching YASA.
+# Spectral ratio features (EEG only). Numerator uses full delta (0.4-4 Hz).
 .spectral_ratios <- function(spec) {
   delta <- spec[["sdelta"]] + spec[["fdelta"]]
   c(
@@ -300,8 +271,6 @@
 .stat_features <- function(x) stat_features_cpp(x)
 
 # ── Per-epoch feature vectors ─────────────────────────────────────────────────
-# Accept pre-filtered epoch signals — filtering happens on the full recording
-# in .extract_staging_features before epoch extraction (matches YASA structure).
 
 # 21 EEG base features
 .eeg_epoch_features <- function(sig, sr) {
@@ -360,7 +329,7 @@
   )
 }
 
-# 11 EMG base features (absolute power + nonlinear only, no spectral bands)
+# 11 EMG base features (absolute power + nonlinear only)
 .emg_epoch_features <- function(sig, sr) {
   spec   <- .spectral_features(sig, sr)
   hjorth <- .hjorth(sig)
@@ -387,10 +356,7 @@
 # robust_scale = (x - median) / (q95 - q5)
 
 .robust_scale <- function(x, q_low = 0.05, q_high = 0.95) {
-  eps <- 1e-10
-  med <- median(x, na.rm = TRUE)
-  q   <- quantile(x, c(q_low, q_high), na.rm = TRUE)
-  (x - med) / (q[2L] - q[1L] + eps)
+  robust_scale_cpp(x, q_low, q_high)
 }
 
 # .roll_triang_mean is defined in the time-domain helpers section above
@@ -408,8 +374,7 @@
 
     c7 <- .robust_scale(.roll_triang_mean(col, k = 15L))
 
-    p2_raw <- as.vector(zoo::rollapply(col, 4L, mean, fill = NA,
-                                        partial = TRUE, align = "right"))
+    p2_raw <- roll_right_mean_cpp(col, 4L)
     p2 <- .robust_scale(p2_raw)
 
     out[[j]]      <- col; nms[j]      <- paste0(prefix, nm)
@@ -442,22 +407,14 @@
   n  <- psg$n_epochs
   sr <- function(ch) psg$channel_map$sample_rate[psg$channel_map$label == ch]
 
-  # Resample to 100 Hz, filter the full recording, then extract epochs.
-  # Matches YASA: raw_pick.resample(100) -> filter_data() -> sliding_window().
-  # All features are always computed at 100 Hz regardless of native channel rate.
   SR_TARGET <- 100L
 
   filter_and_epoch <- function(ch) {
     sig_raw <- psg$edf$signals[[ch]]$signal
     sr_orig <- sr(ch)
-
-    # Resample to 100 Hz if needed — matches YASA's raw_pick.resample(100, npad='auto').
-    # MNE uses method='fft' with reflect_limited padding and npad='auto' (pads signal
-    # to next power of 2 for fast FFTs, then trims back to target length).
     if (sr_orig != SR_TARGET) {
       sig_raw <- .mne_fft_resample(sig_raw, up = SR_TARGET / sr_orig)
     }
-
     ep_len   <- as.integer(psg$epoch_s * SR_TARGET)
     sig_filt <- .bandpass_filter(sig_raw, SR_TARGET)
     lapply(seq_len(n), function(i) {
@@ -466,17 +423,17 @@
     })
   }
 
-  # ── EEG ──────────────────────────────────────────────────────────────────
+  # EEG
   eeg_epochs <- filter_and_epoch(eeg_ch)
   eeg_mat    <- do.call(rbind, lapply(eeg_epochs, .eeg_epoch_features, sr = SR_TARGET))
   eeg_out    <- .add_norm_variants(eeg_mat, "eeg_")
 
-  # ── Time ─────────────────────────────────────────────────────────────────
+  # Time
   time_hour <- (seq_len(n) - 1L) * psg$epoch_s / 3600
   time_norm <- if (max(time_hour) > 0) time_hour / max(time_hour) else time_hour
   time_out  <- cbind(time_hour = time_hour, time_norm = time_norm)
 
-  # ── EOG ──────────────────────────────────────────────────────────────────
+  # EOG
   eog_base <- c("abspow","alpha","beta","fdelta","hcomp","higuchi","hmob",
                 "iqr","kurt","nzc","perm","petrosian","sdelta","sigma",
                 "skew","std","theta")
@@ -488,7 +445,7 @@
     eog_out <- .na_channel_matrix(n, "eog_", eog_base)
   }
 
-  # ── EMG ──────────────────────────────────────────────────────────────────
+  # EMG
   emg_base <- c("abspow","hcomp","higuchi","hmob","iqr","kurt","nzc",
                 "perm","petrosian","skew","std")
   if (!is.na(emg_ch)) {
@@ -499,7 +456,7 @@
     emg_out <- .na_channel_matrix(n, "emg_", emg_base)
   }
 
-  # ── Assemble and sort alphabetically — matches YASA's features.sort_index() ──
+  # Assemble and sort alphabetically — matches YASA's features.sort_index()
   feat_mat <- cbind(eeg_out, time_out, eog_out, emg_out)
   feat_mat <- feat_mat[, order(colnames(feat_mat))]
 

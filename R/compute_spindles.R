@@ -3,7 +3,7 @@
 #' Detects sleep spindles in EEG channels using a band-pass / RMS envelope
 #' approach, closely following the algorithm in Lacourse et al. (2019) and
 #' implemented in YASA (Vallat & Walker, 2021). Spindles are identified as
-#' transient bursts of 11–16 Hz activity during NREM sleep.
+#' transient bursts of 11-16 Hz activity during NREM sleep.
 #'
 #' @param psg An `mrpheus_psg` object from [mrpheus::prepare_psg()].
 #' @param channel Character. EEG channel label. If `NULL` (default), the first
@@ -27,7 +27,7 @@
 #'   \item{end_s}{Numeric. Spindle offset relative to epoch start (seconds).}
 #'   \item{duration_s}{Numeric. Spindle duration in seconds.}
 #'   \item{peak_freq_hz}{Numeric. Peak frequency within the spindle.}
-#'   \item{rms_uv}{Numeric. Mean RMS amplitude within the spindle (µV).}
+#'   \item{rms_uv}{Numeric. Mean RMS amplitude within the spindle (uV).}
 #'   \item{channel}{Character. Channel label.}
 #' }
 #'
@@ -64,21 +64,19 @@ compute_spindles <- function(psg,
     sig <- psg$epochs[[i]][[channel]]
     if (is.null(sig) || length(sig) < 2) return(NULL)
 
-    bf  <- gsignal::butter(4, freq_spindle / (sr / 2), type = "pass")
+    bf       <- gsignal::butter(4, freq_spindle / (sr / 2), type = "pass")
     sig_filt <- gsignal::filtfilt(bf, sig)
 
     win_samples <- round(rms_window_s * sr)
-    rms_env <- zoo::rollapply(sig_filt^2, width = win_samples,
-                              FUN = function(x) sqrt(mean(x)),
-                              fill = NA, align = "center")
+    rms_env     <- roll_rms_cpp(sig_filt, as.integer(win_samples))
 
     threshold <- threshold_sd * sd(sig_filt, na.rm = TRUE)
     above     <- !is.na(rms_env) & rms_env > threshold
 
     if (!any(above)) return(NULL)
 
-    runs  <- rle(above)
-    ends  <- cumsum(runs$lengths)
+    runs   <- rle(above)
+    ends   <- cumsum(runs$lengths)
     starts <- ends - runs$lengths + 1L
 
     sp_list <- lapply(which(runs$values), function(k) {
@@ -90,7 +88,7 @@ compute_spindles <- function(psg,
       seg <- sig_filt[s:e]
       if (length(seg) < 4) return(NULL)
       psd      <- gsignal::pwelch(seg, fs = sr,
-                                   nfft = max(64L, 2^ceiling(log2(length(seg)))),
+                                   nfft   = max(64L, 2^ceiling(log2(length(seg)))),
                                    window = length(seg))
       peak_idx <- which.max(psd$spec)
 
