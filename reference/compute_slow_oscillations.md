@@ -1,8 +1,8 @@
 # Detect slow oscillations
 
 Detects slow oscillations (SOs) in EEG channels using a zero-crossing
-approach in the delta band (0.5–2 Hz), following the algorithm described
-in Mölle et al. (2002) and implemented in YASA (Vallat & Walker, 2021).
+approach in the delta band (0.5-2 Hz), following the algorithm described
+in Molle et al. (2002) and implemented in YASA (Vallat & Walker, 2021).
 
 ## Usage
 
@@ -43,7 +43,7 @@ compute_slow_oscillations(
 - amp_ptp_threshold_uv:
 
   Numeric vector of length 2. Min and max acceptable peak-to-peak
-  amplitude (µV). Default `c(75, 500)`.
+  amplitude (uV). Default `c(75, 500)`.
 
 - duration_pos_s:
 
@@ -77,15 +77,15 @@ A tibble with one row per detected slow oscillation:
 
 - neg_peak_uv:
 
-  Numeric. Negative peak amplitude (µV).
+  Numeric. Negative peak amplitude (uV).
 
 - pos_peak_uv:
 
-  Numeric. Positive peak amplitude (µV).
+  Numeric. Positive peak amplitude (uV).
 
 - ptp_uv:
 
-  Numeric. Peak-to-peak amplitude (µV).
+  Numeric. Peak-to-peak amplitude (uV).
 
 - channel:
 
@@ -93,9 +93,9 @@ A tibble with one row per detected slow oscillation:
 
 ## References
 
-Mölle, M., Marshall, L., Gais, S., & Born, J. (2002). Grouping of
+Molle, M., Marshall, L., Gais, S., & Born, J. (2002). Grouping of
 spindle activity during slow oscillations in human non-rapid eye
-movement sleep. *Journal of Neuroscience*, 22(24), 10941–10947.
+movement sleep. *Journal of Neuroscience*, 22(24), 10941-10947.
 
 Vallat, R., & Walker, M. P. (2021). An open-source, high-performance
 tool for automated sleep staging. *eLife*, 10, e70092.

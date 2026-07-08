@@ -3,7 +3,7 @@
 Detects sleep spindles in EEG channels using a band-pass / RMS envelope
 approach, closely following the algorithm in Lacourse et al. (2019) and
 implemented in YASA (Vallat & Walker, 2021). Spindles are identified as
-transient bursts of 11–16 Hz activity during NREM sleep.
+transient bursts of 11-16 Hz activity during NREM sleep.
 
 ## Usage
 
@@ -85,7 +85,7 @@ A tibble with one row per detected spindle:
 
 - rms_uv:
 
-  Numeric. Mean RMS amplitude within the spindle (µV).
+  Numeric. Mean RMS amplitude within the spindle (uV).
 
 - channel:
 

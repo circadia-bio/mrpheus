@@ -95,7 +95,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mrpheus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -132,9 +132,42 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.svg" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/circadia-bio/mrpheus/blob/v0.1.3/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/circadia-bio/mrpheus/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.4" id="mrpheus-014">mrpheus 0.1.4<a class="anchor" aria-label="anchor" href="#mrpheus-014"></a></h2>
+<div class="section level4">
+<h4 id="rcpp-hot-path-optimisation-staging-pipeline--event-detection-0-1-4">Rcpp hot-path optimisation (staging pipeline + event detection)<a class="anchor" aria-label="anchor" href="#rcpp-hot-path-optimisation-staging-pipeline--event-detection-0-1-4"></a></h4>
+<p>Complete C++ hot-path port across the staging and event detection pipelines, replacing the remaining R-level bottlenecks. <code>zoo</code> removed from Imports.</p>
+<p><strong>Staging pipeline — per-epoch functions</strong> (<code>src/staging_features.cpp</code>):</p>
+<ul><li>
+<code>nzc_cpp</code>: zero-crossing count — single O(N) pass replacing <code>sum(diff(sign(x)) != 0)</code>
+</li>
+<li>
+<code>petrosian_fd_cpp</code>: local extrema count + log formula — replaces <code>diff</code> + logical sum</li>
+<li>
+<code>hjorth_cpp</code>: mobility and complexity — single O(N) pass accumulating all three variances (x, diff(x), diff(diff(x))) without materialising intermediate vectors</li>
+<li>
+<code>stat_features_cpp</code>: std, IQR (type-7 quantile), skewness, excess kurtosis — replaces <code><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd()</a></code>, <code><a href="https://rdrr.io/r/stats/IQR.html" class="external-link">IQR()</a></code> (which sorts), and two <code><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean()</a></code> calls per epoch</li>
+<li>
+<code>rowmedian_cpp</code>: row-wise median of the Welch periodogram matrix — eliminates ~750 000 R <code><a href="https://rdrr.io/r/stats/median.html" class="external-link">median()</a></code> dispatch calls per recording (251 freq bins x ~3 000 epochs)</li>
+<li>
+<code>roll_right_mean_cpp</code>: right-aligned partial rolling mean (k=4), replacing <code><a href="https://rdrr.io/pkg/zoo/man/rollapply.html" class="external-link">zoo::rollapply</a></code> for the <code>_p2min_norm</code> normalisation step (49 calls/recording)</li>
+<li>
+<code>robust_scale_cpp</code>: <code>(x - median) / (q95 - q5)</code> with type-7 quantile and NA-awareness, replacing <code><a href="https://rdrr.io/r/stats/median.html" class="external-link">median()</a></code> + <code><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile()</a></code> for 49 normalisation calls</li>
+</ul><p><strong>Event detection</strong> (<code>src/event_detection.cpp</code>, new file):</p>
+<ul><li>
+<code>roll_rms_cpp</code>: centered rolling RMS replacing <code><a href="https://rdrr.io/pkg/zoo/man/rollapply.html" class="external-link">zoo::rollapply</a></code> in <code><a href="../reference/compute_spindles.html">compute_spindles()</a></code> — processes the full concatenated epoch signal per channel</li>
+<li>
+<code>detect_so_candidates_cpp</code>: zero-crossing scan + duration/amplitude filtering for slow oscillation detection, replacing the R <code><a href="https://rdrr.io/r/base/which.html" class="external-link">which()</a></code> + <code>lapply</code> loop in <code><a href="../reference/compute_slow_oscillations.html">compute_slow_oscillations()</a></code>
+</li>
+</ul><p><strong>Other changes:</strong></p>
+<ul><li>Fixed a latent bug where the pure-R <code>vapply</code> definition of <code>.roll_triang_mean</code> in the normalisation section was shadowing <code>roll_triang_mean_cpp</code> on every <code>load_all()</code>. Now a single Rcpp-backed definition exists.</li>
+<li>Removed <code>zoo</code> from Imports — no remaining <code>zoo::</code> calls anywhere in the package.</li>
+</ul><p>All 371 tests pass. <code>0 errors | 0 warnings | 0 notes</code>.</p>
+</div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.3" id="mrpheus-013">mrpheus 0.1.3<a class="anchor" aria-label="anchor" href="#mrpheus-013"></a></h2>
 <div class="section level4">
@@ -145,104 +178,7 @@
 <li>
 <code><a href="../reference/remove_dc.html">remove_dc()</a></code>, <code><a href="../reference/detect_powerline.html">detect_powerline()</a></code>, <code><a href="../reference/notch_filter.html">notch_filter()</a></code>, <code><a href="../reference/bandpass_filter.html">bandpass_filter()</a></code> — exported signal-level functions; each operates on a plain numeric vector independently of the PSG pipeline.</li>
 </ul></div>
-<div class="section level4">
-<h4 id="eog-artefact-correction-0-1-3">EOG artefact correction<a class="anchor" aria-label="anchor" href="#eog-artefact-correction-0-1-3"></a></h4>
-<ul><li>
-<code><a href="../reference/correct_eog_regression.html">correct_eog_regression()</a></code> — removes ocular artefacts via multiple linear regression of each EEG channel on the EOG reference channels. Equivalent to MNE’s SSP projection approach without requiring blink event detection.</li>
-<li>
-<code><a href="../reference/correct_eog_ica.html">correct_eog_ica()</a></code> — ICA-based EOG removal via <code>fastICA</code>. Components whose time courses correlate with EOG channels above a threshold (default 0.35, matching the notebook) are identified and subtracted.</li>
-</ul></div>
-<div class="section level4">
-<h4 id="spectral-analysis-0-1-3">Spectral analysis<a class="anchor" aria-label="anchor" href="#spectral-analysis-0-1-3"></a></h4>
-<ul><li>
-<code><a href="../reference/compute_band_power.html">compute_band_power()</a></code> — rewritten Welch PSD matching <code>scipy.signal.welch</code> with YASA defaults (<code>win_sec = 4</code>, <code>noverlap = 200</code>, <code>nfft = 1024</code>, Hann window, constant detrend, mean averaging). Band integration now uses composite Simpson’s rule (<code>.scipy_simpson</code>) matching <code>scipy.integrate.simpson</code>. Parity validated against <code>yasa.bandpower()</code>: absolute power MARE &lt; 0.08 %, relative power MARE &lt; 0.8 % across all six standard bands.</li>
-<li>
-<code><a href="../reference/compute_temporal_bandpower.html">compute_temporal_bandpower()</a></code> — sliding-window band power analysis across the full recording night. Returns a long-format tibble with one row per (window, band) including <code>time_hours</code>, <code>dominant_stage</code>, <code>power</code>, and <code>relative_power</code>. Mirrors <code>calculate_temporal_bandpower()</code> from the companion notebook.</li>
-</ul></div>
-<div class="section level4">
-<h4 id="dependencies-0-1-3">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies-0-1-3"></a></h4>
-<ul><li>Added <code>fastICA (&gt;= 1.2-0)</code> to <code>Imports</code> for <code><a href="../reference/correct_eog_ica.html">correct_eog_ica()</a></code>.</li>
-</ul><hr></div>
 </div>
-    <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.1.2" id="mrpheus-012">mrpheus 0.1.2<a class="anchor" aria-label="anchor" href="#mrpheus-012"></a></h2>
-<div class="section level4">
-<h4 id="aasm-sleep-staging--validated-parity-with-yasa-0-1-2">AASM sleep staging — validated parity with YASA<a class="anchor" aria-label="anchor" href="#aasm-sleep-staging--validated-parity-with-yasa-0-1-2"></a></h4>
-<p>The <code><a href="../reference/stage_epochs.html">stage_epochs()</a></code> pipeline now achieves validated numerical parity with the YASA Python reference implementation (Vallat &amp; Walker, 2021), producing 77.8% epoch-level agreement against scored ground truth on the Sleep-EDF Cassette dataset — matching YASA’s own 77.7% on the same recording.</p>
-<p><strong>Feature extraction fixes (149-feature LightGBM matrix):</strong></p>
-<ul><li>Filter: replaced Butterworth with exact 825-tap MNE Hamming FIR coefficients bundled in <code>inst/filters/mne_bandpass_100hz.csv</code>; applied as a single zero-phase FFT pass (not <code>filtfilt</code>, which squares the response).</li>
-<li>EMG resampling: ported MNE’s <code>_resample_fft</code> algorithm exactly — npad=‘auto’ pads to the next power of 2 for fast FFTs, reflect-limited padding, correct conjugate-Nyquist placement in the zero-padded frequency domain.</li>
-<li>Welch PSD: periodic (DFT-even) Hamming window matching <code>scipy.signal.get_window('hamming', N, fftbins=True)</code>; segment detrending (<code>detrend='constant'</code>); bias-corrected median averaging.</li>
-<li>Band integration: composite Simpson’s rule matching <code>scipy.integrate.simpson</code> (odd N: standard 1/3; even N: 1/3 on first N-3 points + 3/8 on last 4); inclusive frequency bounds.</li>
-<li>Petrosian FD: fixed to count local extrema (sign changes in consecutive first differences) rather than zero crossings of x — matching antropy’s convention.</li>
-<li>Rolling normalisation: <code>_c7min_norm</code> now uses a C++ triangular rolling mean via <code>roll_triang_mean_cpp</code>; <code>_p2min_norm</code> uses right-aligned <code><a href="https://rdrr.io/pkg/zoo/man/rollapply.html" class="external-link">zoo::rollapply</a></code>; both followed by <code>robust_scale</code>.</li>
-</ul><p><strong>Model prediction fixes:</strong></p>
-<ul><li>Feature ordering: <code><a href="../reference/stage_epochs.html">stage_epochs()</a></code> reads the model’s <code>feature_names=</code> line from the bundled <code>.txt</code> file and reorders columns to match the EEG | time | EOG | EMG order the model was trained with (LightGBM R passes matrices by position, not by name).</li>
-<li>LightGBM v4 compatibility: <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> now returns a matrix directly; removed the deprecated <code>reshape=TRUE</code> argument.</li>
-<li>Label mapping: class indices follow sklearn <code>LabelEncoder</code> alphabetical order — N1=0, N2=1, N3=2, REM=3, W=4.</li>
-</ul><p><strong>Performance:</strong></p>
-<ul><li>Three inner loops ported to Rcpp C++: <code>perm_entropy_cpp</code>, <code>higuchi_fd_cpp</code>, <code>roll_triang_mean_cpp</code>. Full-day staging (2650 epochs × 3 channels) completes in ~40 s.</li>
-</ul><p><strong>Documentation:</strong></p>
-<ul><li>New vignette: <em>Automatic AASM Sleep Staging</em> — full pipeline API with PhysioNet download instructions.</li>
-<li>New pkgdown article: <em>Sleep Staging: Live Walkthrough (SC4001E0)</em> — fully executed on a real Sleep-EDF cassette recording with posterior probability figures.</li>
-<li>56 new unit tests covering all staging feature helpers, Rcpp functions, and edge cases. <code>test-staging-features.R</code> now has 149 passing tests.</li>
-</ul></div>
-</div>
-    <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.1.1" id="mrpheus-011">mrpheus 0.1.1<a class="anchor" aria-label="anchor" href="#mrpheus-011"></a></h2>
-<div class="section level4">
-<h4 id="scope-0-1-1">Scope<a class="anchor" aria-label="anchor" href="#scope-0-1-1"></a></h4>
-<ul><li>Package reframed from PSG-only to <strong>raw physiological signal analysis for biological rhythms research</strong>, encompassing PSG, MRI-concurrent physiology, and EEG.</li>
-<li>DESCRIPTION, README, pkgdown site, and vignettes updated accordingly.</li>
-</ul></div>
-<div class="section level4">
-<h4 id="new-functions-0-1-1">New functions<a class="anchor" aria-label="anchor" href="#new-functions-0-1-1"></a></h4>
-<ul><li>
-<code><a href="../reference/read_philips_physlog.html">read_philips_physlog()</a></code> — reads Philips PMU <code>.log</code> files (wBTU wireless VCG, wired ECG, or custom sampling rate). Returns a <code>mrpheus_physlog</code> S3 object with signal matrix, event markers, and header metadata.</li>
-<li>
-<code><a href="../reference/detect_qrs.html">detect_qrs()</a></code> — Pan-Tompkins QRS detector (Pan &amp; Tompkins, 1985). Bandpass filter → derivative → squaring → 150 ms moving average → adaptive dual-threshold with T-wave rejection and search-back. Returns a <code>mrpheus_qrs</code> S3 object.</li>
-<li>
-<code><a href="../reference/compute_hr_signal.html">compute_hr_signal()</a></code> — converts R-peak indices to a sample-by-sample instantaneous heart rate trace (bpm).</li>
-</ul></div>
-<div class="section level4">
-<h4 id="other-changes-0-1-1">Other changes<a class="anchor" aria-label="anchor" href="#other-changes-0-1-1"></a></h4>
-<ul><li>Staging model (<code>inst/models/yasa_staging.txt</code>) is now bundled with the package — no Python setup required after installation.</li>
-<li>
-<code>data-raw/fetch_yasa_model.py</code> updated for YASA 0.7.0.</li>
-<li>New vignette: <em>MRI physiological signal processing</em>.</li>
-<li>New test suite: <code>test-read_philips_physlog.R</code>, <code>test-detect_qrs.R</code>, <code>test-compute_hr_signal.R</code> with MATLAB bit-perfect fixture comparison.</li>
-<li>
-<code>boldR</code> added to ecosystem table in docs and vignettes.</li>
-</ul></div>
-</div>
-    <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.1.0" id="mrpheus-010">mrpheus 0.1.0<a class="anchor" aria-label="anchor" href="#mrpheus-010"></a></h2>
-<ul><li>Initial release. Package scaffolded with full PSG analysis pipeline.</li>
-<li>
-<code><a href="../reference/read_edf.html">read_edf()</a></code> / <code><a href="../reference/prepare_psg.html">prepare_psg()</a></code> — EDF/EDF+ ingestion, channel inventory, epoch segmentation, and bad-channel flagging.</li>
-<li>
-<code><a href="../reference/detect_artifacts.html">detect_artifacts()</a></code> — amplitude and high-frequency artefact detection.</li>
-<li>
-<code><a href="../reference/compute_band_power.html">compute_band_power()</a></code> — Welch PSD with δ/θ/α/σ/β/γ bands per epoch.</li>
-<li>
-<code><a href="../reference/compute_spectrogram.html">compute_spectrogram()</a></code> — STFT-based time-frequency spectrogram.</li>
-<li>
-<code><a href="../reference/compute_spindles.html">compute_spindles()</a></code> — RMS envelope spindle detection (Lacourse et al., 2019).</li>
-<li>
-<code><a href="../reference/compute_slow_oscillations.html">compute_slow_oscillations()</a></code> — zero-crossing SO detection (Mölle et al., 2002).</li>
-<li>
-<code><a href="../reference/stage_epochs.html">stage_epochs()</a></code> — automatic AASM staging via pre-trained LightGBM model ported from YASA (Vallat &amp; Walker, 2021). Feature extraction parity with the Python pipeline is in progress.</li>
-<li>
-<code><a href="../reference/export_hypnogram.html">export_hypnogram()</a></code> — returns a <code>mrpheus_hypnogram</code> object ready for <code>hypnor::new_hypnogram()</code> once <code>hypnor</code> is available.</li>
-<li>
-<code><a href="../reference/detect_apneas.html">detect_apneas()</a></code>, <code><a href="../reference/compute_ahi.html">compute_ahi()</a></code>, <code><a href="../reference/compute_odi.html">compute_odi()</a></code> — respiratory stubs, full implementation pending.</li>
-<li>
-<code><a href="../reference/compute_hrv_sleep.html">compute_hrv_sleep()</a></code> — HRV stub, full implementation pending.</li>
-<li>
-<code>palette_orpheus</code> — 8-colour palette extracted from the Roman mosaic <em>Orpheus Charming the Animals</em> (3rd century AD, Palermo Archaeological Museum).</li>
-<li>Hex sticker: olive background, ivory lyre, ochre motion lines, vermillion border.</li>
-<li>pkgdown site deploying via Netlify at <code>mrpheus.circadia-lab.uk</code>.</li>
-</ul></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
@@ -252,7 +188,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>
