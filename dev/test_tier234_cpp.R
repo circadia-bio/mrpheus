@@ -30,7 +30,7 @@ m2 <- matrix(rnorm(251 * 1), nrow = 251)  # single segment
 check("251x1 matrix (n_segs=1)", rowmedian_cpp(m2), apply(m2, 1L, median))
 
 m3 <- matrix(c(1,3,5,2,4,6), nrow = 2)
-check("even cols: (3+5)/2=4, (2+4)/2=3 (nrow=2, ncol=3)", rowmedian_cpp(m3), c(3,4))
+check("2x3 matrix: row medians c(4, 3)", rowmedian_cpp(m3), c(4, 3))
 
 # ── roll_right_mean_cpp ───────────────────────────────────────────────────────
 cat("\n--- roll_right_mean_cpp ---\n")
