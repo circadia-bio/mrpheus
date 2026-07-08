@@ -731,3 +731,98 @@ test_that(".perm_entropy is in [0, 1] for any signal", {
     expect_lte(val, 1)
   }
 })
+
+# ── nzc_cpp (direct + parity) ────────────────────────────────────────────────
+
+.nzc_r <- function(x) sum(diff(sign(x)) != 0L)
+
+test_that("nzc_cpp returns correct count for known signal", {
+  expect_equal(nzc_cpp(c(1, -1, 1, -1, 1)), 4L)
+  expect_equal(nzc_cpp(c(1, 2, 3, 4)),       0L)
+  expect_equal(nzc_cpp(c(-5, 5)),             1L)
+  expect_equal(nzc_cpp(rep(0, 10)),           0L)
+})
+
+test_that("nzc_cpp matches R reference on random signal", {
+  set.seed(42)
+  x <- rnorm(3000)
+  expect_equal(nzc_cpp(x), .nzc_r(x))
+})
+
+# ── petrosian_fd_cpp (direct + parity) ───────────────────────────────────────
+
+.petrosian_r <- function(x) {
+  N <- length(x); dx <- diff(x)
+  nzc_p <- sum((dx[-length(dx)] * dx[-1L]) < 0L)
+  log10(N) / (log10(N) + log10(N / (N + 0.4 * nzc_p)))
+}
+
+test_that("petrosian_fd_cpp returns 1 for constant signal", {
+  expect_equal(petrosian_fd_cpp(rep(3, 100)), 1)
+})
+
+test_that("petrosian_fd_cpp is >= 1 for any signal", {
+  set.seed(7)
+  expect_gte(petrosian_fd_cpp(rnorm(300)), 1)
+})
+
+test_that("petrosian_fd_cpp matches R reference on random signal", {
+  set.seed(42)
+  x <- rnorm(3000)
+  expect_equal(petrosian_fd_cpp(x), .petrosian_r(x), tolerance = 1e-10)
+})
+
+# ── hjorth_cpp (direct + parity) ─────────────────────────────────────────────
+
+.hjorth_r <- function(x) {
+  d1 <- diff(x); d2 <- diff(d1); eps <- .Machine$double.eps
+  hmob  <- sqrt(var(d1) / (var(x) + eps))
+  hcomp <- sqrt(var(d2) / (var(d1) + eps)) / (hmob + eps)
+  c(hmob = hmob, hcomp = hcomp)
+}
+
+test_that("hjorth_cpp returns named vector c(hmob, hcomp)", {
+  out <- hjorth_cpp(rnorm(100))
+  expect_named(out, c("hmob", "hcomp"))
+})
+
+test_that("hjorth_cpp hmob is 0 for constant signal", {
+  expect_equal(unname(hjorth_cpp(rep(5, 100))["hmob"]), 0, tolerance = 1e-10)
+})
+
+test_that("hjorth_cpp matches R reference on random signal", {
+  set.seed(42)
+  x <- rnorm(3000)
+  cpp <- hjorth_cpp(x)
+  r   <- .hjorth_r(x)
+  expect_equal(unname(cpp["hmob"]),  unname(r["hmob"]),  tolerance = 1e-10)
+  expect_equal(unname(cpp["hcomp"]), unname(r["hcomp"]), tolerance = 1e-10)
+})
+
+# ── stat_features_cpp (direct + parity) ──────────────────────────────────────
+
+.stat_r <- function(x) {
+  mu <- mean(x); sig <- sd(x); eps <- .Machine$double.eps
+  if (sig < eps) return(c(std = 0, iqr = 0, skew = 0, kurt = 0))
+  zx <- (x - mu) / sig
+  c(std = sig, iqr = IQR(x), skew = mean(zx^3), kurt = mean(zx^4) - 3)
+}
+
+test_that("stat_features_cpp returns named vector c(std, iqr, skew, kurt)", {
+  expect_named(stat_features_cpp(rnorm(100)), c("std", "iqr", "skew", "kurt"))
+})
+
+test_that("stat_features_cpp returns all zeros for constant signal", {
+  expect_equal(unname(stat_features_cpp(rep(7, 50))), c(0, 0, 0, 0))
+})
+
+test_that("stat_features_cpp matches R reference on random signal", {
+  set.seed(42)
+  x   <- rnorm(3000)
+  cpp <- stat_features_cpp(x)
+  r   <- .stat_r(x)
+  expect_equal(unname(cpp["std"]),  unname(r["std"]),  tolerance = 1e-10)
+  expect_equal(unname(cpp["iqr"]),  unname(r["iqr"]),  tolerance = 1e-10)
+  expect_equal(unname(cpp["skew"]), unname(r["skew"]), tolerance = 1e-10)
+  expect_equal(unname(cpp["kurt"]), unname(r["kurt"]), tolerance = 1e-10)
+})
