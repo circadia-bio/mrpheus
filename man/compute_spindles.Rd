@@ -46,7 +46,7 @@ A tibble with one row per detected spindle:
 \item{end_s}{Numeric. Spindle offset relative to epoch start (seconds).}
 \item{duration_s}{Numeric. Spindle duration in seconds.}
 \item{peak_freq_hz}{Numeric. Peak frequency within the spindle.}
-\item{rms_uv}{Numeric. Mean RMS amplitude within the spindle (µV).}
+\item{rms_uv}{Numeric. Mean RMS amplitude within the spindle (uV).}
 \item{channel}{Character. Channel label.}
 }
 }
@@ -54,7 +54,7 @@ A tibble with one row per detected spindle:
 Detects sleep spindles in EEG channels using a band-pass / RMS envelope
 approach, closely following the algorithm in Lacourse et al. (2019) and
 implemented in YASA (Vallat & Walker, 2021). Spindles are identified as
-transient bursts of 11–16 Hz activity during NREM sleep.
+transient bursts of 11-16 Hz activity during NREM sleep.
 }
 \references{
 Lacourse, K., Yetton, B., Mednick, S., & Bhatt, D. L. (2019).

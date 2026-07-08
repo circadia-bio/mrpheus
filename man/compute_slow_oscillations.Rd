@@ -27,7 +27,7 @@ If \code{NULL}, detection runs across all epochs.}
 Default \code{c(0.5, 2)}.}
 
 \item{amp_ptp_threshold_uv}{Numeric vector of length 2. Min and max
-acceptable peak-to-peak amplitude (µV). Default \code{c(75, 500)}.}
+acceptable peak-to-peak amplitude (uV). Default \code{c(75, 500)}.}
 
 \item{duration_pos_s}{Numeric vector of length 2. Min and max positive half-
 wave duration (s). Default \code{c(0.1, 1.0)}.}
@@ -42,21 +42,21 @@ A tibble with one row per detected slow oscillation:
 \item{start_s}{Numeric. Onset (s) relative to epoch start.}
 \item{end_s}{Numeric. Offset (s) relative to epoch start.}
 \item{duration_s}{Numeric.}
-\item{neg_peak_uv}{Numeric. Negative peak amplitude (µV).}
-\item{pos_peak_uv}{Numeric. Positive peak amplitude (µV).}
-\item{ptp_uv}{Numeric. Peak-to-peak amplitude (µV).}
+\item{neg_peak_uv}{Numeric. Negative peak amplitude (uV).}
+\item{pos_peak_uv}{Numeric. Positive peak amplitude (uV).}
+\item{ptp_uv}{Numeric. Peak-to-peak amplitude (uV).}
 \item{channel}{Character.}
 }
 }
 \description{
 Detects slow oscillations (SOs) in EEG channels using a zero-crossing
-approach in the delta band (0.5–2 Hz), following the algorithm described in
-Mölle et al. (2002) and implemented in YASA (Vallat & Walker, 2021).
+approach in the delta band (0.5-2 Hz), following the algorithm described in
+Molle et al. (2002) and implemented in YASA (Vallat & Walker, 2021).
 }
 \references{
-Mölle, M., Marshall, L., Gais, S., & Born, J. (2002). Grouping of spindle
+Molle, M., Marshall, L., Gais, S., & Born, J. (2002). Grouping of spindle
 activity during slow oscillations in human non-rapid eye movement sleep.
-\emph{Journal of Neuroscience}, 22(24), 10941–10947.
+\emph{Journal of Neuroscience}, 22(24), 10941-10947.
 
 Vallat, R., & Walker, M. P. (2021). An open-source, high-performance tool
 for automated sleep staging. \emph{eLife}, 10, e70092.

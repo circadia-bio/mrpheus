@@ -10,6 +10,36 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// roll_rms_cpp
+NumericVector roll_rms_cpp(NumericVector x, int k);
+RcppExport SEXP _mrpheus_roll_rms_cpp(SEXP xSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(roll_rms_cpp(x, k));
+    return rcpp_result_gen;
+END_RCPP
+}
+// detect_so_candidates_cpp
+NumericMatrix detect_so_candidates_cpp(NumericVector sig, double sr, double dur_neg_min, double dur_neg_max, double dur_pos_min, double dur_pos_max, double amp_min, double amp_max);
+RcppExport SEXP _mrpheus_detect_so_candidates_cpp(SEXP sigSEXP, SEXP srSEXP, SEXP dur_neg_minSEXP, SEXP dur_neg_maxSEXP, SEXP dur_pos_minSEXP, SEXP dur_pos_maxSEXP, SEXP amp_minSEXP, SEXP amp_maxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type sig(sigSEXP);
+    Rcpp::traits::input_parameter< double >::type sr(srSEXP);
+    Rcpp::traits::input_parameter< double >::type dur_neg_min(dur_neg_minSEXP);
+    Rcpp::traits::input_parameter< double >::type dur_neg_max(dur_neg_maxSEXP);
+    Rcpp::traits::input_parameter< double >::type dur_pos_min(dur_pos_minSEXP);
+    Rcpp::traits::input_parameter< double >::type dur_pos_max(dur_pos_maxSEXP);
+    Rcpp::traits::input_parameter< double >::type amp_min(amp_minSEXP);
+    Rcpp::traits::input_parameter< double >::type amp_max(amp_maxSEXP);
+    rcpp_result_gen = Rcpp::wrap(detect_so_candidates_cpp(sig, sr, dur_neg_min, dur_neg_max, dur_pos_min, dur_pos_max, amp_min, amp_max));
+    return rcpp_result_gen;
+END_RCPP
+}
 // resample_poly_cpp
 NumericVector resample_poly_cpp(NumericVector x, NumericVector h, int up);
 RcppExport SEXP _mrpheus_resample_poly_cpp(SEXP xSEXP, SEXP hSEXP, SEXP upSEXP) {
@@ -60,12 +90,101 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// nzc_cpp
+int nzc_cpp(NumericVector x);
+RcppExport SEXP _mrpheus_nzc_cpp(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(nzc_cpp(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// petrosian_fd_cpp
+double petrosian_fd_cpp(NumericVector x);
+RcppExport SEXP _mrpheus_petrosian_fd_cpp(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(petrosian_fd_cpp(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// hjorth_cpp
+NumericVector hjorth_cpp(NumericVector x);
+RcppExport SEXP _mrpheus_hjorth_cpp(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(hjorth_cpp(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// stat_features_cpp
+NumericVector stat_features_cpp(NumericVector x);
+RcppExport SEXP _mrpheus_stat_features_cpp(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(stat_features_cpp(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rowmedian_cpp
+NumericVector rowmedian_cpp(NumericMatrix x);
+RcppExport SEXP _mrpheus_rowmedian_cpp(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(rowmedian_cpp(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// roll_right_mean_cpp
+NumericVector roll_right_mean_cpp(NumericVector x, int k);
+RcppExport SEXP _mrpheus_roll_right_mean_cpp(SEXP xSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(roll_right_mean_cpp(x, k));
+    return rcpp_result_gen;
+END_RCPP
+}
+// robust_scale_cpp
+NumericVector robust_scale_cpp(NumericVector x, double q_low, double q_high);
+RcppExport SEXP _mrpheus_robust_scale_cpp(SEXP xSEXP, SEXP q_lowSEXP, SEXP q_highSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type q_low(q_lowSEXP);
+    Rcpp::traits::input_parameter< double >::type q_high(q_highSEXP);
+    rcpp_result_gen = Rcpp::wrap(robust_scale_cpp(x, q_low, q_high));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_mrpheus_roll_rms_cpp", (DL_FUNC) &_mrpheus_roll_rms_cpp, 2},
+    {"_mrpheus_detect_so_candidates_cpp", (DL_FUNC) &_mrpheus_detect_so_candidates_cpp, 8},
     {"_mrpheus_resample_poly_cpp", (DL_FUNC) &_mrpheus_resample_poly_cpp, 3},
     {"_mrpheus_perm_entropy_cpp", (DL_FUNC) &_mrpheus_perm_entropy_cpp, 3},
     {"_mrpheus_higuchi_fd_cpp", (DL_FUNC) &_mrpheus_higuchi_fd_cpp, 2},
     {"_mrpheus_roll_triang_mean_cpp", (DL_FUNC) &_mrpheus_roll_triang_mean_cpp, 2},
+    {"_mrpheus_nzc_cpp", (DL_FUNC) &_mrpheus_nzc_cpp, 1},
+    {"_mrpheus_petrosian_fd_cpp", (DL_FUNC) &_mrpheus_petrosian_fd_cpp, 1},
+    {"_mrpheus_hjorth_cpp", (DL_FUNC) &_mrpheus_hjorth_cpp, 1},
+    {"_mrpheus_stat_features_cpp", (DL_FUNC) &_mrpheus_stat_features_cpp, 1},
+    {"_mrpheus_rowmedian_cpp", (DL_FUNC) &_mrpheus_rowmedian_cpp, 1},
+    {"_mrpheus_roll_right_mean_cpp", (DL_FUNC) &_mrpheus_roll_right_mean_cpp, 2},
+    {"_mrpheus_robust_scale_cpp", (DL_FUNC) &_mrpheus_robust_scale_cpp, 3},
     {NULL, NULL, 0}
 };
 

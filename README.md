@@ -62,6 +62,9 @@ mrpheus/
 │   ├── detect_qrs.R                # detect_qrs(), print.mrpheus_qrs
 │   ├── detect_apneas.R             # detect_apneas(), compute_ahi(), compute_odi()
 │   └── read_philips_physlog.R      # read_philips_physlog()
+├── src/
+│   ├── staging_features.cpp        # Rcpp hot paths: staging pipeline
+│   └── event_detection.cpp         # Rcpp hot paths: spindles, slow oscillations
 ├── inst/
 │   ├── extdata/                    # example_physlog.log
 │   ├── filters/                    # MNE FIR + resample poly coefficients
@@ -147,17 +150,16 @@ hypnogram <- export_hypnogram(stages, start_time = rec$header$startTime)
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| `edfReader` | ≥ 1.2.1 | EDF/EDF+ file ingestion |
-| `gsignal` | ≥ 0.3.5 | IIR filter design, Welch PSD |
-| `pracma` | ≥ 2.4.2 | Numerical utilities |
-| `lightgbm` | ≥ 4.0.0 | YASA staging model inference |
-| `fastICA` | ≥ 1.2-0 | ICA decomposition for EOG correction |
-| `zoo` | ≥ 1.8.0 | Rolling window operations |
-| `dplyr` | ≥ 1.1.0 | Tabular manipulation |
-| `tibble` | ≥ 3.2.0 | Tidy output structures |
-| `cli` | ≥ 3.6.0 | Diagnostic messages |
-| `rlang` | ≥ 1.1.0 | Error handling |
-| `Rcpp` | ≥ 1.0.10 | C++ rolling statistics |
+| `edfReader` | >= 1.2.1 | EDF/EDF+ file ingestion |
+| `gsignal` | >= 0.3.5 | IIR filter design, Welch PSD |
+| `pracma` | >= 2.4.2 | Numerical utilities |
+| `lightgbm` | >= 4.0.0 | YASA staging model inference |
+| `fastICA` | >= 1.2-0 | ICA decomposition for EOG correction |
+| `dplyr` | >= 1.1.0 | Tabular manipulation |
+| `tibble` | >= 3.2.0 | Tidy output structures |
+| `cli` | >= 3.6.0 | Diagnostic messages |
+| `rlang` | >= 1.1.0 | Error handling |
+| `Rcpp` | >= 1.0.10 | C++ hot-path implementations (feature extraction, rolling statistics, event detection) |
 
 ---
 
