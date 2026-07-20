@@ -26,9 +26,8 @@ from Imports.
   [`median()`](https://rdrr.io/r/stats/median.html) dispatch calls per
   recording (251 freq bins x ~3 000 epochs)
 - `roll_right_mean_cpp`: right-aligned partial rolling mean (k=4),
-  replacing
-  [`zoo::rollapply`](https://rdrr.io/pkg/zoo/man/rollapply.html) for the
-  `_p2min_norm` normalisation step (49 calls/recording)
+  replacing `zoo::rollapply` for the `_p2min_norm` normalisation step
+  (49 calls/recording)
 - `robust_scale_cpp`: `(x - median) / (q95 - q5)` with type-7 quantile
   and NA-awareness, replacing
   [`median()`](https://rdrr.io/r/stats/median.html) +
@@ -37,8 +36,7 @@ from Imports.
 
 **Event detection** (`src/event_detection.cpp`, new file):
 
-- `roll_rms_cpp`: centered rolling RMS replacing
-  [`zoo::rollapply`](https://rdrr.io/pkg/zoo/man/rollapply.html) in
+- `roll_rms_cpp`: centered rolling RMS replacing `zoo::rollapply` in
   [`compute_spindles()`](https://mrpheus.circadia-lab.uk/reference/compute_spindles.md)
   — processes the full concatenated epoch signal per channel
 - `detect_so_candidates_cpp`: zero-crossing scan + duration/amplitude
