@@ -250,17 +250,17 @@ YASA paper:
 
 ## 🤝 Related Tools
 
-- 🌊 [**zeitR**](https://zeitr.circadia-lab.uk) — wrist actigraphy
+- ⌚️ [**zeitR**](https://zeitr.circadia-lab.uk) — wrist actigraphy
   analysis and circadian metrics
-- 😴 [**hypnor**](https://github.com/circadia-bio/hypnor) — hypnogram
+- 😵‍💫 [**hypnor**](https://github.com/circadia-bio/hypnor) — hypnogram
   handling, sleep architecture metrics, and visualisation
-- 🔗 [**syncR**](https://github.com/circadia-bio/syncR) — unified
+- 🔄 [**syncR**](https://github.com/circadia-bio/syncR) — unified
   participant-indexed database (actigraphy + PSG + diary)
-- 🧠 [**boldR**](https://github.com/circadia-bio/boldR) — fMRIPrep BOLD
+- 🧲 [**boldR**](https://github.com/circadia-bio/boldR) — fMRIPrep BOLD
   derivatives → parcellated analysis
-- 📋 [**tallieR**](https://github.com/circadia-bio/tallieR) —
+- 🧮 [**tallieR**](https://github.com/circadia-bio/tallieR) —
   sociodemographics and questionnaires
-- 📓 [**slumbR**](https://github.com/circadia-bio/slumbR) — sleep diary
+- 🛌 [**slumbR**](https://github.com/circadia-bio/slumbR) — sleep diary
   processing
 - 🎨 [**circadia**](https://github.com/circadia-bio/circadia) — shared
   visual identity (palettes, themes)
