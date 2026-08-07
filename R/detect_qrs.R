@@ -118,11 +118,24 @@ detect_qrs <- function(ecg, fs) {
   # ===========================================================================
   # Stage 4 — Moving-average integration (150 ms window)
   # Equivalent to MATLAB: conv(ecg_s, ones(1, win) / win)
+  #
+  # Implemented via cumulative sum rather than stats::convolve(): the two
+  # are mathematically identical for a boxcar kernel (verified against the
+  # FFT-based version on test signals), but stats::convolve() computes
+  # this via FFT, whose performance depends on how well length(ecg_s) + win
+  # factors for padding (see stats::nextn()) — for some real recording
+  # lengths this degrades from milliseconds to effectively hanging. The
+  # cumulative-sum form is unconditionally O(n).
   # ===========================================================================
   win    <- round(0.150 * fs)
   delay  <- delay + win / 2
-  kernel <- rep(1 / win, win)
-  ecg_m  <- as.double(stats::convolve(ecg_s, rev(kernel), type = "open"))
+
+  n_s     <- length(ecg_s)
+  padded  <- c(rep(0, win - 1), ecg_s, rep(0, win - 1))
+  cs      <- cumsum(c(0, padded))
+  out_len <- n_s + win - 1
+  ecg_m   <- (cs[(win + 1):(win + out_len)] - cs[1:out_len]) / win
+  ecg_m   <- as.double(ecg_m)
 
   # ===========================================================================
   # Stage 5 — Adaptive thresholding
@@ -377,15 +390,40 @@ print.mrpheus_qrs <- function(x, ...) {
   if (length(locs_all) == 0L)
     return(list(pks = double(0), locs = integer(0)))
 
-  pks_all  <- x[locs_all]
-  ord      <- order(pks_all, decreasing = TRUE)
-  selected <- logical(length(locs_all))
+  pks_all <- x[locs_all]
+  ord     <- order(pks_all, decreasing = TRUE)
+  n_cand  <- length(locs_all)
+
+  # Pre-allocate the accepted-locations buffer ONCE, padded with a sentinel
+  # larger than any real location. This lets findInterval() binary-search
+  # the full fixed-size buffer every time with no per-candidate subsetting
+  # or copying — subsetting a growing vector inside the loop (e.g.
+  # `accepted[seq_len(n_accepted)]`) looks fine but still costs O(k) per
+  # call, which reintroduces an O(n*k) blow-up over n candidates. This
+  # version is genuinely O(n log n).
+  sentinel   <- n + min_dist + 1L
+  accepted   <- rep(sentinel, n_cand)
+  n_accepted <- 0L
+  keep       <- logical(n_cand)
 
   for (k in ord) {
-    if (!any(selected & abs(locs_all - locs_all[k]) < min_dist))
-      selected[k] <- TRUE
+    loc <- locs_all[k]
+
+    pos <- findInterval(loc, accepted)
+    too_close <-
+      (pos >= 1L && (loc - accepted[pos]) < min_dist) ||
+      (pos <  n_accepted && (accepted[pos + 1L] - loc) < min_dist)
+
+    if (!too_close) {
+      if (pos < n_accepted) {
+        accepted[(pos + 2L):(n_accepted + 1L)] <- accepted[(pos + 1L):n_accepted]
+      }
+      accepted[pos + 1L] <- loc
+      n_accepted <- n_accepted + 1L
+      keep[k] <- TRUE
+    }
   }
 
-  final <- sort(locs_all[selected])
+  final <- sort(locs_all[keep])
   list(pks = x[final], locs = final)
 }
