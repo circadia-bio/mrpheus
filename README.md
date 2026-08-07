@@ -30,7 +30,7 @@ The name is spelled as *Morpheus* but carries a silent **m**, pronounced as *Orp
 - 🔁 **Sleep event detection** — `compute_spindles()`, `compute_slow_oscillations()`
 - 🛏️ **Automatic AASM staging** — `stage_epochs()`: pre-trained LightGBM model ported from [YASA](https://github.com/raphaelvallat/yasa) (Vallat & Walker, 2021); 77.8 % epoch accuracy on Sleep-EDF Cassette
 - 🫁 **Respiratory metrics** — `detect_apneas()`, `compute_ahi()`, `compute_odi()`
-- 💓 **Cardiac rhythm** — `detect_qrs()` (Pan-Tompkins), `compute_hr_signal()`, `compute_hrv_sleep()`
+- 💓 **Cardiac rhythm** — `detect_qrs()` (Pan-Tompkins), `compute_hr_signal()`, `compute_hrv_sleep()`, `compute_hrv_freq()` (respiration-locked HF-HRV for neonatal physlog data)
 - 🏥 **Philips PMU ingestion** — `read_philips_physlog()`: wBTU / wired / custom presets, event markers, scan-window alignment
 - 🔗 **Ecosystem handoffs** — `export_hypnogram()` → `hypnor`; derived metrics → `syncR`
 
@@ -56,6 +56,7 @@ mrpheus/
 │   ├── compute_slow_oscillations.R
 │   ├── compute_hr_signal.R         # compute_hr_signal()
 │   ├── compute_hrv_sleep.R         # compute_hrv_sleep()
+│   ├── compute_hrv_freq.R          # compute_hrv_freq()
 │   ├── stage_epochs.R              # stage_epochs()
 │   ├── staging_features.R          # internal YASA feature extraction
 │   ├── export_hypnogram.R          # export_hypnogram()
