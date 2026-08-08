@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "mrpheus: Raw Physiological Signal Analysis for Biological Rhythms Research"
+type: software
+version: 0.1.4.9000
+authors:
+  - family-names: "França"
+    given-names: "Lucas"
+    orcid: "https://orcid.org/0000-0003-0853-1319"
+    affiliation: "Northumbria University"
+  - family-names: "Leocadio-Miguel"
+    given-names: "Mario"
+    orcid: "https://orcid.org/0000-0002-7248-3529"
+    affiliation: "Northumbria University"
+license: MIT
+repository-code: "https://github.com/circadia-bio/mrpheus"
+url: "https://mrpheus.circadia-lab.uk"
+keywords:
+  - polysomnography
+  - sleep staging
+  - biological rhythms
+  - EEG
+  - R package
+  - Circadia Lab
