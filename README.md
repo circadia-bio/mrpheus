@@ -3,8 +3,12 @@
 **Raw physiological signal analysis for biological rhythms research.**
 
 [![r-universe](https://circadia-bio.r-universe.dev/badges/mrpheus)](https://circadia-bio.r-universe.dev/mrpheus)
-[![R](https://img.shields.io/badge/R-%3E%3D4.1-276DC3)](https://www.r-project.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![R](https://img.shields.io/badge/R-%3E%3D4.1-276DC3)](https://www.r-project.org/)
+[![R CMD CHECK](https://github.com/circadia-bio/mrpheus/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/circadia-bio/mrpheus/actions/workflows/R-CMD-check.yaml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/circadia-bio/mrpheus/gh-pages/badges/coverage.json)](https://github.com/circadia-bio/mrpheus/actions/workflows/pkgdown.yaml)
+[![Status](https://img.shields.io/badge/status-early%20development-orange)](https://github.com/circadia-bio/mrpheus)
+[![pkgdown](https://img.shields.io/badge/docs-mrpheus.circadia--lab.uk-B83E2C)](https://mrpheus.circadia-lab.uk)
 [![Circadia Lab](https://img.shields.io/badge/circadia--bio-GitHub-014370)](https://github.com/circadia-bio)
 
 ---
@@ -15,7 +19,7 @@
 
 Staged hypnograms and derived metrics pass downstream to `hypnor` and `syncR` for cross-modal linking.
 
-The name is spelled as *Morpheus* but carries a silent **m**, pronounced as *Orpheus* — carrying both myths at once. Morpheus, god of dreams, gives the package its subject; Orpheus, who descended into the underworld to navigate the unconscious, gives it its spirit.
+The name is spelled as *Mrpheus* but carries a silent **m**, pronounced as *Orpheus* — carrying both myths at once. Morpheus, god of dreams, gives the package its subject; Orpheus, who descended into the underworld to navigate the unconscious, gives it its spirit.
 
 ---
 
@@ -208,7 +212,7 @@ If you use the automatic sleep staging feature, please also cite the YASA paper:
 
 Released under the [MIT License](./LICENSE).
 
-Copyright © Lucas França, Mario Leocadio-Miguel, 2025
+Copyright © Lucas França, Mario Leocadio-Miguel, 2026
 
 ---
 

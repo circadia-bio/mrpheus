@@ -1,0 +1,38 @@
+{
+  "title": "mrpheus: Raw Physiological Signal Analysis for Biological Rhythms Research",
+  "description": "Raw physiological signal analysis for biological rhythms research. Provides ingestion, artefact detection, event detection, and feature extraction for multi-modal physiological recordings including polysomnography (EDF/EDF+), MRI-concurrent physiological logs (Philips PMU), and EEG. Covers cardiac rhythm (QRS detection, HRV), respiratory rhythm (apnoea detection, respiratory indices), and neural oscillations (sleep spindles, slow oscillations, automatic AASM sleep staging via a pre-trained LightGBM model ported from YASA). Exports staged hypnograms to hypnoR and derived metrics to syncR. Part of the Circadia Lab R ecosystem at Northumbria University.",
+  "creators": [
+    {
+      "name": "França, Lucas",
+      "affiliation": "Northumbria University, Circadia Lab",
+      "orcid": "0000-0003-0853-1319"
+    },
+    {
+      "name": "Leocadio-Miguel, Mario",
+      "affiliation": "Northumbria University, Circadia Lab",
+      "orcid": "0000-0002-7248-3529"
+    }
+  ],
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "MIT",
+  "keywords": [
+    "polysomnography",
+    "EEG",
+    "ECG",
+    "heart rate variability",
+    "sleep staging",
+    "physiological signal processing",
+    "biological rhythms",
+    "chronobiology",
+    "MRI physiology",
+    "R package"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/circadia-bio/mrpheus",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}
