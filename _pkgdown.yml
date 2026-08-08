@@ -240,6 +240,7 @@ reference:
       - read_philips_physlog
       - detect_qrs
       - compute_hr_signal
+      - compute_hrv_freq
 
   - title: "Data"
     desc: "Bundled datasets and palettes."
