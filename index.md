@@ -79,7 +79,9 @@ underworld to navigate the unconscious, gives it its spirit.
   [`detect_qrs()`](https://mrpheus.circadia-lab.uk/reference/detect_qrs.md)
   (Pan-Tompkins),
   [`compute_hr_signal()`](https://mrpheus.circadia-lab.uk/reference/compute_hr_signal.md),
-  [`compute_hrv_sleep()`](https://mrpheus.circadia-lab.uk/reference/compute_hrv_sleep.md)
+  [`compute_hrv_sleep()`](https://mrpheus.circadia-lab.uk/reference/compute_hrv_sleep.md),
+  [`compute_hrv_freq()`](https://mrpheus.circadia-lab.uk/reference/compute_hrv_freq.md)
+  (respiration-locked HF-HRV for neonatal physlog data)
 - 🏥 **Philips PMU ingestion** —
   [`read_philips_physlog()`](https://mrpheus.circadia-lab.uk/reference/read_philips_physlog.md):
   wBTU / wired / custom presets, event markers, scan-window alignment
@@ -108,6 +110,7 @@ underworld to navigate the unconscious, gives it its spirit.
     │   ├── compute_slow_oscillations.R
     │   ├── compute_hr_signal.R         # compute_hr_signal()
     │   ├── compute_hrv_sleep.R         # compute_hrv_sleep()
+    │   ├── compute_hrv_freq.R          # compute_hrv_freq()
     │   ├── stage_epochs.R              # stage_epochs()
     │   ├── staging_features.R          # internal YASA feature extraction
     │   ├── export_hypnogram.R          # export_hypnogram()

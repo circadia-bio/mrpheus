@@ -95,7 +95,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mrpheus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -136,9 +136,41 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.1.4" id="mrpheus-014">mrpheus 0.1.4<a class="anchor" aria-label="anchor" href="#mrpheus-014"></a></h2>
-<div class="section level4">
-<h4 id="rcpp-hot-path-optimisation-staging-pipeline--event-detection-0-1-4">Rcpp hot-path optimisation (staging pipeline + event detection)<a class="anchor" aria-label="anchor" href="#rcpp-hot-path-optimisation-staging-pipeline--event-detection-0-1-4"></a></h4>
+<h2 class="pkg-version" data-toc-text="0.1.4.9000" id="mrpheus-0149000-development">mrpheus 0.1.4.9000 (development)<a class="anchor" aria-label="anchor" href="#mrpheus-0149000-development"></a></h2>
+<div class="section level3">
+<h3 id="rocket-performance-fixes-in-detect_qrs-0-1-4-9000">🚀 Performance fixes in <code>detect_qrs()</code>
+<a class="anchor" aria-label="anchor" href="#rocket-performance-fixes-in-detect_qrs-0-1-4-9000"></a></h3>
+<p><code><a href="../reference/detect_qrs.html">detect_qrs()</a></code> was hanging indefinitely on real recordings (unbounded on a 468,700-sample / ~15.7 min recording at ~500 Hz). Two separate O(n²) bottlenecks were found and fixed:</p>
+<ul><li>
+<strong>Peak selection</strong> (<code>.find_peaks_min_dist()</code>): was checking every candidate peak against every other accepted peak on each iteration — fine on toy data, unusable once candidate counts reach the hundreds of thousands. Replaced with a binary search (<code><a href="https://rdrr.io/r/base/findInterval.html" class="external-link">findInterval()</a></code>) against a pre-allocated, sorted buffer of accepted peak locations. Note this is O(n_candidates log k
+<ul><li>k²) where k is the final peak count (bounded by physiological heart rate, not by recording length), rather than a universal O(n log n) — fine here, but worth remembering if this helper is ever reused somewhere the output peak count could scale with input size.</li>
+</ul></li>
+<li>
+<strong>Moving-average integration</strong> (Stage 4): used <code><a href="https://rdrr.io/r/stats/convolve.html" class="external-link">stats::convolve()</a></code> for a plain boxcar filter. R’s FFT-based convolution can degrade badly depending on how the padded length factors for <code><a href="https://rdrr.io/r/stats/nextn.html" class="external-link">stats::nextn()</a></code>, and this was the actual bottleneck once the peak-selection fix was in place. Replaced with a cumulative-sum boxcar implementation, mathematically equivalent to the FFT-based full convolution (verified numerically identical, differences on the order of 1e-15) and unconditionally O(n).</li>
+</ul><p>Combined effect: <code><a href="../reference/detect_qrs.html">detect_qrs()</a></code> on the 468,700-sample recording above now completes in 0.97 seconds (1855 R-peaks detected, mean HR 118 bpm).</p>
+</div>
+<div class="section level3">
+<h3 id="sparkles-new-function-compute_hrv_freq-0-1-4-9000">✨ New function: <code>compute_hrv_freq()</code>
+<a class="anchor" aria-label="anchor" href="#sparkles-new-function-compute_hrv_freq-0-1-4-9000"></a></h3>
+<ul><li>
+<code><a href="../reference/compute_hrv_freq.html">compute_hrv_freq()</a></code> — frequency-domain HRV (HF power) locked to each infant’s own respiratory rate, rather than the fixed adult-derived HF band (0.15–0.4 Hz) that doesn’t apply to neonatal breathing rates (~40–70 breaths/min at rest). Detects the dominant respiratory frequency directly from the physlog’s <code>resp</code> channel, resamples the RR-interval series via cubic spline, and integrates Welch PSD power in a band centered on that detected frequency. Verified against synthetic data: exact frequency recovery and correct amplitude-scaling of integrated power.</li>
+<li>Fills the gap left by <code><a href="../reference/compute_hrv_sleep.html">compute_hrv_sleep()</a></code>, which remains a stub expecting staged PSG input (wrong shape for physlog data) with its RR-to-HRV step never wired in — <code><a href="../reference/compute_hrv_freq.html">compute_hrv_freq()</a></code> is a separate, physlog-shaped path rather than a completion of that stub.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="test_tube-tests-0-1-4-9000">🧪 Tests<a class="anchor" aria-label="anchor" href="#test_tube-tests-0-1-4-9000"></a></h3>
+<ul><li>
+<code>test-find-peaks-min-dist.R</code>: <code>.find_peaks_min_dist()</code> against a brute-force reference on random and periodic synthetic signals, the minimum-distance constraint, tallest-peak-wins tie-breaking (including the all-tied flat-signal edge case), and a timing regression guard on a large, realistically-smoothed candidate set.</li>
+<li>
+<code>test-boxcar-integration.R</code>: the cumulative-sum boxcar formula against <code>stats::convolve(type = "open")</code> across several window sizes and signal lengths, plus an end-to-end <code><a href="../reference/detect_qrs.html">detect_qrs()</a></code> timing smoke test on a synthetic two-minute ECG-like signal.</li>
+<li>
+<code>test-compute_hrv_freq.R</code>: synthetic QRS/respiration generators injecting a known respiratory frequency via RSA-modulated RR intervals — frequency recovery at two different frequencies, HF power scaling with RSA amplitude, band-bounds correctness, the too-few-beats <code>NA</code> path, and implausible-RR-interval filtering.</li>
+</ul><p>All fixtures are fully synthetic — no participant-derived data.</p>
+</div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.4" id="mrpheus-014-2026-07">mrpheus 0.1.4 (2026-07)<a class="anchor" aria-label="anchor" href="#mrpheus-014-2026-07"></a></h2>
+<div class="section level3">
+<h3 id="rocket-rcpp-hot-path-optimisation-staging-pipeline--event-detection-0-1-4">🚀 Rcpp hot-path optimisation (staging pipeline + event detection)<a class="anchor" aria-label="anchor" href="#rocket-rcpp-hot-path-optimisation-staging-pipeline--event-detection-0-1-4"></a></h3>
 <p>Complete C++ hot-path port across the staging and event detection pipelines, replacing the remaining R-level bottlenecks. <code>zoo</code> removed from Imports.</p>
 <p><strong>Staging pipeline — per-epoch functions</strong> (<code>src/staging_features.cpp</code>):</p>
 <ul><li>
@@ -162,16 +194,21 @@
 <li>
 <code>detect_so_candidates_cpp</code>: zero-crossing scan + duration/amplitude filtering for slow oscillation detection, replacing the R <code><a href="https://rdrr.io/r/base/which.html" class="external-link">which()</a></code> + <code>lapply</code> loop in <code><a href="../reference/compute_slow_oscillations.html">compute_slow_oscillations()</a></code>
 </li>
-</ul><p><strong>Other changes:</strong></p>
+</ul></div>
+<div class="section level3">
+<h3 id="wrench-other-changes-0-1-4">🔧 Other changes<a class="anchor" aria-label="anchor" href="#wrench-other-changes-0-1-4"></a></h3>
 <ul><li>Fixed a latent bug where the pure-R <code>vapply</code> definition of <code>.roll_triang_mean</code> in the normalisation section was shadowing <code>roll_triang_mean_cpp</code> on every <code>load_all()</code>. Now a single Rcpp-backed definition exists.</li>
 <li>Removed <code>zoo</code> from Imports — no remaining <code>zoo::</code> calls anywhere in the package.</li>
-</ul><p>All 371 tests pass. <code>0 errors | 0 warnings | 0 notes</code>.</p>
+</ul></div>
+<div class="section level3">
+<h3 id="test_tube-tests-0-1-4">🧪 Tests<a class="anchor" aria-label="anchor" href="#test_tube-tests-0-1-4"></a></h3>
+<p>All 371 tests pass. <code>0 errors | 0 warnings | 0 notes</code>.</p>
 </div>
 </div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.1.3" id="mrpheus-013">mrpheus 0.1.3<a class="anchor" aria-label="anchor" href="#mrpheus-013"></a></h2>
-<div class="section level4">
-<h4 id="psg-preprocessing-pipeline-0-1-3">PSG preprocessing pipeline<a class="anchor" aria-label="anchor" href="#psg-preprocessing-pipeline-0-1-3"></a></h4>
+<h2 class="pkg-version" data-toc-text="0.1.3" id="mrpheus-013-2026-07">mrpheus 0.1.3 (2026-07)<a class="anchor" aria-label="anchor" href="#mrpheus-013-2026-07"></a></h2>
+<div class="section level3">
+<h3 id="stethoscope-psg-preprocessing-pipeline-0-1-3">🩺 PSG preprocessing pipeline<a class="anchor" aria-label="anchor" href="#stethoscope-psg-preprocessing-pipeline-0-1-3"></a></h3>
 <p>Full preprocessing pipeline from EDF to analysis-ready epochs, matching the companion Python/MNE notebook workflow.</p>
 <ul><li>
 <code><a href="../reference/preprocess_psg.html">preprocess_psg()</a></code> — continuous-signal preprocessing pipeline: channel renaming, DC removal, powerline notch filter (auto-detected 50/60 Hz + harmonics), and channel-type-specific bandpass filtering (EEG/EOG/EMG/ECG). Operates on the full continuous signal before re-epoching to avoid filter discontinuities at epoch boundaries.</li>

@@ -97,6 +97,9 @@ Philips PMU physiological log processing and cardiac signal analysis.
   : Detect QRS Complexes in an ECG Signal (Pan-Tompkins Algorithm)
 - [`compute_hr_signal()`](https://mrpheus.circadia-lab.uk/reference/compute_hr_signal.md)
   : Compute Instantaneous Heart Rate from R-Peak Indices
+- [`compute_hrv_freq()`](https://mrpheus.circadia-lab.uk/reference/compute_hrv_freq.md)
+  : Frequency-domain HRV (HF power), locked to each infant's own
+  respiratory rate, as a proxy for respiratory sinus arrhythmia (RSA).
 
 ## Data
 

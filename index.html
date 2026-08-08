@@ -130,7 +130,7 @@
 
     <a class="navbar-brand me-2" href="index.html">mrpheus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -206,8 +206,7 @@
 <li>🛏️ <strong>Automatic AASM staging</strong> — <code><a href="reference/stage_epochs.html">stage_epochs()</a></code>: pre-trained LightGBM model ported from <a href="https://github.com/raphaelvallat/yasa" class="external-link">YASA</a> (Vallat &amp; Walker, 2021); 77.8 % epoch accuracy on Sleep-EDF Cassette</li>
 <li>🫁 <strong>Respiratory metrics</strong> — <code><a href="reference/detect_apneas.html">detect_apneas()</a></code>, <code><a href="reference/compute_ahi.html">compute_ahi()</a></code>, <code><a href="reference/compute_odi.html">compute_odi()</a></code>
 </li>
-<li>💓 <strong>Cardiac rhythm</strong> — <code><a href="reference/detect_qrs.html">detect_qrs()</a></code> (Pan-Tompkins), <code><a href="reference/compute_hr_signal.html">compute_hr_signal()</a></code>, <code><a href="reference/compute_hrv_sleep.html">compute_hrv_sleep()</a></code>
-</li>
+<li>💓 <strong>Cardiac rhythm</strong> — <code><a href="reference/detect_qrs.html">detect_qrs()</a></code> (Pan-Tompkins), <code><a href="reference/compute_hr_signal.html">compute_hr_signal()</a></code>, <code><a href="reference/compute_hrv_sleep.html">compute_hrv_sleep()</a></code>, <code><a href="reference/compute_hrv_freq.html">compute_hrv_freq()</a></code> (respiration-locked HF-HRV for neonatal physlog data)</li>
 <li>🏥 <strong>Philips PMU ingestion</strong> — <code><a href="reference/read_philips_physlog.html">read_philips_physlog()</a></code>: wBTU / wired / custom presets, event markers, scan-window alignment</li>
 <li>🔗 <strong>Ecosystem handoffs</strong> — <code><a href="reference/export_hypnogram.html">export_hypnogram()</a></code> → <code>hypnor</code>; derived metrics → <code>syncR</code>
 </li>
@@ -234,6 +233,7 @@
 │   ├── compute_slow_oscillations.R
 │   ├── compute_hr_signal.R         # compute_hr_signal()
 │   ├── compute_hrv_sleep.R         # compute_hrv_sleep()
+│   ├── compute_hrv_freq.R          # compute_hrv_freq()
 │   ├── stage_epochs.R              # stage_epochs()
 │   ├── staging_features.R          # internal YASA feature extraction
 │   ├── export_hypnogram.R          # export_hypnogram()
