@@ -1,5 +1,36 @@
 ## mrpheus 0.1.4.9000  (development)
 
+### ⚠️ `compute_slow_oscillations()`: fixes and new defaults (results change)
+
+* **Polarity bug fixed.** `detect_so_candidates_cpp()` paired zero crossings
+  in steps of two starting from the first crossing in the epoch, whatever its
+  direction. In an epoch whose filtered signal started negative every pair was
+  half a cycle out of phase and the epoch returned no slow oscillations, so
+  roughly half the epochs could be lost. The walk now starts at a crossing
+  after which the signal is negative. Existing tests passed because their
+  signals started at exactly 0.
+* **Filter fixed at higher sample rates.** The single 8th-order band-pass was
+  numerically singular at 256 Hz (`gsignal::filter_zi()` failed with
+  "system is computationally singular"). It is now a zero-phase high-pass /
+  low-pass cascade, designed once rather than per epoch.
+* **New defaults, taken from `yasa.sw_detect()`:** `freq_so = c(0.3, 1.5)`
+  (was `c(0.5, 2)`), `duration_neg_s = c(0.3, 1.5)` (was `c(0.1, 1.5)`),
+  `amp_ptp_threshold_uv = c(75, 350)` (was `c(75, 500)`). New arguments
+  `amp_neg_uv = c(40, 200)` and `amp_pos_uv = c(10, 150)` (trough and peak
+  limits; `NULL` switches them off) and `transition_hz = 0.2`, which places
+  the filter's -6 dB points at 0.2 and 1.6 Hz as YASA's FIR does. The old
+  behaviour can be requested with `freq_so = c(0.5, 2)`,
+  `duration_neg_s = c(0.1, 1.5)`, `amp_ptp_threshold_uv = c(75, 500)`,
+  `amp_neg_uv = NULL`, `amp_pos_uv = NULL`, `transition_hz = 0`.
+* **Not identical to YASA.** The pairing is still zero-crossing based, and
+  epochs are filtered one at a time. In a Python comparison on one Sleep-EDF
+  night (SC4001E0, Fpz-Cz, N2 + N3), a mirror of the old defaults gave 8.7
+  events per NREM minute against 5.9 for YASA, with 53% of its events
+  matching a YASA event (negative peaks within 0.5 s). A mirror of the new
+  defaults gave 4.7 per minute, with 90% matching a YASA event and 72% of
+  YASA's events found. This is one night, one channel and a Python mirror,
+  not a validation.
+
 ### 🚀 Performance fixes in `detect_qrs()`
 
 `detect_qrs()` was hanging indefinitely on real recordings (unbounded on a

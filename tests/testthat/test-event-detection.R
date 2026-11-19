@@ -44,16 +44,23 @@
 .so_r <- function(sig, sr, dur_neg, dur_pos, amp) {
   zc <- which(diff(sign(sig)) != 0)
   if (length(zc) < 4) return(matrix(numeric(0), ncol = 6))
-  rows <- lapply(seq(1, length(zc) - 3, by = 2), function(k) {
-    ns <- zc[k]; ne <- zc[k + 1]; pe <- zc[k + 2]
+  # A triplet is a negative half-wave followed by a positive one, so it must
+  # start at a crossing after which the signal is negative. Out-of-phase
+  # crossings are skipped one at a time; once in phase, the walk steps by 2.
+  # The loop bound (k <= length(zc) - 3) matches the original seq() bound.
+  rows <- list()
+  k <- 1L
+  while (k <= length(zc) - 3L) {
+    if (!(sig[zc[k] + 1L] < 0)) { k <- k + 1L; next }
+    ns <- zc[k]; ne <- zc[k + 1L]; pe <- zc[k + 2L]
+    k <- k + 2L
     dn <- (ne - ns) / sr; dp <- (pe - ne) / sr
-    if (dn < dur_neg[1] || dn > dur_neg[2]) return(NULL)
-    if (dp < dur_pos[1] || dp > dur_pos[2]) return(NULL)
+    if (dn < dur_neg[1] || dn > dur_neg[2]) next
+    if (dp < dur_pos[1] || dp > dur_pos[2]) next
     np <- min(sig[ns:ne]); pp <- max(sig[ne:pe]); ptp <- pp - np
-    if (ptp < amp[1] || ptp > amp[2]) return(NULL)
-    c(ns, ne, pe, np, pp, ptp)
-  })
-  rows <- Filter(Negate(is.null), rows)
+    if (ptp < amp[1] || ptp > amp[2]) next
+    rows[[length(rows) + 1L]] <- c(ns, ne, pe, np, pp, ptp)
+  }
   if (!length(rows)) return(matrix(numeric(0), ncol = 6))
   do.call(rbind, rows)
 }
@@ -253,4 +260,58 @@ test_that("detect_so_candidates_cpp amp threshold filters correctly", {
   loose <- detect_so_candidates_cpp(sig, sr, 0.1, 1.5, 0.1, 1.0, 1, 2000)
   tight <- detect_so_candidates_cpp(sig, sr, 0.1, 1.5, 0.1, 1.0, 1, 10)
   expect_gte(nrow(loose), nrow(tight))
+})
+
+# ── polarity of the first zero crossing ───────────────────────────────────────
+#
+# The triplet walk used to start at the first zero crossing whatever its
+# direction. An epoch whose signal starts negative (first crossing neg-to-pos)
+# was then paired half a cycle out of phase and yielded no events. All the
+# signals above start at exactly 0 going negative, which hid this. Here the
+# phase offset makes the sign of the first sample explicit.
+
+test_that("detect_so_candidates_cpp finds events when the epoch starts negative", {
+  sr  <- 256
+  t   <- (seq_len(30 * sr) - 1L) / sr
+  sig <- -sin(2 * pi * 1 * t + 0.3) * 100        # first sample < 0
+  expect_lt(sig[1], 0)
+  out <- detect_so_candidates_cpp(sig, sr, 0.1, 1.5, 0.1, 1.0, 75, 500)
+  expect_gt(nrow(out), 0L)
+})
+
+test_that("detect_so_candidates_cpp pairs a negative half-wave with a positive one", {
+  sr <- 256
+  t  <- (seq_len(30 * sr) - 1L) / sr
+  for (sig in list(-sin(2 * pi * 1 * t + 0.3) * 100,
+                   sin(2 * pi * 1 * t + 0.3) * 100)) {
+    out <- detect_so_candidates_cpp(sig, sr, 0.1, 1.5, 0.1, 1.0, 75, 500)
+    expect_gt(nrow(out), 0L)
+    expect_true(all(out[, "neg_peak"] < 0))
+    expect_true(all(out[, "pos_peak"] > 0))
+  }
+})
+
+test_that("detect_so_candidates_cpp counts agree for either starting polarity", {
+  sr  <- 256
+  t   <- (seq_len(30 * sr) - 1L) / sr
+  neg <- detect_so_candidates_cpp(-sin(2 * pi * 1 * t + 0.3) * 100,
+                                  sr, 0.1, 1.5, 0.1, 1.0, 75, 500)
+  pos <- detect_so_candidates_cpp( sin(2 * pi * 1 * t + 0.3) * 100,
+                                  sr, 0.1, 1.5, 0.1, 1.0, 75, 500)
+  # Edge effects can move the count by one; the old code gave 0 vs 29.
+  expect_lte(abs(nrow(neg) - nrow(pos)), 1L)
+})
+
+test_that("detect_so_candidates_cpp matches R reference on noisy signals", {
+  sr <- 256
+  for (seed in 1:20) {
+    set.seed(seed)
+    sig <- -sin(2 * pi * 1 * seq(0, 8, by = 1 / sr)) * 200 + rnorm(256 * 8 + 1, sd = 10)
+    cpp <- detect_so_candidates_cpp(sig, sr, 0.1, 1.5, 0.1, 1.0, 50, 500)
+    r   <- .so_r(sig, sr, c(0.1, 1.5), c(0.1, 1.0), c(50, 500))
+    expect_equal(nrow(cpp), nrow(r))
+    if (nrow(cpp) > 0 && nrow(r) > 0) {
+      expect_equal(unname(cpp[, 1:3]), unname(r[, 1:3]), tolerance = 1e-10)
+    }
+  }
 })

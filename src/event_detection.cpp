@@ -87,14 +87,25 @@ NumericMatrix detect_so_candidates_cpp(NumericVector sig,
 
     // Step 2-3: walk triplets, apply criteria, collect candidates.
     // Store as flat double vector (6 values per candidate).
-    // Mirrors R: seq(1, length(zc)-3, by=2) -> 0-indexed: k = 0, 2, ..., nzc-4
+    // Mirrors R: a triplet (zc[k], zc[k+1], zc[k+2]) is a negative half-wave
+    // followed by a positive half-wave, so zc[k] must be a crossing after which
+    // the signal is negative. Crossings that start a positive half-wave are
+    // skipped one at a time until the pairing is in phase; once in phase the
+    // walk steps by 2 (crossings alternate direction). Without this check the
+    // pairing depended on the direction of the first crossing in the epoch, and
+    // epochs starting negative yielded no events.
+    // The loop bound (k < nzc - 3) is unchanged from the previous version.
     std::vector<double> flat;
     flat.reserve(nzc * 3);
 
-    for (int k = 0; k < nzc - 3; k += 2) {
+    int k = 0;
+    while (k < nzc - 3) {
+        if (!(sig[zc[k] + 1] < 0.0)) { k += 1; continue; }
+
         int neg_start = zc[k];
         int neg_end   = zc[k + 1];
         int pos_end   = zc[k + 2];
+        k += 2;
 
         double dur_neg = (double)(neg_end - neg_start) / sr;
         double dur_pos = (double)(pos_end - neg_end)   / sr;

@@ -8,10 +8,13 @@ compute_slow_oscillations(
   psg,
   channel = NULL,
   stages = NULL,
-  freq_so = c(0.5, 2),
-  amp_ptp_threshold_uv = c(75, 500),
+  freq_so = c(0.3, 1.5),
+  amp_ptp_threshold_uv = c(75, 350),
   duration_pos_s = c(0.1, 1),
-  duration_neg_s = c(0.1, 1.5)
+  duration_neg_s = c(0.3, 1.5),
+  amp_neg_uv = c(40, 200),
+  amp_pos_uv = c(10, 150),
+  transition_hz = 0.2
 )
 }
 \arguments{
@@ -23,17 +26,32 @@ non-bad EEG channel is used.}
 \item{stages}{Integer vector or \code{NULL}. Epoch indices restricted to N2/N3.
 If \code{NULL}, detection runs across all epochs.}
 
-\item{freq_so}{Numeric vector of length 2. SO frequency band (Hz).
-Default \code{c(0.5, 2)}.}
+\item{freq_so}{Numeric vector of length 2. SO frequency band (Hz), as in
+YASA's \code{freq_sw}. Default \code{c(0.3, 1.5)}. See \code{transition_hz}.}
 
 \item{amp_ptp_threshold_uv}{Numeric vector of length 2. Min and max
-acceptable peak-to-peak amplitude (uV). Default \code{c(75, 500)}.}
+acceptable peak-to-peak amplitude (uV). Default \code{c(75, 350)}.}
 
 \item{duration_pos_s}{Numeric vector of length 2. Min and max positive half-
 wave duration (s). Default \code{c(0.1, 1.0)}.}
 
 \item{duration_neg_s}{Numeric vector of length 2. Min and max negative half-
-wave duration (s). Default \code{c(0.1, 1.5)}.}
+wave duration (s). Default \code{c(0.3, 1.5)}.}
+
+\item{amp_neg_uv}{Numeric vector of length 2, or \code{NULL}. Min and max absolute
+amplitude of the negative peak (uV). Default \code{c(40, 200)}. \code{NULL} applies
+no limit.}
+
+\item{amp_pos_uv}{Numeric vector of length 2, or \code{NULL}. Min and max
+amplitude of the positive peak (uV). Default \code{c(10, 150)}. \code{NULL} applies
+no limit.}
+
+\item{transition_hz}{Numeric. Width of the filter transition band (Hz).
+YASA band-passes with an FIR filter whose -6 dB points lie half a
+transition band outside \code{freq_so} (0.2 and 1.6 Hz for the defaults). Here
+the band-pass is a zero-phase Butterworth high-pass / low-pass cascade
+whose -6 dB points are placed at \code{freq_so[1] - transition_hz / 2} and
+\code{freq_so[2] + transition_hz / 2}. Default \code{0.2}.}
 }
 \value{
 A tibble with one row per detected slow oscillation:
@@ -50,8 +68,21 @@ A tibble with one row per detected slow oscillation:
 }
 \description{
 Detects slow oscillations (SOs) in EEG channels using a zero-crossing
-approach in the delta band (0.5-2 Hz), following the algorithm described in
-Molle et al. (2002) and implemented in YASA (Vallat & Walker, 2021).
+approach, following the algorithm described in Molle et al. (2002). The
+defaults (band, duration, trough, peak and peak-to-peak limits) are those of
+\code{yasa.sw_detect()} in YASA (Vallat & Walker, 2021), so that densities are
+comparable in magnitude. The detection itself is not identical to YASA's:
+this function pairs zero crossings into a negative and a following positive
+half-wave, whereas YASA pairs each negative peak with the nearest following
+positive peak, so event counts and timings differ. Epochs are filtered one
+at a time.
+}
+\details{
+Amplitudes are assumed to be in uV. The high-pass is a 4th-order Butterworth
+in transfer-function form; its coefficients become ill-conditioned at very
+low cutoffs and high sample rates (rcond about 2e-14 at 1000 Hz for a 0.2 Hz
+cutoff, against a failure limit near 2e-16), so very high sample rates
+should be downsampled first.
 }
 \references{
 Molle, M., Marshall, L., Gais, S., & Born, J. (2002). Grouping of spindle
