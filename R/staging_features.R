@@ -131,6 +131,27 @@
   # Forward FFT of padded signal (power-of-2 -> fast)
   X <- stats::fft(x_pad)
 
+  # Downsampling (new_len < orig_len): truncate the spectrum. Mirrors MNE's
+  # _fft_resample with shorter = TRUE: the new Nyquist bin is doubled (it
+  # absorbs the +/- Nyquist pair that truncation folds together), then all
+  # bins are scaled by new_len/orig_len. The upsampling path below is unchanged.
+  if (new_len < orig_len) {
+    n_one <- orig_len %/% 2L + 1L
+    n_out <- new_len %/% 2L + 1L
+    Xr    <- X[seq_len(n_one)]
+    if (new_len %% 2L == 0L) Xr[n_out] <- Xr[n_out] * 2
+    Xn    <- Xr[seq_len(n_out)] * (new_len / orig_len)
+
+    full <- complex(length.out = new_len)
+    full[seq_len(n_out)] <- Xn
+    n_neg <- new_len - n_out
+    if (n_neg > 0L)
+      full[seq.int(n_out + 1L, new_len)] <- rev(Conj(Xn[seq.int(2L, n_neg + 1L)]))
+
+    y_full <- Re(stats::fft(full, inverse = TRUE)) / new_len
+    return(y_full[seq.int(to_rm_start + 1L, new_len - to_rm_end)])
+  }
+
   # Boxcar window: scale uniformly by new_len/orig_len
   X <- X * (new_len / orig_len)
 
