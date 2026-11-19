@@ -138,6 +138,17 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.4.9000" id="mrpheus-0149000-development">mrpheus 0.1.4.9000 (development)<a class="anchor" aria-label="anchor" href="#mrpheus-0149000-development"></a></h2>
 <div class="section level3">
+<h3 id="warning-compute_slow_oscillations-fixes-and-new-defaults-results-change-0-1-4-9000">⚠️ <code>compute_slow_oscillations()</code>: fixes and new defaults (results change)<a class="anchor" aria-label="anchor" href="#warning-compute_slow_oscillations-fixes-and-new-defaults-results-change-0-1-4-9000"></a></h3>
+<ul><li>
+<strong>Polarity bug fixed.</strong> <code>detect_so_candidates_cpp()</code> paired zero crossings in steps of two starting from the first crossing in the epoch, whatever its direction. In an epoch whose filtered signal started negative every pair was half a cycle out of phase and the epoch returned no slow oscillations, so roughly half the epochs could be lost. The walk now starts at a crossing after which the signal is negative. Existing tests passed because their signals started at exactly 0.</li>
+<li>
+<strong>Filter fixed at higher sample rates.</strong> The single 8th-order band-pass was numerically singular at 256 Hz (<code><a href="https://rdrr.io/pkg/gsignal/man/filter_zi.html" class="external-link">gsignal::filter_zi()</a></code> failed with “system is computationally singular”). It is now a zero-phase high-pass / low-pass cascade, designed once rather than per epoch.</li>
+<li>
+<strong>New defaults, taken from <code>yasa.sw_detect()</code>:</strong> <code>freq_so = c(0.3, 1.5)</code> (was <code>c(0.5, 2)</code>), <code>duration_neg_s = c(0.3, 1.5)</code> (was <code>c(0.1, 1.5)</code>), <code>amp_ptp_threshold_uv = c(75, 350)</code> (was <code>c(75, 500)</code>). New arguments <code>amp_neg_uv = c(40, 200)</code> and <code>amp_pos_uv = c(10, 150)</code> (trough and peak limits; <code>NULL</code> switches them off) and <code>transition_hz = 0.2</code>, which places the filter’s -6 dB points at 0.2 and 1.6 Hz as YASA’s FIR does. The old behaviour can be requested with <code>freq_so = c(0.5, 2)</code>, <code>duration_neg_s = c(0.1, 1.5)</code>, <code>amp_ptp_threshold_uv = c(75, 500)</code>, <code>amp_neg_uv = NULL</code>, <code>amp_pos_uv = NULL</code>, <code>transition_hz = 0</code>.</li>
+<li>
+<strong>Not identical to YASA.</strong> The pairing is still zero-crossing based, and epochs are filtered one at a time. In a Python comparison on one Sleep-EDF night (SC4001E0, Fpz-Cz, N2 + N3), a mirror of the old defaults gave 8.7 events per NREM minute against 5.9 for YASA, with 53% of its events matching a YASA event (negative peaks within 0.5 s). A mirror of the new defaults gave 4.7 per minute, with 90% matching a YASA event and 72% of YASA’s events found. This is one night, one channel and a Python mirror, not a validation.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="rocket-performance-fixes-in-detect_qrs-0-1-4-9000">🚀 Performance fixes in <code>detect_qrs()</code>
 <a class="anchor" aria-label="anchor" href="#rocket-performance-fixes-in-detect_qrs-0-1-4-9000"></a></h3>
 <p><code><a href="../reference/detect_qrs.html">detect_qrs()</a></code> was hanging indefinitely on real recordings (unbounded on a 468,700-sample / ~15.7 min recording at ~500 Hz). Two separate O(n²) bottlenecks were found and fixed:</p>

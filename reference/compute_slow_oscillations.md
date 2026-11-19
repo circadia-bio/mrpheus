@@ -1,8 +1,14 @@
 # Detect slow oscillations
 
 Detects slow oscillations (SOs) in EEG channels using a zero-crossing
-approach in the delta band (0.5-2 Hz), following the algorithm described
-in Molle et al. (2002) and implemented in YASA (Vallat & Walker, 2021).
+approach, following the algorithm described in Molle et al. (2002). The
+defaults (band, duration, trough, peak and peak-to-peak limits) are
+those of `yasa.sw_detect()` in YASA (Vallat & Walker, 2021), so that
+densities are comparable in magnitude. The detection itself is not
+identical to YASA's: this function pairs zero crossings into a negative
+and a following positive half-wave, whereas YASA pairs each negative
+peak with the nearest following positive peak, so event counts and
+timings differ. Epochs are filtered one at a time.
 
 ## Usage
 
@@ -11,10 +17,13 @@ compute_slow_oscillations(
   psg,
   channel = NULL,
   stages = NULL,
-  freq_so = c(0.5, 2),
-  amp_ptp_threshold_uv = c(75, 500),
+  freq_so = c(0.3, 1.5),
+  amp_ptp_threshold_uv = c(75, 350),
   duration_pos_s = c(0.1, 1),
-  duration_neg_s = c(0.1, 1.5)
+  duration_neg_s = c(0.3, 1.5),
+  amp_neg_uv = c(40, 200),
+  amp_pos_uv = c(10, 150),
+  transition_hz = 0.2
 )
 ```
 
@@ -37,13 +46,13 @@ compute_slow_oscillations(
 
 - freq_so:
 
-  Numeric vector of length 2. SO frequency band (Hz). Default
-  `c(0.5, 2)`.
+  Numeric vector of length 2. SO frequency band (Hz), as in YASA's
+  `freq_sw`. Default `c(0.3, 1.5)`. See `transition_hz`.
 
 - amp_ptp_threshold_uv:
 
   Numeric vector of length 2. Min and max acceptable peak-to-peak
-  amplitude (uV). Default `c(75, 500)`.
+  amplitude (uV). Default `c(75, 350)`.
 
 - duration_pos_s:
 
@@ -53,7 +62,27 @@ compute_slow_oscillations(
 - duration_neg_s:
 
   Numeric vector of length 2. Min and max negative half- wave duration
-  (s). Default `c(0.1, 1.5)`.
+  (s). Default `c(0.3, 1.5)`.
+
+- amp_neg_uv:
+
+  Numeric vector of length 2, or `NULL`. Min and max absolute amplitude
+  of the negative peak (uV). Default `c(40, 200)`. `NULL` applies no
+  limit.
+
+- amp_pos_uv:
+
+  Numeric vector of length 2, or `NULL`. Min and max amplitude of the
+  positive peak (uV). Default `c(10, 150)`. `NULL` applies no limit.
+
+- transition_hz:
+
+  Numeric. Width of the filter transition band (Hz). YASA band-passes
+  with an FIR filter whose -6 dB points lie half a transition band
+  outside `freq_so` (0.2 and 1.6 Hz for the defaults). Here the
+  band-pass is a zero-phase Butterworth high-pass / low-pass cascade
+  whose -6 dB points are placed at `freq_so[1] - transition_hz / 2` and
+  `freq_so[2] + transition_hz / 2`. Default `0.2`.
 
 ## Value
 
@@ -90,6 +119,14 @@ A tibble with one row per detected slow oscillation:
 - channel:
 
   Character.
+
+## Details
+
+Amplitudes are assumed to be in uV. The high-pass is a 4th-order
+Butterworth in transfer-function form; its coefficients become
+ill-conditioned at very low cutoffs and high sample rates (rcond about
+2e-14 at 1000 Hz for a 0.2 Hz cutoff, against a failure limit near
+2e-16), so very high sample rates should be downsampled first.
 
 ## References
 
