@@ -40,19 +40,18 @@ compute_spectrogram <- function(psg,
 
   sr    <- psg$channel_map$sample_rate[psg$channel_map$label == channel]
   nfft  <- 2^ceiling(log2(window_s * sr))
-  novlp <- as.integer(nfft * overlap)
 
   mat <- do.call(rbind, lapply(seq_along(psg$epochs), function(i) {
     sig <- psg$epochs[[i]][[channel]]
     if (is.null(sig) || length(sig) < nfft) return(rep(NA_real_, nfft / 2))
     psd <- gsignal::pwelch(sig, fs = sr, window = nfft,
-                            noverlap = novlp, nfft = nfft)
+                            overlap = overlap, nfft = nfft)
     freq_idx <- psd$freq >= freq_range[1] & psd$freq <= freq_range[2]
     psd$spec[freq_idx]
   }))
 
   ref_psd  <- gsignal::pwelch(psg$epochs[[1]][[channel]], fs = sr,
-                                window = nfft, noverlap = novlp, nfft = nfft)
+                                window = nfft, overlap = overlap, nfft = nfft)
   freq_idx <- ref_psd$freq >= freq_range[1] & ref_psd$freq <= freq_range[2]
   freqs    <- ref_psd$freq[freq_idx]
 
