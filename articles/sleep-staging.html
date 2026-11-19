@@ -439,14 +439,19 @@ visualisation and sleep architecture metrics:</p>
 <div class="section level2">
 <h2 id="model-details">Model details<a class="anchor" aria-label="anchor" href="#model-details"></a>
 </h2>
-<p>The bundled LightGBM model
-(<code>inst/models/yasa_staging.txt</code>) was trained by Vallat &amp;
-Walker (2021) on a multi-cohort dataset of 3,000+ nights spanning 5 age
-groups. mrpheus reproduces the 149-feature extraction pipeline in pure R
-with validated numerical parity against the original Python
-implementation (137 features within MAE &lt; 0.01 of YASA; 9 residual
-features reflecting irreducible floating-point differences in ratio
-amplification and rolling normalisation).</p>
+<p>The bundled LightGBM model (<code>inst/models/yasa_*.txt.gz</code>)
+was trained by Vallat &amp; Walker (2021) on a multi-cohort dataset of
+3,000+ nights spanning 5 age groups. mrpheus reproduces the 149-feature
+extraction pipeline in pure R, and like YASA it selects one of eight
+classifiers from the channels it is given (EEG, EEG + EOG, EEG + EMG,
+EEG + EOG + EMG, with or without <code>age</code> and
+<code>male</code>). Staging is checked against YASA 0.8.1 feature by
+feature and probability by probability: on the test night all eight
+classifiers give the same stage as YASA in every epoch, at 100 Hz and at
+256 Hz, with probabilities equal to about 1e-16. The one exception is
+the sign of the filter output at the recording’s first and last sample,
+which is floating-point noise; see the <code>NEWS.md</code> entry for
+the measurement and its limits.</p>
 <p>Features cover three channels:</p>
 <table class="table">
 <colgroup>

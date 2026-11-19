@@ -287,7 +287,7 @@ Copyright © Lucas França, Mario Leocadio-Miguel, 2026
 ------------------------------------------------------------------------
 
 > **Staging model attribution:** The LightGBM model bundled in
-> `inst/models/yasa_staging.txt` was originally trained as part of YASA
+> `inst/models/yasa_*.txt.gz` was originally trained as part of YASA
 > (Vallat & Walker, *eLife*, 2021;
 > [doi:10.7554/eLife.70092](https://doi.org/10.7554/eLife.70092)) and is
 > redistributed here under YASA’s BSD 3-Clause License with attribution.
