@@ -10,7 +10,9 @@ stage_epochs(
   eog_channel = NULL,
   emg_channel = NULL,
   artefacts = NULL,
-  model_path = system.file("models", "yasa_staging.txt", package = "mrpheus")
+  model_path = NULL,
+  age = NULL,
+  male = NULL
 )
 }
 \arguments{
@@ -19,20 +21,29 @@ stage_epochs(
 \item{eeg_channel}{Character. Central EEG channel (e.g. \code{"EEG Fpz-Cz"}).
 If \code{NULL} (default), the first non-bad EEG channel is used.}
 
-\item{eog_channel}{Character or \code{NULL}. EOG channel. If \code{NULL} (default),
-the first non-bad EOG channel is used (EOG features are omitted if none
-found).}
+\item{eog_channel}{Character, \code{NA} or \code{NULL}. EOG channel. If \code{NULL}
+(default), the first non-bad EOG channel is used. Without an EOG channel
+(\code{NA}, or none found) the EEG-only or EEG + EMG classifier is used.}
 
-\item{emg_channel}{Character or \code{NULL}. Chin EMG channel. If \code{NULL}
-(default), the first non-bad EMG channel is used (EMG features are omitted
-if none found).}
+\item{emg_channel}{Character, \code{NA} or \code{NULL}. Chin EMG channel. If \code{NULL}
+(default), the first non-bad EMG channel is used. Without an EMG channel
+(\code{NA}, or none found) the classifier without EMG is used.}
 
 \item{artefacts}{Tibble or \code{NULL}. Output of \code{\link[=detect_artifacts]{detect_artifacts()}}.
-Artefact epochs are assigned \code{NA} stage and excluded from the model.
-If \code{NULL}, all epochs are staged.}
+Artefact epochs are assigned \code{NA} stage. The classifier still sees every
+epoch, so the rolling-window features of neighbouring epochs are
+unchanged. If \code{NULL}, all epochs are staged.}
 
-\item{model_path}{Character. Path to the serialised LightGBM model. Defaults
-to the bundled model at \code{system.file("models/yasa_staging.txt", package = "mrpheus")}.}
+\item{model_path}{Character or \code{NULL}. Path to a serialised LightGBM model
+(plain text or \code{.gz}), for example one of your own. \code{NULL} (default) picks
+the bundled YASA classifier that matches the channels and \code{age} / \code{male}.}
+
+\item{age}{Numeric or \code{NULL}. Age in years, between 0 and 120. Together with
+\code{male} it selects the \code{+demo} classifiers. Truncated to an integer, as in
+YASA.}
+
+\item{male}{Logical, \code{0} or \code{1}, or \code{NULL}. Sex (\code{1} / \code{TRUE} for male).
+Must be supplied together with \code{age}.}
 }
 \value{
 A tibble with one row per epoch:
@@ -43,15 +54,18 @@ A tibble with one row per epoch:
 \item{prob_W, prob_N1, prob_N2, prob_N3, prob_REM}{Numeric. Posterior
 class probabilities from the LightGBM model.}
 }
+The classifier that was used is attached as the attribute \code{"classifier"}.
 }
 \description{
-Stages each 30-second epoch using a pre-trained LightGBM model originally
-developed for YASA (Vallat & Walker, 2021) and shipped as a cross-language
-serialised model in \code{inst/models/yasa_staging.txt}. Features are computed in
-R to match the Python feature extraction pipeline exactly; bit-exact parity
-is validated in the package test suite.
-}
-\details{
+Stages each 30-second epoch with the pre-trained LightGBM classifiers that
+ship with YASA (Vallat & Walker, 2021), converted to LightGBM text files in
+\code{inst/models/}. As in YASA, the classifier is chosen from the channels that
+are supplied: EEG only, EEG + EOG, EEG + EMG or EEG + EOG + EMG, each with or
+without the demographic features (\code{age}, \code{male}). Features are computed in R
+to match the Python feature extraction and are rounded to single precision
+before prediction, as YASA does. See the \code{NEWS.md} entry for the agreement
+that was measured against YASA and for its limits.
+
 Stages returned follow standard AASM nomenclature:
 \code{W} (wake), \code{N1}, \code{N2}, \code{N3}, \code{REM}.
 }

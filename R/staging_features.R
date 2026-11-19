@@ -174,30 +174,32 @@
 
 # ── Spectral helpers ──────────────────────────────────────────────────────────
 
-# Composite Simpson's rule matching scipy.integrate.simpson.
-# - Odd  N: standard 1/3 rule.
-# - Even N: scipy 1.11+ approach — standard 1/3 on first N-3 points,
-#            Simpson's 3/8 rule on the last 4 points.
+# Composite Simpson's rule matching scipy.integrate.simpson (scipy >= 1.11;
+# checked against scipy 1.14.1 and 1.18.1, the versions YASA >= 0.7 can run on).
+#
+# scipy: Simpson panels (y[i], y[i+1], y[i+2]) for i = 0, 2, ... over the first
+# N - 2 (odd N) or N - 3 (even N) points, then, for even N only, Cartwright's
+# correction for the last interval (equal spacing h):
+#   dx * (5/12 * y[N-1] + 8/12 * y[N-2] - 1/12 * y[N-3])        (0-based)
+# N == 2 is the trapezoid rule; N < 2 gives 0. This replaces an earlier version
+# that used a 3/8 rule on the last four points for even N, which did not match
+# scipy (N = 4: 0.5925 against scipy's 0.6183 on the same data).
 .scipy_simpson <- function(y, dx) {
   N <- length(y)
   if (N < 2L) return(0)
   if (N == 2L) return(dx * (y[1L] + y[2L]) / 2)
 
+  panels <- function(stop) {          # 0-based i = 0, 2, ... < stop
+    if (stop <= 0L) return(0)
+    i <- seq.int(1L, stop, by = 2L)   # the same panels, 1-based
+    dx / 3 * sum(y[i] + 4 * y[i + 1L] + y[i + 2L])
+  }
+
   if (N %% 2L == 1L) {
-    coef      <- rep(2, N)
-    coef[seq(2L, N - 1L, by = 2L)] <- 4
-    coef[c(1L, N)] <- 1
-    return(dx / 3 * sum(coef * y))
+    panels(N - 2L)
   } else {
-    n_std   <- N - 3L
-    s_total <- 0
-    if (n_std >= 3L) {
-      coef <- rep(2, n_std)
-      coef[seq(2L, n_std - 1L, by = 2L)] <- 4
-      coef[c(1L, n_std)] <- 1
-      s_total <- dx / 3 * sum(coef * y[seq_len(n_std)])
-    }
-    s_total + 3 * dx / 8 * (y[N - 3L] + 3 * y[N - 2L] + 3 * y[N - 1L] + y[N])
+    panels(N - 3L) +
+      dx * (5 / 12 * y[N] + 8 / 12 * y[N - 1L] - 1 / 12 * y[N - 2L])
   }
 }
 

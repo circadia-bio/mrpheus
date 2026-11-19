@@ -41,6 +41,16 @@ test_that(".nzc counts zero crossings correctly", {
   expect_equal(mrpheus:::.nzc(c(-5, 5)), 1L)
 })
 
+# antropy.num_zerocross is np.diff(np.signbit(x)).sum(): an exact +0 counts as
+# non-negative and an exact -0 as negative; there is no separate "zero" state.
+test_that(".nzc follows np.signbit, not sign()", {
+  expect_equal(mrpheus:::.nzc(c(1, 0, 1)),    0L)   # sign() version counted 2
+  expect_equal(mrpheus:::.nzc(c(-1, 0, 1)),   1L)
+  expect_equal(mrpheus:::.nzc(c(1, 0, -1)),   1L)
+  expect_equal(mrpheus:::.nzc(c(1, -0, 1)),   2L)   # negative zero has its sign bit set
+  expect_equal(mrpheus:::.nzc(c(0, 0, 0)),    0L)
+})
+
 # ── .petrosian_fd ─────────────────────────────────────────────────────────────
 # NOTE: petrosian uses extrema count (sign changes in consecutive diffs),
 #       NOT zero crossings of x (that was the bug fixed during development).
@@ -101,12 +111,32 @@ test_that(".scipy_simpson standard 1/3 rule for N=3 (odd)", {
   expect_equal(mrpheus:::.scipy_simpson(y, dx = 1), expected, tolerance = 1e-12)
 })
 
-test_that(".scipy_simpson uses 3/8 rule for N=4 (even, sdelta-sized band)", {
-  # Scipy 1.11+: 3/8 rule on all 4 points when n_std=N-3=1 < 3
-  y        <- c(2, 3, 4, 5)
-  dx       <- 0.2
-  expected <- 3 * dx / 8 * (2 + 3 * 3 + 3 * 4 + 5)
-  expect_equal(mrpheus:::.scipy_simpson(y, dx = dx), expected, tolerance = 1e-12)
+# Reference values from scipy.integrate.simpson (scipy 1.18.1; the same values
+# come out of 1.14.1). Even N uses Cartwright's correction on the last interval.
+# These use non-polynomial data on purpose: linear data is integrated exactly by
+# every Simpson variant, so it cannot tell the rules apart.
+test_that(".scipy_simpson matches scipy for even N (Cartwright last interval)", {
+  expect_equal(mrpheus:::.scipy_simpson(c(0.3, 1.1, 0.7, 2.2), dx = 0.2),
+               0.6183333333333334, tolerance = 1e-12)                  # N = 4
+  expect_equal(mrpheus:::.scipy_simpson(c(0.5, 2.0, 1.1, 3.7, 0.4, 2.9), dx = 0.2),
+               1.96, tolerance = 1e-12)                                # N = 6
+  expect_equal(mrpheus:::.scipy_simpson(sin(seq(0, 3, length.out = 16))^2 + 0.1, dx = 0.2),
+               1.8700323577467897, tolerance = 1e-12)                  # N = 16
+  expect_equal(mrpheus:::.scipy_simpson(abs(sin((0:69)^1.3)) + 0.01, dx = 0.2),
+               9.112032283821472, tolerance = 1e-12)                   # N = 70
+})
+
+test_that(".scipy_simpson matches scipy for odd N", {
+  expect_equal(mrpheus:::.scipy_simpson(c(0.5, 2.0, 1.1, 3.7, 0.4, 2.9, 1.3), dx = 0.2),
+               2.6133333333333333, tolerance = 1e-12)                  # N = 7
+  expect_equal(mrpheus:::.scipy_simpson(abs(cos(seq(0, 7, length.out = 21))) + 0.05, dx = 0.2),
+               2.872204791699557, tolerance = 1e-12)                   # N = 21
+})
+
+test_that(".scipy_simpson no longer uses the old 3/8 rule for even N", {
+  y        <- c(0.3, 1.1, 0.7, 2.2)
+  old_rule <- 3 * 0.2 / 8 * (y[1] + 3 * y[2] + 3 * y[3] + y[4])        # 0.5925, not scipy's
+  expect_gt(abs(mrpheus:::.scipy_simpson(y, dx = 0.2) - old_rule), 0.02)
 })
 
 test_that(".scipy_simpson N=2 falls back to trapezoid", {
@@ -117,13 +147,9 @@ test_that(".scipy_simpson N=1 returns 0", {
   expect_equal(mrpheus:::.scipy_simpson(c(5), dx = 1), 0)
 })
 
-test_that(".scipy_simpson mixes 1/3 and 3/8 rules for even N=6", {
-  # n_std = N-3 = 3 >= 3: standard 1/3 on y[1:3], 3/8 on y[3:6] (overlapping point)
-  # For linear f(x) = x+1 with dx=1, exact integral from 0 to 5 = 17.5
-  y        <- as.double(1:6)
-  expected <- 1/3 * (1 + 4*2 + 3) + 3/8 * (3 + 3*4 + 3*5 + 6)
-  expect_equal(mrpheus:::.scipy_simpson(y, dx = 1), expected, tolerance = 1e-12)
-  expect_equal(mrpheus:::.scipy_simpson(y, dx = 1), 17.5, tolerance = 1e-12)
+test_that(".scipy_simpson integrates a linear function exactly for even N", {
+  # f(x) = x + 1 sampled at 6 points with dx = 1: exact integral from 0 to 5 = 17.5
+  expect_equal(mrpheus:::.scipy_simpson(as.double(1:6), dx = 1), 17.5, tolerance = 1e-12)
 })
 
 test_that(".scipy_simpson is always >= 0 for non-negative input", {
@@ -704,9 +730,22 @@ test_that(".stat_features excess kurtosis is negative for uniform data", {
   expect_lt(unname(result["kurt"]), 0)
 })
 
-test_that(".stat_features returns all zeros for constant signal", {
+test_that(".stat_features: constant signal has std = iqr = 0 and NaN skew and kurtosis", {
+  # YASA computes skew and kurtosis from the central moments, so a flat epoch is 0 / 0.
   result <- mrpheus:::.stat_features(rep(7, 50))
-  expect_equal(unname(result), c(0, 0, 0, 0))
+  expect_equal(unname(result[c("std", "iqr")]), c(0, 0))
+  expect_true(is.nan(unname(result["skew"])))
+  expect_true(is.nan(unname(result["kurt"])))
+})
+
+test_that(".stat_features skew and kurtosis use population central moments (as YASA)", {
+  # Reference values from numpy: m2 = mean(dev^2); skew = m3 / m2^1.5; kurt = m4 / m2^2 - 3
+  x <- c(1, 2, 2, 3, 3, 3, 4, 4, 5, 9)
+  d <- x - mean(x); m2 <- mean(d^2)
+  result <- mrpheus:::.stat_features(x)
+  expect_equal(unname(result["skew"]), mean(d^3) / m2^1.5,   tolerance = 1e-12)
+  expect_equal(unname(result["kurt"]), mean(d^4) / m2^2 - 3, tolerance = 1e-12)
+  expect_equal(unname(result["std"]),  sd(x),                tolerance = 1e-12)   # ddof = 1
 })
 
 # ── .perm_entropy ─────────────────────────────────────────────────────────────
@@ -802,18 +841,18 @@ test_that("hjorth_cpp matches R reference on random signal", {
 # ── stat_features_cpp (direct + parity) ──────────────────────────────────────
 
 .stat_r <- function(x) {
-  mu <- mean(x); sig <- sd(x); eps <- .Machine$double.eps
-  if (sig < eps) return(c(std = 0, iqr = 0, skew = 0, kurt = 0))
-  zx <- (x - mu) / sig
-  c(std = sig, iqr = IQR(x), skew = mean(zx^3), kurt = mean(zx^4) - 3)
+  d  <- x - mean(x); m2 <- mean(d^2)
+  c(std = sd(x), iqr = IQR(x), skew = mean(d^3) / m2^1.5, kurt = mean(d^4) / m2^2 - 3)
 }
 
 test_that("stat_features_cpp returns named vector c(std, iqr, skew, kurt)", {
   expect_named(stat_features_cpp(rnorm(100)), c("std", "iqr", "skew", "kurt"))
 })
 
-test_that("stat_features_cpp returns all zeros for constant signal", {
-  expect_equal(unname(stat_features_cpp(rep(7, 50))), c(0, 0, 0, 0))
+test_that("stat_features_cpp: constant signal gives std = iqr = 0 and NaN skew / kurtosis", {
+  r <- stat_features_cpp(rep(7, 50))
+  expect_equal(unname(r[c("std", "iqr")]), c(0, 0))
+  expect_true(all(is.nan(unname(r[c("skew", "kurt")]))))
 })
 
 test_that("stat_features_cpp matches R reference on random signal", {

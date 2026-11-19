@@ -174,16 +174,18 @@ NumericVector roll_triang_mean_cpp(NumericVector x, int k = 15) {
 }
 
 // ── nzc_cpp ───────────────────────────────────────────────────────────────────
-// Matches R's .nzc: sum(diff(sign(x)) != 0L)
+// Matches antropy.num_zerocross: np.diff(np.signbit(x)).sum(), i.e. the number
+// of adjacent pairs whose sign BITS differ. An exact +0.0 counts as
+// non-negative and an exact -0.0 as negative; there is no third "zero" state
+// (sign(x) == 0), which is what the previous version used and which counted a
+// sample of exactly 0 as two crossings.
 //
 // [[Rcpp::export]]
 int nzc_cpp(NumericVector x) {
     int N     = x.size();
     int count = 0;
     for (int i = 0; i < N - 1; i++) {
-        int s1 = (x[i]     > 0.0) - (x[i]     < 0.0);
-        int s2 = (x[i + 1] > 0.0) - (x[i + 1] < 0.0);
-        if (s1 != s2) count++;
+        if (std::signbit(x[i]) != std::signbit(x[i + 1])) count++;
     }
     return count;
 }
@@ -246,34 +248,30 @@ NumericVector hjorth_cpp(NumericVector x) {
 }
 
 // ── stat_features_cpp ─────────────────────────────────────────────────────────
-// std (Bessel), IQR (type-7), skewness mean(z^3), excess kurtosis mean(z^4)-3.
+// Matches the YASA feature code for one epoch:
+//   std  = np.std(x, ddof=1)                     (Bessel)
+//   iqr  = q75 - q25, type-7 quantiles           (np.quantile, linear)
+//   skew = m3 / m2^1.5,  kurt = m4 / m2^2 - 3    with POPULATION central
+//          moments m_k = mean((x - mean)^k)      (denominator N, not N - 1)
+// A flat epoch (m2 == 0) gives NaN skew and kurtosis, as in YASA (0/0).
+// The previous version standardised with the Bessel standard deviation, which
+// scaled skew by (1 - 1.5/N) and kurtosis + 3 by (1 - 2/N) relative to YASA.
 //
 // [[Rcpp::export]]
 NumericVector stat_features_cpp(NumericVector x) {
     int N = x.size();
-    double eps = std::numeric_limits<double>::epsilon();
 
     double sum = 0.0;
     for (int i = 0; i < N; i++) sum += x[i];
     double mu = sum / (double)N;
 
-    double sum2 = 0.0;
-    for (int i = 0; i < N; i++) { double d = x[i] - mu; sum2 += d * d; }
-    double var = (N > 1) ? sum2 / (double)(N - 1) : 0.0;
-    double sig = std::sqrt(var);
-
-    if (sig < eps) {
-        return NumericVector::create(
-            Named("std") = 0.0, Named("iqr") = 0.0,
-            Named("skew") = 0.0, Named("kurt") = 0.0
-        );
-    }
-
-    double sum3 = 0.0, sum4 = 0.0;
+    double sum2 = 0.0, sum3 = 0.0, sum4 = 0.0;
     for (int i = 0; i < N; i++) {
-        double z = (x[i] - mu) / sig, z2 = z * z;
-        sum3 += z2 * z; sum4 += z2 * z2;
+        double d = x[i] - mu, d2 = d * d;
+        sum2 += d2; sum3 += d2 * d; sum4 += d2 * d2;
     }
+    double var_pop = sum2 / (double)N;
+    double sd      = (N > 1) ? std::sqrt(sum2 / (double)(N - 1)) : 0.0;
 
     std::vector<double> xs(x.begin(), x.end());
     std::sort(xs.begin(), xs.end());
@@ -285,11 +283,15 @@ NumericVector stat_features_cpp(NumericVector x) {
         return xs[lo] + frac * (xs[hi] - xs[lo]);
     };
 
+    double m3 = sum3 / (double)N, m4 = sum4 / (double)N;
+    double skew = (var_pop > 0.0) ? m3 / std::pow(var_pop, 1.5)           : R_NaN;
+    double kurt = (var_pop > 0.0) ? m4 / (var_pop * var_pop) - 3.0        : R_NaN;
+
     return NumericVector::create(
-        Named("std")  = sig,
+        Named("std")  = sd,
         Named("iqr")  = quant7(0.75) - quant7(0.25),
-        Named("skew") = sum3 / (double)N,
-        Named("kurt") = sum4 / (double)N - 3.0
+        Named("skew") = skew,
+        Named("kurt") = kurt
     );
 }
 

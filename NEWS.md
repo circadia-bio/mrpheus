@@ -1,5 +1,63 @@
 ## mrpheus 0.1.4.9000  (development)
 
+### 🛏️ `stage_epochs()`: now reproduces YASA (results change)
+
+`stage_epochs()` is checked against `yasa.SleepStaging` (YASA 0.8.1, scipy
+1.18.1) feature by feature and probability by probability. Three errors in the
+feature code, a missing model selection and a missing precision step are fixed;
+on the public night used to check this, the stage is now the same as YASA's in
+every epoch.
+
+* **Channel-specific classifiers.** YASA picks one of eight classifiers from the
+  channels given (EEG, EEG + EOG, EEG + EMG, EEG + EOG + EMG, each with or
+  without demographics). mrpheus shipped only the EEG + EOG + EMG model and
+  filled missing channels with NA. With EOG absent that gave 50% accuracy
+  against manual scoring on the test night (YASA: 83%); with EMG absent it
+  differed from YASA's EEG + EOG model in 91 of 780 epochs. All eight are now
+  bundled as `inst/models/yasa_<channels>[_demo].txt.gz` (about 3.3 MB each) and
+  chosen automatically. New arguments `age` and `male` select the `+demo`
+  classifiers; `model_path` now defaults to `NULL` (automatic) and accepts
+  `.gz` files. The result carries the classifier as `attr(, "classifier")`.
+  Run `data-raw/fetch_yasa_models.py` to create the model files; the old
+  `inst/models/yasa_staging.txt` is byte-identical to `yasa_eeg_eog_emg` and
+  can be deleted.
+* **Single precision.** YASA rounds all features to float32 before predicting;
+  mrpheus now does too.
+* **Simpson integration for an even number of points.** `.scipy_simpson()` used
+  a 3/8-rule variant; scipy (>= 1.11, checked on 1.14.1 and 1.18.1) uses
+  Cartwright's correction on the last interval. This changed the 0.4-1 Hz and
+  1-4 Hz band powers (even point counts at 0.2 Hz resolution) and the
+  delta ratios built from them, by up to half a standard deviation, and also
+  affects `compute_band_power()` and `compute_temporal_bandpower()` wherever a
+  band holds an even number of frequency bins. The old tests used linear data,
+  which every Simpson variant integrates exactly, so they could not see it.
+* **Skewness and kurtosis** standardised with the sample (n - 1) standard
+  deviation; YASA uses population central moments. The normalised variants
+  cancel the difference, the raw ones (which the classifiers also use) did not.
+  A flat epoch now gives `NaN` skew and kurtosis, as in YASA.
+* **Zero crossings** now follow `antropy.num_zerocross` (`np.signbit`): an exact
+  zero is no longer counted as two crossings.
+
+*Measured agreement.* On Sleep-EDF `SC4001E0` (6.5 h, 780 epochs), 100 Hz and
+256 Hz inputs, all 16 classifier configurations give the same stage in every
+epoch as YASA, with probabilities equal to about 1e-16 in 99.9% of epochs. The
+exception is the recording's first and last sample: the zero-phase FIR filter's
+output there is zero by construction and its sign is floating-point noise
+(+6e-15 in MNE, -4e-14 here), so one zero-crossing count can differ by one.
+Because `robust_scale` uses whole-column quantiles this shifts every epoch's
+normalised value slightly; the largest probability difference seen was 1e-3,
+in one epoch of 12,480. Taking only the zero-crossing features from YASA makes
+the probabilities exactly identical (difference 0.0). `tests/testthat/test-yasa-parity.R`
+checks all eight classifiers against a stored YASA reference.
+The earlier "validated" parity script compared at MAE 0.01 and skipped 15 edge
+epochs; that was not parity to float precision.
+
+*Caveats.* Agreement is with YASA 0.8.1 on scipy >= 1.15; older scipy versions
+integrate even-length bands differently and give different YASA features.
+Preprocessing with `preprocess_psg()` before staging is not what YASA does and
+changes the result (84 of 780 epochs on the test night, mostly through the EOG
+band-pass); stage from unpreprocessed signals to reproduce YASA.
+
 ### ⚠️ `compute_slow_oscillations()`: fixes and new defaults (results change)
 
 * **Polarity bug fixed.** `detect_so_candidates_cpp()` paired zero crossings
