@@ -58,12 +58,20 @@ compute_slow_oscillations <- function(psg,
   sr        <- psg$channel_map$sample_rate[psg$channel_map$label == channel]
   epoch_idx <- stages %||% seq_along(psg$epochs)
 
+  # Band-pass as a high-pass / low-pass cascade. A single 8th-order 0.5-2 Hz
+  # band-pass is numerically singular in transfer-function form at 256 Hz
+  # (gsignal::filter_zi: rcond ~ 4e-18), so each edge is designed separately.
+  nyq   <- sr / 2
+  bf_hp <- gsignal::butter(4, freq_so[1] / nyq, type = "high")
+  bf_lp <- gsignal::butter(4, freq_so[2] / nyq, type = "low")
+
   sos <- lapply(epoch_idx, function(i) {
     sig <- psg$epochs[[i]][[channel]]
     if (is.null(sig) || length(sig) < 2) return(NULL)
 
-    bf       <- gsignal::butter(4, freq_so / (sr / 2), type = "pass")
-    sig_filt <- gsignal::filtfilt(bf, sig)
+    sig_filt <- as.numeric(
+      gsignal::filtfilt(bf_lp, as.numeric(gsignal::filtfilt(bf_hp, sig)))
+    )
 
     cands <- detect_so_candidates_cpp(
       sig_filt, sr,
