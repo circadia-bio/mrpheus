@@ -126,7 +126,8 @@ from a Python mirror of it).
   window, zero phase, 0.3-1.5 Hz with 0.2 Hz transition bands) is applied to the
   whole continuous signal, not epoch by epoch, instead of a Butterworth cascade.
   The design equals `mne.filter.create_filter` to about 1e-16 (checked at 100,
-  128, 200, 256 and 500 Hz) and the filtered signal equals `filter_data` to about
+  125, 128, 200, 250, 256, 500 and 512 Hz) and the filtered signal equals
+  `filter_data` to about
   5e-13 uV. This also removes the old failure at 256 Hz ("system is
   computationally singular") and the sample-rate limit of the cascade.
 * **Detection.** Peaks of the filtered signal are found as `scipy.signal.find_peaks`
@@ -163,6 +164,59 @@ from a Python mirror of it).
   deviation back one at a time, 11 of 13 make the tests fail; the other two
   change nothing (removing only the shared-end check, and the wrap-around of the
   previous zero crossing before the first one).
+
+### 💤 `compute_spindles()`: now reproduces `yasa.spindles_detect()` (results change)
+
+The detector is a port of `yasa.spindles_detect()` (YASA 0.8.1). On the Sleep-EDF
+night `SC4001E0` (Fpz-Cz; 8.8 h at 100 Hz, and a 6.5 h version at 256 Hz), with a
+stage mask that cuts through events, it finds the same spindles as YASA: the same
+numbers (73 and 78), start and end times identical to the sample, and every
+property within about 1e-11. The previous version (a 11-16 Hz Butterworth
+band-pass and an RMS threshold of 1.5 standard deviations, both per epoch, and a
+Welch peak frequency) was a different method and had not been compared with YASA.
+
+* **Algorithm.** Two MNE-equivalent FIR filters are applied to the whole
+  continuous signal: a broadband (1-30 Hz) and a sigma (12-15 Hz, 1.5 Hz
+  transition bands). Three criteria are evaluated at every sample: the relative
+  sigma power of a short-time Fourier transform (2 s windows every 0.2 s), the
+  moving correlation between the sigma and the broadband signal (0.3 s windows)
+  and the moving RMS of the sigma signal (threshold: mean plus 1.5 trimmed
+  standard deviations within the accepted epochs, at most 10 uV). The number of
+  criteria met is smoothed over 0.1 s, events where all are met are kept, events
+  closer than 500 ms are merged, and durations of 0.5-2 s are accepted.
+* **Arguments.** `freq_spindle` now defaults to `c(12, 15)` (was `c(11, 16)`).
+  New: `freq_broad`, `duration_s` (replaces `min_duration_s` and `max_duration_s`;
+  the maximum is 2 s, was 3 s), `min_distance_ms`, `thresh_rel_pow`,
+  `thresh_corr` and `thresh_rms` (replaces `threshold_sd`; `NULL` switches a
+  criterion off). `rms_window_s` is removed: the window is fixed at 0.3 s, as in
+  YASA.
+* **Output.** `epoch` is the epoch of the first sample and `start_s` / `end_s`
+  are relative to it (`end_s` can exceed 30 s). `peak_freq_hz` is now the median
+  instantaneous frequency (was the Welch peak) and `rms_uv` the RMS of the
+  detrended broadband signal (was the mean RMS envelope). New columns: `peak_s`,
+  `amplitude_uv`, `amp_filtered_uv`, `abs_power`, `rel_power`, `oscillations`,
+  `symmetry`.
+* A channel whose trimmed standard deviation (central 90% of samples) is outside
+  0.1-1000 uV is skipped with a warning, as in YASA.
+* Not implemented: YASA's `multi_only`, `remove_outliers` and spindle - slow
+  oscillation coupling. `roll_rms_cpp()` is no longer used by this function and
+  remains in the package.
+* **FIR filter length.** `.mne_fir_bandpass_design()` rounds the filter length up
+  to whole samples, as `mne.filter` does; it had rounded to nearest, which gives
+  the same length except at rates where the length is not a whole number (for
+  example 125 Hz, 2063 against 2062 taps for the slow oscillation filter).
+  Checked against `mne.filter.create_filter` for the slow oscillation, spindle
+  broadband and sigma filters at 100, 125, 128, 200, 250, 256, 500 and 512 Hz.
+* **Tests.** `tests/testthat/test-yasa-spindle-parity.R` compares the result with
+  stored `yasa.spindles_detect()` output on a synthetic EEG with spindles at 100
+  and 256 Hz, and at 100 Hz on two variants (strong sigma activity in an excluded
+  epoch; the signal times 4), plus YASA's intermediate features (STFT relative
+  power, moving correlation and RMS)
+  (`data-raw/generate_yasa_spindle_parity_fixture.py`);
+  `test-compute_spindles.R` tests the helpers against scipy and YASA values.
+  Putting each of 19 deviations back one at a time makes the tests fail in every
+  case; the cap of 10 uV on the RMS threshold is caught only by its direct unit
+  test.
 
 ### 🔧 Resampler and spectrogram fixes
 

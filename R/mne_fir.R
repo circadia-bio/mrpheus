@@ -7,7 +7,7 @@
 #     pad = "reflect_limited")
 #
 # The design (.mne_fir_bandpass_design) equals mne.filter.create_filter to about
-# 1e-16 (checked at 100, 128, 200, 256 and 500 Hz); the filtered signal
+# 1e-16 (checked at 100, 125, 128, 200, 250, 256, 500 and 512 Hz); the filtered signal
 # (.mne_fir_apply) equals filter_data to about 5e-13 uV on real EEG. Used by
 # compute_slow_oscillations(). The staging code filters with stored 100 Hz
 # coefficients instead (inst/filters/).
@@ -42,8 +42,9 @@
   if (f_s1 < 0 || f_s2 > nyq || l_freq >= h_freq)
     stop("invalid band-pass design")
 
-  # filter_length = "auto": len_factor / min(transition) seconds, made odd
-  N <- as.integer(round(len_factor / min(l_trans, h_trans) * sfreq))
+  # filter_length = "auto": len_factor / min(transition) seconds, rounded up to
+  # whole samples (mne.filter._to_samples) and made odd
+  N <- max(as.integer(ceiling(len_factor / min(l_trans, h_trans) * sfreq)), 1L)
   N <- N + (N - 1L) %% 2L
 
   freq <- c(f_s1, f_p1, f_p2, f_s2) / nyq
