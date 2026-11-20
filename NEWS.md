@@ -87,7 +87,8 @@ checked against `yasa.bandpower()` itself on ten epochs).
   and their edges fall on FFT bins (the new defaults), but differed by a median
   of 0.7% and up to 5.7% at 100 Hz with `nfft = 1024`. `total_power` is now that
   integral (YASA's `TotalAbsPow`), not the sum of the band powers.
-* `relative` still defaults to `FALSE`; YASA's default is `TRUE`.
+* `relative` now defaults to `TRUE`, as YASA's does (it was `FALSE`); use
+  `relative = FALSE` for absolute power.
 * The old estimate can be requested with `window = "hann", average = "mean",
   noverlap = 200L, nfft = 1024L` and `bands` with gamma `c(30, 45)`, except that
   the window is now the periodic form.
@@ -109,8 +110,9 @@ wording are rewritten. They described the old settings as validated, and put the
 relative-power definition. The vignette now reports the measured agreement on
 SC4001E0 (2,650 epochs): at most 8e-15 relative in absolute power and 1e-12 in
 relative power. The old validation scripts `data-raw/validate_band_power_parity.R`
-and `data-raw/generate_bandpower_reference.py`, which used the old settings, are
-removed.
+and `data-raw/generate_bandpower_reference.py`, which used the old settings, and
+their reference and report files (`yasa_reference_bandpower.csv`,
+`parity_report_bandpower.csv`, `parity_bandpower.png`) are removed.
 
 ### 🌊 `compute_slow_oscillations()`: now reproduces `yasa.sw_detect()` (results change)
 
@@ -140,8 +142,7 @@ from a Python mirror of it).
   peaks paired with the same positive peak are both lost). The zero-crossing
   pairing of the old version, and its polarity bug (an epoch whose filtered
   signal started negative returned no events), are gone;
-  `detect_so_candidates_cpp()` is no longer used by this function and remains in
-  the package.
+  `detect_so_candidates_cpp()` and its tests are removed.
 * **`stages`** are the epochs in which the peaks must lie. As in YASA, an event
   can start or end outside them.
 * **Output.** `epoch` is the epoch of the negative peak, and `start_s` and
@@ -199,8 +200,7 @@ Welch peak frequency) was a different method and had not been compared with YASA
 * A channel whose trimmed standard deviation (central 90% of samples) is outside
   0.1-1000 uV is skipped with a warning, as in YASA.
 * Not implemented: YASA's `multi_only`, `remove_outliers` and spindle - slow
-  oscillation coupling. `roll_rms_cpp()` is no longer used by this function and
-  remains in the package.
+  oscillation coupling. `roll_rms_cpp()` and its tests are removed.
 * **FIR filter length.** `.mne_fir_bandpass_design()` rounds the filter length up
   to whole samples, as `mne.filter` does; it had rounded to nearest, which gives
   the same length except at rates where the length is not a whole number (for
