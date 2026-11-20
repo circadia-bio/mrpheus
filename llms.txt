@@ -75,7 +75,8 @@ underworld to navigate the unconscious, gives it its spirit.
   [`stage_epochs()`](https://mrpheus.circadia-lab.uk/reference/stage_epochs.md):
   pre-trained LightGBM model ported from
   [YASA](https://github.com/raphaelvallat/yasa) (Vallat & Walker, 2021);
-  77.8 % epoch accuracy on Sleep-EDF Cassette
+  reproduces YASA’s stages epoch for epoch on the Sleep-EDF night used
+  for testing (see `NEWS.md`)
 - 🫁 **Respiratory metrics** —
   [`detect_apneas()`](https://mrpheus.circadia-lab.uk/reference/detect_apneas.md),
   [`compute_ahi()`](https://mrpheus.circadia-lab.uk/reference/compute_ahi.md),
@@ -116,6 +117,7 @@ underworld to navigate the unconscious, gives it its spirit.
     │   ├── compute_hr_signal.R         # compute_hr_signal()
     │   ├── compute_hrv_sleep.R         # compute_hrv_sleep()
     │   ├── compute_hrv_freq.R          # compute_hrv_freq()
+    │   ├── mne_fir.R                   # internal MNE-equivalent FIR design and filtering
     │   ├── stage_epochs.R              # stage_epochs()
     │   ├── staging_features.R          # internal YASA feature extraction
     │   ├── export_hypnogram.R          # export_hypnogram()
@@ -127,7 +129,7 @@ underworld to navigate the unconscious, gives it its spirit.
     ├── inst/
     │   ├── extdata/                    # example_physlog.log
     │   ├── filters/                    # MNE FIR + resample poly coefficients
-    │   └── models/                     # serialised LightGBM staging model
+    │   └── models/                     # serialised LightGBM staging models (eight YASA classifiers)
     ├── data-raw/                       # model extraction, parity validation scripts
     ├── tests/testthat/
     ├── vignettes/
@@ -184,21 +186,25 @@ library(mrpheus)
 rec <- read_edf("psg_001.edf")
 psg <- prepare_psg(rec)
 
-# 2. Preprocess
+# 2. Stage (on the signals as read, as YASA does; preprocessing first changes the stages)
+stages <- stage_epochs(psg)
+
+# 3. Preprocess
 psg <- preprocess_psg(
   psg,
   channel_rename = c("C3-A2" = "C3", "C4-A1" = "C4")  # if needed
 )
 
-# 3. EOG correction
+# 4. EOG correction
 psg <- correct_eog_regression(psg)   # or correct_eog_ica()
-
-# 4. Stage
-stages <- stage_epochs(psg)
 
 # 5. Band power
 bp  <- compute_band_power(psg, relative = TRUE)
-tbp <- compute_temporal_bandpower(psg, hypno = stages$stage)
+
+# temporal band power takes integer stage codes: W 0, N1 1, N2 2, N3 3, REM 4, artefact -1
+hypno <- unname(c(W = 0L, N1 = 1L, N2 = 2L, N3 = 3L, REM = 4L)[stages$stage])
+hypno[is.na(hypno)] <- -1L
+tbp <- compute_temporal_bandpower(psg, hypno = hypno)
 
 # 6. Events
 sp  <- compute_spindles(psg)
@@ -223,7 +229,7 @@ hypnogram <- export_hypnogram(stages, start_time = rec$header$startTime)
 | `tibble` | \>= 3.2.0 | Tidy output structures |
 | `cli` | \>= 3.6.0 | Diagnostic messages |
 | `rlang` | \>= 1.1.0 | Error handling |
-| `Rcpp` | \>= 1.0.10 | C++ hot-path implementations (feature extraction, rolling statistics, event detection) |
+| `Rcpp` | \>= 1.0.10 | C++ hot-path implementations (staging feature extraction, rolling statistics) |
 
 ------------------------------------------------------------------------
 

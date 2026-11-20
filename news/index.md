@@ -28,8 +28,8 @@ as YASA’s in every epoch.
 - **Single precision.** YASA rounds all features to float32 before
   predicting; mrpheus now does too.
 - **Simpson integration for an even number of points.**
-  `.scipy_simpson()` used a 3/8-rule variant; scipy (\>= 1.11, checked
-  on 1.14.1 and 1.18.1) uses Cartwright’s correction on the last
+  `.scipy_simpson()` used a 3/8-rule variant; scipy (1.13.1 to 1.18.1
+  checked, see Caveats) uses Cartwright’s correction on the last
   interval. This changed the 0.4-1 Hz and 1-4 Hz band powers (even point
   counts at 0.2 Hz resolution) and the delta ratios built from them, by
   up to half a standard deviation, and also affects
@@ -63,9 +63,18 @@ a stored YASA reference. The earlier “validated” parity script compared
 at MAE 0.01 and skipped 15 edge epochs; that was not parity to float
 precision.
 
-*Caveats.* Agreement is with YASA 0.8.1 on scipy \>= 1.15; older scipy
-versions integrate even-length bands differently and give different YASA
-features. Preprocessing with
+*Caveats.* YASA 0.8.1 requires scipy \>= 1.15 (its PyPI metadata).
+Measured with YASA 0.8.1 on a synthetic 2 h recording (240 epochs) under
+scipy 1.13.1, 1.14.1, 1.15.0, 1.16.3, 1.17.1 and 1.18.1 (numpy 2.5,
+pandas 2.3.3; 1.13.1 and 1.14.1 are below YASA’s own requirement and
+were run anyway): features and class probabilities are identical on
+1.13.1 to 1.17.1; 1.18.1 differs in one zero crossing count in the first
+epoch (EMG channel: 577 against 578; the EOG channel also changes),
+which moves one probability by up to 1.1e-3 and no stage; band power
+agrees to 1e-13 and the events of `sw_detect` and `spindles_detect` to
+6e-14. Versions before 1.13 were not tested (YASA 0.8.1 needs numpy \>=
+2.2.2, which scipy 1.12 and older do not support), so nothing is claimed
+for them. Preprocessing with
 [`preprocess_psg()`](https://mrpheus.circadia-lab.uk/reference/preprocess_psg.md)
 before staging is not what YASA does and changes the result (84 of 780
 epochs on the test night, mostly through the EOG band-pass); stage from

@@ -202,7 +202,7 @@
 </li>
 <li>🔁 <strong>Sleep event detection</strong> — <code><a href="reference/compute_spindles.html">compute_spindles()</a></code>, <code><a href="reference/compute_slow_oscillations.html">compute_slow_oscillations()</a></code>
 </li>
-<li>🛏️ <strong>Automatic AASM staging</strong> — <code><a href="reference/stage_epochs.html">stage_epochs()</a></code>: pre-trained LightGBM model ported from <a href="https://github.com/raphaelvallat/yasa" class="external-link">YASA</a> (Vallat &amp; Walker, 2021); 77.8 % epoch accuracy on Sleep-EDF Cassette</li>
+<li>🛏️ <strong>Automatic AASM staging</strong> — <code><a href="reference/stage_epochs.html">stage_epochs()</a></code>: pre-trained LightGBM model ported from <a href="https://github.com/raphaelvallat/yasa" class="external-link">YASA</a> (Vallat &amp; Walker, 2021); reproduces YASA’s stages epoch for epoch on the Sleep-EDF night used for testing (see <code>NEWS.md</code>)</li>
 <li>🫁 <strong>Respiratory metrics</strong> — <code><a href="reference/detect_apneas.html">detect_apneas()</a></code>, <code><a href="reference/compute_ahi.html">compute_ahi()</a></code>, <code><a href="reference/compute_odi.html">compute_odi()</a></code>
 </li>
 <li>💓 <strong>Cardiac rhythm</strong> — <code><a href="reference/detect_qrs.html">detect_qrs()</a></code> (Pan-Tompkins), <code><a href="reference/compute_hr_signal.html">compute_hr_signal()</a></code>, <code><a href="reference/compute_hrv_sleep.html">compute_hrv_sleep()</a></code>, <code><a href="reference/compute_hrv_freq.html">compute_hrv_freq()</a></code> (respiration-locked HF-HRV for neonatal physlog data)</li>
@@ -233,6 +233,7 @@
 │   ├── compute_hr_signal.R         # compute_hr_signal()
 │   ├── compute_hrv_sleep.R         # compute_hrv_sleep()
 │   ├── compute_hrv_freq.R          # compute_hrv_freq()
+│   ├── mne_fir.R                   # internal MNE-equivalent FIR design and filtering
 │   ├── stage_epochs.R              # stage_epochs()
 │   ├── staging_features.R          # internal YASA feature extraction
 │   ├── export_hypnogram.R          # export_hypnogram()
@@ -244,7 +245,7 @@
 ├── inst/
 │   ├── extdata/                    # example_physlog.log
 │   ├── filters/                    # MNE FIR + resample poly coefficients
-│   └── models/                     # serialised LightGBM staging model
+│   └── models/                     # serialised LightGBM staging models (eight YASA classifiers)
 ├── data-raw/                       # model extraction, parity validation scripts
 ├── tests/testthat/
 ├── vignettes/
@@ -291,21 +292,25 @@
 <span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_edf.html">read_edf</a></span><span class="op">(</span><span class="st">"psg_001.edf"</span><span class="op">)</span></span>
 <span><span class="va">psg</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/prepare_psg.html">prepare_psg</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 2. Preprocess</span></span>
+<span><span class="co"># 2. Stage (on the signals as read, as YASA does; preprocessing first changes the stages)</span></span>
+<span><span class="va">stages</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/stage_epochs.html">stage_epochs</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 3. Preprocess</span></span>
 <span><span class="va">psg</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/preprocess_psg.html">preprocess_psg</a></span><span class="op">(</span></span>
 <span>  <span class="va">psg</span>,</span>
 <span>  channel_rename <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"C3-A2"</span> <span class="op">=</span> <span class="st">"C3"</span>, <span class="st">"C4-A1"</span> <span class="op">=</span> <span class="st">"C4"</span><span class="op">)</span>  <span class="co"># if needed</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 3. EOG correction</span></span>
+<span><span class="co"># 4. EOG correction</span></span>
 <span><span class="va">psg</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/correct_eog_regression.html">correct_eog_regression</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span>   <span class="co"># or correct_eog_ica()</span></span>
-<span></span>
-<span><span class="co"># 4. Stage</span></span>
-<span><span class="va">stages</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/stage_epochs.html">stage_epochs</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 5. Band power</span></span>
 <span><span class="va">bp</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_band_power.html">compute_band_power</a></span><span class="op">(</span><span class="va">psg</span>, relative <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">tbp</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_temporal_bandpower.html">compute_temporal_bandpower</a></span><span class="op">(</span><span class="va">psg</span>, hypno <span class="op">=</span> <span class="va">stages</span><span class="op">$</span><span class="va">stage</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># temporal band power takes integer stage codes: W 0, N1 1, N2 2, N3 3, REM 4, artefact -1</span></span>
+<span><span class="va">hypno</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>W <span class="op">=</span> <span class="fl">0L</span>, N1 <span class="op">=</span> <span class="fl">1L</span>, N2 <span class="op">=</span> <span class="fl">2L</span>, N3 <span class="op">=</span> <span class="fl">3L</span>, REM <span class="op">=</span> <span class="fl">4L</span><span class="op">)</span><span class="op">[</span><span class="va">stages</span><span class="op">$</span><span class="va">stage</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">hypno</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">hypno</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="fl">1L</span></span>
+<span><span class="va">tbp</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_temporal_bandpower.html">compute_temporal_bandpower</a></span><span class="op">(</span><span class="va">psg</span>, hypno <span class="op">=</span> <span class="va">hypno</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 6. Events</span></span>
 <span><span class="va">sp</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_spindles.html">compute_spindles</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
@@ -379,7 +384,7 @@
 <tr>
 <td><code>Rcpp</code></td>
 <td>&gt;= 1.0.10</td>
-<td>C++ hot-path implementations (feature extraction, rolling statistics, event detection)</td>
+<td>C++ hot-path implementations (staging feature extraction, rolling statistics)</td>
 </tr>
 </tbody>
 </table>
