@@ -124,7 +124,8 @@
 #'   ```
 #' @param relative Logical. If `TRUE`, each band power is divided by the PSD
 #'   integral between the lowest and highest band edge (dimensionless). Matches
-#'   YASA `relative = True`. Default `FALSE`; note that YASA's default is `TRUE`.
+#'   YASA `relative = True`. Default `TRUE`, as in YASA; `FALSE` gives absolute
+#'   power.
 #' @param win_sec Numeric. Welch window length in seconds. Default `4`.
 #' @param noverlap Integer or `NULL`. Number of overlapping samples between
 #'   Welch windows. `NULL` (default) uses half the window, as `scipy.signal.welch`
@@ -146,7 +147,7 @@
 #' @examples
 #' \dontrun{
 #' bp <- compute_band_power(psg)
-#' bp <- compute_band_power(psg, channels = "EEG Fpz-Cz", relative = TRUE)
+#' bp <- compute_band_power(psg, channels = "EEG Fpz-Cz", relative = FALSE)
 #'
 #' # Custom bands
 #' bp <- compute_band_power(
@@ -167,7 +168,7 @@ compute_band_power <- function(psg,
                                  beta  = c(16,  30),
                                  gamma = c(30,  40)
                                ),
-                               relative = FALSE,
+                               relative = TRUE,
                                win_sec  = 4,
                                noverlap = NULL,
                                nfft     = NULL,

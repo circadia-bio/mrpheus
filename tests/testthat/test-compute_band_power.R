@@ -166,6 +166,14 @@ test_that("compute_band_power relative = FALSE preserves absolute units", {
   expect_equal(bp$total_power, band_sums, tolerance = 1e-10)
 })
 
+test_that("compute_band_power returns relative power by default, as yasa.bandpower()", {
+  psg <- make_bp_psg()
+  expect_equal(compute_band_power(psg), compute_band_power(psg, relative = TRUE))
+  band_cols <- c("delta", "theta", "alpha", "sigma", "beta", "gamma")
+  expect_false(isTRUE(all.equal(compute_band_power(psg)[band_cols],
+                                compute_band_power(psg, relative = FALSE)[band_cols])))
+})
+
 test_that("compute_band_power relative power is the band over total_power (YASA)", {
   # Bands with a gap: the total still covers 0.5-40 Hz, so relative power is not
   # band / sum(bands) here, and the bands do not sum to 1

@@ -9,7 +9,7 @@ compute_band_power(
   channels = NULL,
   bands = list(delta = c(0.5, 4), theta = c(4, 8), alpha = c(8, 12), sigma = c(12, 16),
     beta = c(16, 30), gamma = c(30, 40)),
-  relative = FALSE,
+  relative = TRUE,
   win_sec = 4,
   noverlap = NULL,
   nfft = NULL,
@@ -32,7 +32,8 @@ in Hz. Default matches YASA's \code{bandpower()}:
 
 \item{relative}{Logical. If \code{TRUE}, each band power is divided by the PSD
 integral between the lowest and highest band edge (dimensionless). Matches
-YASA \code{relative = True}. Default \code{FALSE}; note that YASA's default is \code{TRUE}.}
+YASA \code{relative = True}. Default \code{TRUE}, as in YASA; \code{FALSE} gives absolute
+power.}
 
 \item{win_sec}{Numeric. Welch window length in seconds. Default \code{4}.}
 
@@ -77,7 +78,7 @@ To use another estimate, change \code{window} (\code{"hann"}), \code{average} (\
 \examples{
 \dontrun{
 bp <- compute_band_power(psg)
-bp <- compute_band_power(psg, channels = "EEG Fpz-Cz", relative = TRUE)
+bp <- compute_band_power(psg, channels = "EEG Fpz-Cz", relative = FALSE)
 
 # Custom bands
 bp <- compute_band_power(
