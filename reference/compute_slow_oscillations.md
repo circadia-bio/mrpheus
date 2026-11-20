@@ -1,14 +1,9 @@
 # Detect slow oscillations
 
-Detects slow oscillations (SOs) in EEG channels using a zero-crossing
-approach, following the algorithm described in Molle et al. (2002). The
-defaults (band, duration, trough, peak and peak-to-peak limits) are
-those of `yasa.sw_detect()` in YASA (Vallat & Walker, 2021), so that
-densities are comparable in magnitude. The detection itself is not
-identical to YASA's: this function pairs zero crossings into a negative
-and a following positive half-wave, whereas YASA pairs each negative
-peak with the nearest following positive peak, so event counts and
-timings differ. Epochs are filtered one at a time.
+Detects slow oscillations (slow waves) in an EEG channel with the
+algorithm of `yasa.sw_detect()` in YASA (Vallat & Walker, 2021; YASA
+0.8.1), and reproduces its output: the same events, at the same sample
+positions, with the same amplitudes (see Details).
 
 ## Usage
 
@@ -41,48 +36,48 @@ compute_slow_oscillations(
 
 - stages:
 
-  Integer vector or `NULL`. Epoch indices restricted to N2/N3. If
-  `NULL`, detection runs across all epochs.
+  Integer vector or `NULL`. Epoch indices in which peaks are accepted
+  (for example the N2 and N3 epochs). If `NULL`, all epochs are used. As
+  in YASA, only the peaks have to lie in these epochs: an event can
+  start or end outside them.
 
 - freq_so:
 
-  Numeric vector of length 2. SO frequency band (Hz), as in YASA's
-  `freq_sw`. Default `c(0.3, 1.5)`. See `transition_hz`.
+  Numeric vector of length 2. Band-pass of the slow oscillation band
+  (Hz), as YASA's `freq_sw`. Default `c(0.3, 1.5)`.
 
 - amp_ptp_threshold_uv:
 
-  Numeric vector of length 2. Min and max acceptable peak-to-peak
-  amplitude (uV). Default `c(75, 350)`.
+  Numeric vector of length 2. Minimum and maximum peak-to-peak amplitude
+  (uV), exclusive. Default `c(75, 350)`.
 
 - duration_pos_s:
 
-  Numeric vector of length 2. Min and max positive half- wave duration
-  (s). Default `c(0.1, 1.0)`.
+  Numeric vector of length 2. Minimum and maximum duration of the
+  positive phase (s), exclusive. Default `c(0.1, 1.0)`.
 
 - duration_neg_s:
 
-  Numeric vector of length 2. Min and max negative half- wave duration
-  (s). Default `c(0.3, 1.5)`.
+  Numeric vector of length 2. Minimum and maximum duration of the
+  negative phase (s), exclusive. Default `c(0.3, 1.5)`.
 
 - amp_neg_uv:
 
-  Numeric vector of length 2, or `NULL`. Min and max absolute amplitude
-  of the negative peak (uV). Default `c(40, 200)`. `NULL` applies no
-  limit.
+  Numeric vector of length 2, or `NULL`. Minimum and maximum absolute
+  amplitude of the negative peak (uV), inclusive. Default `c(40, 200)`.
+  `NULL` applies no limit.
 
 - amp_pos_uv:
 
-  Numeric vector of length 2, or `NULL`. Min and max amplitude of the
-  positive peak (uV). Default `c(10, 150)`. `NULL` applies no limit.
+  Numeric vector of length 2, or `NULL`. Minimum and maximum amplitude
+  of the positive peak (uV), inclusive. Default `c(10, 150)`. `NULL`
+  applies no limit.
 
 - transition_hz:
 
-  Numeric. Width of the filter transition band (Hz). YASA band-passes
-  with an FIR filter whose -6 dB points lie half a transition band
-  outside `freq_so` (0.2 and 1.6 Hz for the defaults). Here the
-  band-pass is a zero-phase Butterworth high-pass / low-pass cascade
-  whose -6 dB points are placed at `freq_so[1] - transition_hz / 2` and
-  `freq_so[2] + transition_hz / 2`. Default `0.2`.
+  Numeric. Width of both transition bands of the FIR filter (Hz). The -6
+  dB points lie half a transition band outside `freq_so` (0.2 and 1.6 Hz
+  for the defaults). Default `0.2`, as in YASA.
 
 ## Value
 
@@ -90,27 +85,30 @@ A tibble with one row per detected slow oscillation:
 
 - epoch:
 
-  Integer.
+  Integer. Epoch of the negative peak.
 
 - start_s:
 
-  Numeric. Onset (s) relative to epoch start.
+  Numeric. Onset (s) relative to the start of `epoch`. Can be negative,
+  or the offset can exceed the epoch length, when the event crosses an
+  epoch boundary.
 
 - end_s:
 
-  Numeric. Offset (s) relative to epoch start.
+  Numeric. Offset (s) relative to the start of `epoch`.
 
 - duration_s:
 
-  Numeric.
+  Numeric. Duration of the slow oscillation (s).
 
 - neg_peak_uv:
 
-  Numeric. Negative peak amplitude (uV).
+  Numeric. Value of the negative peak in the filtered signal (uV,
+  negative).
 
 - pos_peak_uv:
 
-  Numeric. Positive peak amplitude (uV).
+  Numeric. Value of the positive peak (uV).
 
 - ptp_uv:
 
@@ -120,19 +118,61 @@ A tibble with one row per detected slow oscillation:
 
   Character.
 
+- neg_peak_s:
+
+  Numeric. Time of the negative peak (s from the start of the first
+  epoch).
+
+- mid_crossing_s:
+
+  Numeric. Time of the zero crossing between the negative and the
+  positive peak (s from the start of the first epoch).
+
+- pos_peak_s:
+
+  Numeric. Time of the positive peak (s from the start of the first
+  epoch).
+
+- slope_uv_s:
+
+  Numeric. Slope between the negative peak and the mid crossing (uV/s).
+
 ## Details
 
-Amplitudes are assumed to be in uV. The high-pass is a 4th-order
-Butterworth in transfer-function form; its coefficients become
-ill-conditioned at very low cutoffs and high sample rates (rcond about
-2e-14 at 1000 Hz for a 0.2 Hz cutoff, against a failure limit near
-2e-16), so very high sample rates should be downsampled first.
+The channel is band-passed with an FIR filter (Hamming window, zero
+phase, as `mne.filter.filter_data()`), applied to the continuous signal,
+not epoch by epoch. Local minima and maxima of the filtered signal are
+found (negative peaks with a trough between `amp_neg_uv`, positive peaks
+between `amp_pos_uv`) and kept if they lie in the epochs given by
+`stages`. Each negative peak is paired with the closest following
+positive peak, the peak-to-peak amplitude must lie within
+`amp_ptp_threshold_uv`, and the durations of the negative and positive
+phases (taken from the zero crossings around each peak) must lie within
+`duration_neg_s` and `duration_pos_s`. Every event that shares its
+start, and then every event that shares its end, with another event is
+dropped, as in YASA, so two negative peaks paired with the same positive
+peak are both discarded.
+
+Amplitudes must be in uV. As YASA, the channel is skipped (with a
+warning) when the standard deviation of its central 90 % of samples is
+outside 0.1-1000 uV, which usually means a wrong unit.
+
+The result was compared with `yasa.sw_detect()` on the Sleep-EDF night
+SC4001E0 (8.8 h at 100 Hz, and a 6.5 h version at 256 Hz) with a stage
+mask that cuts through events: the numbers of events are equal (2,236
+and 1,000), the event times are identical, and amplitudes agree to about
+1e-12 uV. The test suite checks the same agreement against stored YASA
+output on a synthetic EEG at 100 and 256 Hz, and on a crafted signal
+that reaches the edge cases of YASA's rules
+(`tests/testthat/test-yasa-slow-oscillation-parity.R`).
+
+Not implemented: YASA's slow oscillation - spindle coupling and its
+`remove_outliers` option. Where YASA's code has quirks they are
+reproduced: a peak before the first zero crossing takes the last zero
+crossing of the recording as its previous crossing (the event is then
+rejected by the duration criteria).
 
 ## References
-
-Molle, M., Marshall, L., Gais, S., & Born, J. (2002). Grouping of
-spindle activity during slow oscillations in human non-rapid eye
-movement sleep. *Journal of Neuroscience*, 22(24), 10941-10947.
 
 Vallat, R., & Walker, M. P. (2021). An open-source, high-performance
 tool for automated sleep staging. *eLife*, 10, e70092.

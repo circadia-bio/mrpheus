@@ -5,9 +5,14 @@
 for per-epoch power in standard EEG frequency bands, and
 [`compute_temporal_bandpower()`](https://mrpheus.circadia-lab.uk/reference/compute_temporal_bandpower.md)
 for tracking how band power evolves across the full recording night via
-a sliding window. Both use a Welch PSD implementation validated against
-YASA’s Python `bandpower()` function (absolute power MARE \< 0.08 %,
-relative power MARE \< 0.8 %).
+a sliding window.
+[`compute_band_power()`](https://mrpheus.circadia-lab.uk/reference/compute_band_power.md)
+follows YASA’s Python `bandpower()` function with its default arguments
+and reproduces it to floating-point precision (see [Parity with
+YASA](#parity-with-yasa)).
+[`compute_temporal_bandpower()`](https://mrpheus.circadia-lab.uk/reference/compute_temporal_bandpower.md)
+has no YASA counterpart and uses its own Welch settings (see [Temporal
+band power](#temporal-band-power)).
 
 > **Note** — All code blocks use `eval = FALSE` because they require a
 > local EDF file. For a fully-executed walkthrough including figures see
@@ -44,17 +49,21 @@ stages <- stage_epochs(psg)   # data frame with columns: epoch, stage, ...
 
 [`compute_band_power()`](https://mrpheus.circadia-lab.uk/reference/compute_band_power.md)
 estimates the Welch PSD for each epoch and integrates power within six
-standard EEG bands.
+standard EEG bands. As in YASA’s `bandpower()`, the default
+(`relative = TRUE`) returns each band as a fraction of the total power;
+`relative = FALSE` returns absolute power, as in the example below.
 
 ``` r
 
-bp <- compute_band_power(psg)
+bp <- compute_band_power(psg, relative = FALSE)
 bp
 #> # A tibble: 2,650 × 9
-#>   epoch channel      delta theta alpha sigma   beta  gamma total_power
-#>   <int> <chr>        <dbl> <dbl> <dbl> <dbl>  <dbl>  <dbl>       <dbl>
-#> 1     1 EEG Fpz-Cz  342.  28.4  12.1  4.81   3.21   1.05        391.
-#> ...
+#>   epoch channel    delta theta alpha sigma  beta gamma total_power
+#>   <int> <chr>      <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>       <dbl>
+#> 1     1 EEG Fpz-Cz  447.  66.3  6.38  3.06  7.65  1.99        532.
+#> 2     2 EEG Fpz-Cz  254.  33.6  8.57  5.46 14.5   3.89        320.
+#> 3     3 EEG Fpz-Cz  302.  19.8 11.4   4.13 10.6   2.86        351.
+#> # ℹ 2,647 more rows
 ```
 
 Default band definitions match YASA’s `bandpower()`:
@@ -66,13 +75,14 @@ Default band definitions match YASA’s `bandpower()`:
 | alpha | 8–12 Hz  |
 | sigma | 12–16 Hz |
 | beta  | 16–30 Hz |
-| gamma | 30–45 Hz |
+| gamma | 30–40 Hz |
 
 ### Relative power
 
-Set `relative = TRUE` to express each band as a fraction of the total
-band-summed power. This is the standard for between-subject comparisons
-as it removes the effect of overall signal amplitude.
+With `relative = TRUE` (the default, as in YASA) each band is a fraction
+of the total power between the lowest and highest band edge (0.5–40 Hz
+with the default bands). This is the standard for between-subject
+comparisons as it removes the effect of overall signal amplitude.
 
 ``` r
 
@@ -113,14 +123,20 @@ bp_custom <- compute_band_power(
 
 ### Welch parameters
 
-The defaults (`win_sec = 4`, `noverlap = 200`, `nfft = 1024`) match
-YASA. Override them for higher frequency resolution or different
-smoothing:
+The defaults are those of `yasa.bandpower()`: a 4 s window
+(`win_sec = 4`), a periodic Hamming window (`window = "hamming"`), the
+bias-corrected median of the overlapping segments
+(`average = "median"`), an overlap of half a window (`noverlap = NULL`)
+and an FFT length equal to the window (`nfft = NULL`). Override them for
+higher frequency resolution or different smoothing:
 
 ``` r
 
 # Higher frequency resolution (longer window)
-bp_hires <- compute_band_power(psg, win_sec = 8, noverlap = 400L, nfft = 2048L)
+bp_hires <- compute_band_power(psg, win_sec = 8)
+
+# Mean of Hann-windowed segments instead of YASA's median of Hamming-windowed ones
+bp_mean <- compute_band_power(psg, window = "hann", average = "mean")
 ```
 
 ------------------------------------------------------------------------
@@ -147,6 +163,12 @@ tbp
 
 Each row represents one (window, band) combination. By default windows
 are 10 epochs (5 minutes) wide with 50 % overlap.
+
+Unlike
+[`compute_band_power()`](https://mrpheus.circadia-lab.uk/reference/compute_band_power.md),
+this function does not follow YASA’s defaults (it has no YASA
+counterpart): it uses the mean of Hann-windowed segments and, by
+default, a gamma band of 30–45 Hz.
 
 ### Customising the window
 
@@ -262,22 +284,24 @@ stage_summary |>
 ## Parity with YASA
 
 [`compute_band_power()`](https://mrpheus.circadia-lab.uk/reference/compute_band_power.md)
-was validated against YASA’s `bandpower()` on SC4001E0-PSG.edf (2,650
-epochs, channel `EEG Fpz-Cz`):
+with its default arguments reproduces `yasa.bandpower()` (YASA 0.8.1,
+default arguments). Measured on SC4001E0-PSG.edf (2,650 epochs, channel
+`EEG Fpz-Cz`, 100 Hz), the largest relative difference over all epochs
+is:
 
-| Band  | Abs. MARE | Rel. MARE |
-|-------|-----------|-----------|
-| delta | 0.079 %   | 0.771 %   |
-| theta | 0.059 %   | 0.750 %   |
-| alpha | 0.048 %   | 0.519 %   |
-| sigma | 0.054 %   | 0.747 %   |
-| beta  | 0.032 %   | 0.748 %   |
-| gamma | 0.034 %   | 0.748 %   |
+| Band  | Absolute power | Relative power |
+|-------|----------------|----------------|
+| delta | 5.0e-15        | 2.0e-15        |
+| theta | 4.8e-15        | 5.8e-15        |
+| alpha | 5.5e-15        | 2.2e-14        |
+| sigma | 4.7e-15        | 1.0e-13        |
+| beta  | 7.8e-15        | 2.2e-13        |
+| gamma | 5.8e-15        | 9.6e-13        |
 
-The residual ~0.75 % relative error is due to floating-point
-accumulation across six bands in two different language runtimes and is
-not fixable without artificial precision alignment. It is scientifically
-negligible for any EEG analysis.
+These are floating-point differences. The same agreement is checked in
+the test suite (`tests/testthat/test-yasa-bandpower-parity.R`) against a
+stored YASA reference, and it holds at other sampling rates (checked at
+256 Hz).
 
 ------------------------------------------------------------------------
 

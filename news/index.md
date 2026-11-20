@@ -71,40 +71,204 @@ before staging is not what YASA does and changes the result (84 of 780
 epochs on the test night, mostly through the EOG band-pass); stage from
 unpreprocessed signals to reproduce YASA.
 
-### ⚠️ `compute_slow_oscillations()`: fixes and new defaults (results change)
+### 📊 `compute_band_power()`: now follows `yasa.bandpower()` (results change)
 
-- **Polarity bug fixed.** `detect_so_candidates_cpp()` paired zero
-  crossings in steps of two starting from the first crossing in the
-  epoch, whatever its direction. In an epoch whose filtered signal
-  started negative every pair was half a cycle out of phase and the
-  epoch returned no slow oscillations, so roughly half the epochs could
-  be lost. The walk now starts at a crossing after which the signal is
-  negative. Existing tests passed because their signals started at
-  exactly 0.
-- **Filter fixed at higher sample rates.** The single 8th-order
-  band-pass was numerically singular at 256 Hz
-  ([`gsignal::filter_zi()`](https://rdrr.io/pkg/gsignal/man/filter_zi.html)
-  failed with “system is computationally singular”). It is now a
-  zero-phase high-pass / low-pass cascade, designed once rather than per
-  epoch.
-- **New defaults, taken from `yasa.sw_detect()`:**
-  `freq_so = c(0.3, 1.5)` (was `c(0.5, 2)`),
-  `duration_neg_s = c(0.3, 1.5)` (was `c(0.1, 1.5)`),
-  `amp_ptp_threshold_uv = c(75, 350)` (was `c(75, 500)`). New arguments
-  `amp_neg_uv = c(40, 200)` and `amp_pos_uv = c(10, 150)` (trough and
-  peak limits; `NULL` switches them off) and `transition_hz = 0.2`,
-  which places the filter’s -6 dB points at 0.2 and 1.6 Hz as YASA’s FIR
-  does. The old behaviour can be requested with `freq_so = c(0.5, 2)`,
-  `duration_neg_s = c(0.1, 1.5)`, `amp_ptp_threshold_uv = c(75, 500)`,
-  `amp_neg_uv = NULL`, `amp_pos_uv = NULL`, `transition_hz = 0`.
-- **Not identical to YASA.** The pairing is still zero-crossing based,
-  and epochs are filtered one at a time. In a Python comparison on one
-  Sleep-EDF night (SC4001E0, Fpz-Cz, N2 + N3), a mirror of the old
-  defaults gave 8.7 events per NREM minute against 5.9 for YASA, with
-  53% of its events matching a YASA event (negative peaks within 0.5 s).
-  A mirror of the new defaults gave 4.7 per minute, with 90% matching a
-  YASA event and 72% of YASA’s events found. This is one night, one
-  channel and a Python mirror, not a validation.
+The defaults did not match YASA’s, although the help page said they did.
+On Sleep-EDF `SC4001E0` (780 epochs, two channels, at 100 and 256 Hz;
+YASA 0.8.1) the old defaults differed from `yasa.bandpower()` by a
+median of 6 to 12% per band and epoch in absolute power (and in relative
+power), with a few epochs far larger. The defaults are now YASA’s, and
+the result agrees with `yasa.bandpower()` to about 1e-14 relative in
+absolute power and about 1e-12 in relative power (maximum over all
+epochs, channels and both sampling rates; also checked against
+`yasa.bandpower()` itself on ten epochs).
+
+- **Segment averaging:** the bias-corrected median of scipy
+  (`average = "median"`), not the mean. This is the largest single
+  difference, about 10% of band power at the median and more than 200%
+  at the 99th percentile of epochs.
+- **Window:** Hamming, not Hann (about 2%), and the periodic form that
+  `scipy.signal.welch` uses. mrpheus built the symmetric form, which
+  alone gave up to 0.8% in absolute band power with every other setting
+  matched. New argument `window` (`"hamming"` or `"hann"`).
+- **`nfft` and `noverlap`** default to `NULL`: the window length
+  (YASA’s, scipy’s) and half a window. The old defaults of 1024 and 200
+  samples differed from that by about 3% (nfft, at 100 Hz) and 7%
+  (overlap, at 256 Hz); 200 samples is half a window only at 100 Hz.
+- **Gamma** is 30-40 Hz (YASA’s default bands), not 30-45 Hz.
+- **Relative power** is a band’s Simpson integral divided by the PSD
+  integral between the lowest and highest band edge, as in YASA, and no
+  longer divided by the sum of the band powers. The two are equal when
+  the bands tile that range and their edges fall on FFT bins (the new
+  defaults), but differed by a median of 0.7% and up to 5.7% at 100 Hz
+  with `nfft = 1024`. `total_power` is now that integral (YASA’s
+  `TotalAbsPow`), not the sum of the band powers.
+- `relative` now defaults to `TRUE`, as YASA’s does (it was `FALSE`);
+  use `relative = FALSE` for absolute power.
+- The old estimate can be requested with
+  `window = "hann", average = "mean", noverlap = 200L, nfft = 1024L` and
+  `bands` with gamma `c(30, 45)`, except that the window is now the
+  periodic form.
+
+[`compute_temporal_bandpower()`](https://mrpheus.circadia-lab.uk/reference/compute_temporal_bandpower.md)
+is unchanged (its output is identical to before): it has no YASA
+counterpart, it keeps its own settings (symmetric Hann window, mean,
+gamma 30-45 Hz) and agrees with an independent scipy implementation of
+the same method to about 1e-13. Its help page no longer says that its
+default bands match
+[`compute_band_power()`](https://mrpheus.circadia-lab.uk/reference/compute_band_power.md).
+
+`tests/testthat/test-yasa-bandpower-parity.R` compares
+[`compute_band_power()`](https://mrpheus.circadia-lab.uk/reference/compute_band_power.md)
+with a stored `yasa.bandpower()` reference
+(`data-raw/generate_yasa_bandpower_parity_fixture.py`); each of the old
+settings above makes it fail, apart from the relative-power definition,
+which `test-compute_band_power.R` checks with bands that leave a gap.
+
+The “Parity with YASA” section of the spectral-analysis vignette and the
+README wording are rewritten. They described the old settings as
+validated, and put the ~0.75% relative-power gap down to floating-point
+accumulation; it was the relative-power definition. The vignette now
+reports the measured agreement on SC4001E0 (2,650 epochs): at most 8e-15
+relative in absolute power and 1e-12 in relative power. The old
+validation scripts `data-raw/validate_band_power_parity.R` and
+`data-raw/generate_bandpower_reference.py`, which used the old settings,
+and their reference and report files (`yasa_reference_bandpower.csv`,
+`parity_report_bandpower.csv`, `parity_bandpower.png`) are removed.
+
+### 🌊 `compute_slow_oscillations()`: now reproduces `yasa.sw_detect()` (results change)
+
+The detector is a port of `yasa.sw_detect()` (YASA 0.8.1). On the
+Sleep-EDF night `SC4001E0` (Fpz-Cz; 8.8 h at 100 Hz, and a 6.5 h version
+at 256 Hz), with a stage mask that cuts through events, it finds the
+same events as YASA: the same numbers (2,236 and 1,000), event times
+identical to the sample, and amplitudes within about 1e-12 uV. The
+previous version, which paired zero crossings, found about 20% fewer
+events than YASA on one night (4.7 against 5.9 per NREM minute, from a
+Python mirror of it).
+
+- **Filter.** An FIR band-pass equivalent to `mne.filter.filter_data()`
+  (Hamming window, zero phase, 0.3-1.5 Hz with 0.2 Hz transition bands)
+  is applied to the whole continuous signal, not epoch by epoch, instead
+  of a Butterworth cascade. The design equals `mne.filter.create_filter`
+  to about 1e-16 (checked at 100, 125, 128, 200, 250, 256, 500 and 512
+  Hz) and the filtered signal equals `filter_data` to about 5e-13 uV.
+  This also removes the old failure at 256 Hz (“system is
+  computationally singular”) and the sample-rate limit of the cascade.
+- **Detection.** Peaks of the filtered signal are found as
+  `scipy.signal.find_peaks` does (negative peaks with a trough of 40-200
+  uV, positive peaks of 10-150 uV) and kept if they lie in the accepted
+  epochs. Each negative peak is paired with the closest following
+  positive peak, the peak-to-peak amplitude must be 75-350 uV, and the
+  durations of the two phases, taken from the zero crossings around the
+  peaks, must be 0.3-1.5 s and 0.1-1.0 s. Events that share their start,
+  and then their end, with another event are dropped, as in YASA (so two
+  negative peaks paired with the same positive peak are both lost). The
+  zero-crossing pairing of the old version, and its polarity bug (an
+  epoch whose filtered signal started negative returned no events), are
+  gone; `detect_so_candidates_cpp()` and its tests are removed.
+- **`stages`** are the epochs in which the peaks must lie. As in YASA,
+  an event can start or end outside them.
+- **Output.** `epoch` is the epoch of the negative peak, and `start_s`
+  and `end_s`, relative to it, can lie outside 0-30 s for an event that
+  crosses an epoch boundary. New columns: `neg_peak_s`,
+  `mid_crossing_s`, `pos_peak_s` (seconds from the start of the first
+  epoch) and `slope_uv_s`.
+- **Arguments.** `transition_hz` is now the width of both transition
+  bands of the FIR filter (default 0.2, as YASA); zero is rejected, so
+  the old behaviour can no longer be requested through it. The other
+  defaults are YASA’s, as before.
+- A channel whose trimmed standard deviation (central 90% of samples) is
+  outside 0.1-1000 uV is skipped with a warning, as in YASA.
+- Not implemented: YASA’s slow oscillation - spindle coupling and
+  `remove_outliers`.
+- **Tests.** `tests/testthat/test-yasa-slow-oscillation-parity.R`
+  compares the result with stored `yasa.sw_detect()` output on a
+  synthetic EEG at 100 and 256 Hz, the filter taps with
+  `mne.filter.create_filter`, and the detection with YASA’s own code on
+  a crafted signal that reaches its edge cases (plateaus, double-humped
+  waves, limits exactly on the boundary, exact zeros)
+  (`data-raw/generate_yasa_slow_oscillation_parity_fixture.py`). Putting
+  each deviation back one at a time, 11 of 13 make the tests fail; the
+  other two change nothing (removing only the shared-end check, and the
+  wrap-around of the previous zero crossing before the first one).
+
+### 💤 `compute_spindles()`: now reproduces `yasa.spindles_detect()` (results change)
+
+The detector is a port of `yasa.spindles_detect()` (YASA 0.8.1). On the
+Sleep-EDF night `SC4001E0` (Fpz-Cz; 8.8 h at 100 Hz, and a 6.5 h version
+at 256 Hz), with a stage mask that cuts through events, it finds the
+same spindles as YASA: the same numbers (73 and 78), start and end times
+identical to the sample, and every property within about 1e-11. The
+previous version (a 11-16 Hz Butterworth band-pass and an RMS threshold
+of 1.5 standard deviations, both per epoch, and a Welch peak frequency)
+was a different method and had not been compared with YASA.
+
+- **Algorithm.** Two MNE-equivalent FIR filters are applied to the whole
+  continuous signal: a broadband (1-30 Hz) and a sigma (12-15 Hz, 1.5 Hz
+  transition bands). Three criteria are evaluated at every sample: the
+  relative sigma power of a short-time Fourier transform (2 s windows
+  every 0.2 s), the moving correlation between the sigma and the
+  broadband signal (0.3 s windows) and the moving RMS of the sigma
+  signal (threshold: mean plus 1.5 trimmed standard deviations within
+  the accepted epochs, at most 10 uV). The number of criteria met is
+  smoothed over 0.1 s, events where all are met are kept, events closer
+  than 500 ms are merged, and durations of 0.5-2 s are accepted.
+- **Arguments.** `freq_spindle` now defaults to `c(12, 15)` (was
+  `c(11, 16)`). New: `freq_broad`, `duration_s` (replaces
+  `min_duration_s` and `max_duration_s`; the maximum is 2 s, was 3 s),
+  `min_distance_ms`, `thresh_rel_pow`, `thresh_corr` and `thresh_rms`
+  (replaces `threshold_sd`; `NULL` switches a criterion off).
+  `rms_window_s` is removed: the window is fixed at 0.3 s, as in YASA.
+- **Output.** `epoch` is the epoch of the first sample and `start_s` /
+  `end_s` are relative to it (`end_s` can exceed 30 s). `peak_freq_hz`
+  is now the median instantaneous frequency (was the Welch peak) and
+  `rms_uv` the RMS of the detrended broadband signal (was the mean RMS
+  envelope). New columns: `peak_s`, `amplitude_uv`, `amp_filtered_uv`,
+  `abs_power`, `rel_power`, `oscillations`, `symmetry`.
+- A channel whose trimmed standard deviation (central 90% of samples) is
+  outside 0.1-1000 uV is skipped with a warning, as in YASA.
+- Not implemented: YASA’s `multi_only`, `remove_outliers` and spindle -
+  slow oscillation coupling. `roll_rms_cpp()` and its tests are removed.
+- **FIR filter length.** `.mne_fir_bandpass_design()` rounds the filter
+  length up to whole samples, as `mne.filter` does; it had rounded to
+  nearest, which gives the same length except at rates where the length
+  is not a whole number (for example 125 Hz, 2063 against 2062 taps for
+  the slow oscillation filter). Checked against
+  `mne.filter.create_filter` for the slow oscillation, spindle broadband
+  and sigma filters at 100, 125, 128, 200, 250, 256, 500 and 512 Hz.
+- **Tests.** `tests/testthat/test-yasa-spindle-parity.R` compares the
+  result with stored `yasa.spindles_detect()` output on a synthetic EEG
+  with spindles at 100 and 256 Hz, and at 100 Hz on two variants (strong
+  sigma activity in an excluded epoch; the signal times 4), plus YASA’s
+  intermediate features (STFT relative power, moving correlation and
+  RMS) (`data-raw/generate_yasa_spindle_parity_fixture.py`);
+  `test-compute_spindles.R` tests the helpers against scipy and YASA
+  values. Putting each of 19 deviations back one at a time makes the
+  tests fail in every case; the cap of 10 uV on the RMS threshold is
+  caught only by its direct unit test.
+
+### 🔧 Resampler and spectrogram fixes
+
+- **`.mne_fft_resample()` now downsamples.** Staging resamples every
+  channel to 100 Hz, so 256 Hz input (a common PSG rate) stopped with
+  `only 0's may be mixed with negative subscripts`: the function only
+  implemented the upsampling path, and the Sleep-EDF data used so far is
+  already at 100 Hz. For a shorter output it now truncates the spectrum
+  as MNE’s `_fft_resample` does (Nyquist bin doubled for an even new
+  length, bins scaled by `new_len / orig_len`). A Python mirror of the
+  new logic differs from `mne.filter.resample` (MNE 1.13.2) by about
+  5e-14 on four lengths (7,680 to 460,800 samples). The upsampling code
+  is unchanged. Tests: `tests/testthat/test-mne-fft-resample.R`.
+- **[`compute_spectrogram()`](https://mrpheus.circadia-lab.uk/reference/compute_spectrogram.md)
+  overlap.** The function passed `noverlap` to
+  [`gsignal::pwelch()`](https://rdrr.io/pkg/gsignal/man/pwelch.html),
+  which has no such argument (it takes `overlap`, a fraction), so the
+  call stopped with “unused argument”. It now passes its own `overlap`
+  argument (default `0.5`) straight through. The function had no tests;
+  `tests/testthat/test-compute_spectrogram.R` adds a synthetic 10 Hz
+  check (it runs, returns one row per epoch, and peaks within 0.5 Hz of
+  10 Hz).
 
 ### 🚀 Performance fixes in `detect_qrs()`
 

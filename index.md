@@ -64,7 +64,7 @@ underworld to navigate the unconscious, gives it its spirit.
   amplitude and muscle contamination flagging
 - 📊 **Spectral analysis** —
   [`compute_band_power()`](https://mrpheus.circadia-lab.uk/reference/compute_band_power.md)
-  (δ/θ/α/σ/β/γ per epoch, YASA-validated Welch PSD),
+  (δ/θ/α/σ/β/γ per epoch; reproduces YASA’s `bandpower()`),
   [`compute_temporal_bandpower()`](https://mrpheus.circadia-lab.uk/reference/compute_temporal_bandpower.md)
   (sliding-window band power across the full night),
   [`compute_spectrogram()`](https://mrpheus.circadia-lab.uk/reference/compute_spectrogram.md)
@@ -123,8 +123,7 @@ underworld to navigate the unconscious, gives it its spirit.
     │   ├── detect_apneas.R             # detect_apneas(), compute_ahi(), compute_odi()
     │   └── read_philips_physlog.R      # read_philips_physlog()
     ├── src/
-    │   ├── staging_features.cpp        # Rcpp hot paths: staging pipeline
-    │   └── event_detection.cpp         # Rcpp hot paths: spindles, slow oscillations
+    │   └── staging_features.cpp        # Rcpp hot paths: staging pipeline
     ├── inst/
     │   ├── extdata/                    # example_physlog.log
     │   ├── filters/                    # MNE FIR + resample poly coefficients

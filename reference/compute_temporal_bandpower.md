@@ -52,8 +52,10 @@ compute_temporal_bandpower(
 
 - bands:
 
-  Named list of length-2 numeric vectors (Hz). Default matches
-  [`compute_band_power()`](https://mrpheus.circadia-lab.uk/reference/compute_band_power.md):
+  Named list of length-2 numeric vectors (Hz). Default follows the
+  companion notebook, with gamma at 30-45 Hz (the default of
+  [`compute_band_power()`](https://mrpheus.circadia-lab.uk/reference/compute_band_power.md)
+  is YASA's 30-40 Hz):
 
       list(delta = c(0.5, 4), theta = c(4, 8), alpha = c(8, 12),
            sigma = c(12, 16), beta = c(16, 30), gamma = c(30, 45))

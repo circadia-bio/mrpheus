@@ -186,10 +186,13 @@
 functions: <code><a href="../reference/compute_band_power.html">compute_band_power()</a></code> for per-epoch power in
 standard EEG frequency bands, and
 <code><a href="../reference/compute_temporal_bandpower.html">compute_temporal_bandpower()</a></code> for tracking how band power
-evolves across the full recording night via a sliding window. Both use a
-Welch PSD implementation validated against YASA’s Python
-<code>bandpower()</code> function (absolute power MARE &lt; 0.08 %,
-relative power MARE &lt; 0.8 %).</p>
+evolves across the full recording night via a sliding window.
+<code><a href="../reference/compute_band_power.html">compute_band_power()</a></code> follows YASA’s Python
+<code>bandpower()</code> function with its default arguments and
+reproduces it to floating-point precision (see <a href="#parity-with-yasa">Parity with YASA</a>).
+<code><a href="../reference/compute_temporal_bandpower.html">compute_temporal_bandpower()</a></code> has no YASA counterpart and
+uses its own Welch settings (see <a href="#temporal-band-power">Temporal
+band power</a>).</p>
 <blockquote>
 <p><strong>Note</strong> — All code blocks use <code>eval = FALSE</code>
 because they require a local EDF file. For a fully-executed walkthrough
@@ -222,15 +225,21 @@ for download instructions.</p>
 <h2 id="band-power-per-epoch">Band power per epoch<a class="anchor" aria-label="anchor" href="#band-power-per-epoch"></a>
 </h2>
 <p><code><a href="../reference/compute_band_power.html">compute_band_power()</a></code> estimates the Welch PSD for each
-epoch and integrates power within six standard EEG bands.</p>
+epoch and integrates power within six standard EEG bands. As in YASA’s
+<code>bandpower()</code>, the default (<code>relative = TRUE</code>)
+returns each band as a fraction of the total power;
+<code>relative = FALSE</code> returns absolute power, as in the example
+below.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">bp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_band_power.html">compute_band_power</a></span><span class="op">(</span><span class="va">psg</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">bp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_band_power.html">compute_band_power</a></span><span class="op">(</span><span class="va">psg</span>, relative <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">bp</span></span>
 <span><span class="co">#&gt; # A tibble: 2,650 × 9</span></span>
-<span><span class="co">#&gt;   epoch channel      delta theta alpha sigma   beta  gamma total_power</span></span>
-<span><span class="co">#&gt;   &lt;int&gt; &lt;chr&gt;        &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;       &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1     1 EEG Fpz-Cz  342.  28.4  12.1  4.81   3.21   1.05        391.</span></span>
-<span><span class="co">#&gt; ...</span></span></code></pre></div>
+<span><span class="co">#&gt;   epoch channel    delta theta alpha sigma  beta gamma total_power</span></span>
+<span><span class="co">#&gt;   &lt;int&gt; &lt;chr&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;       &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1     1 EEG Fpz-Cz  447.  66.3  6.38  3.06  7.65  1.99        532.</span></span>
+<span><span class="co">#&gt; 2     2 EEG Fpz-Cz  254.  33.6  8.57  5.46 14.5   3.89        320.</span></span>
+<span><span class="co">#&gt; 3     3 EEG Fpz-Cz  302.  19.8 11.4   4.13 10.6   2.86        351.</span></span>
+<span><span class="co">#&gt; # ℹ 2,647 more rows</span></span></code></pre></div>
 <p>Default band definitions match YASA’s <code>bandpower()</code>:</p>
 <table class="table">
 <thead><tr class="header">
@@ -260,16 +269,18 @@ epoch and integrates power within six standard EEG bands.</p>
 </tr>
 <tr class="even">
 <td>gamma</td>
-<td>30–45 Hz</td>
+<td>30–40 Hz</td>
 </tr>
 </tbody>
 </table>
 <div class="section level3">
 <h3 id="relative-power">Relative power<a class="anchor" aria-label="anchor" href="#relative-power"></a>
 </h3>
-<p>Set <code>relative = TRUE</code> to express each band as a fraction
-of the total band-summed power. This is the standard for between-subject
-comparisons as it removes the effect of overall signal amplitude.</p>
+<p>With <code>relative = TRUE</code> (the default, as in YASA) each band
+is a fraction of the total power between the lowest and highest band
+edge (0.5–40 Hz with the default bands). This is the standard for
+between-subject comparisons as it removes the effect of overall signal
+amplitude.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bp_rel</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_band_power.html">compute_band_power</a></span><span class="op">(</span><span class="va">psg</span>, relative <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -305,12 +316,19 @@ ranges:</p>
 <div class="section level3">
 <h3 id="welch-parameters">Welch parameters<a class="anchor" aria-label="anchor" href="#welch-parameters"></a>
 </h3>
-<p>The defaults (<code>win_sec = 4</code>, <code>noverlap = 200</code>,
-<code>nfft = 1024</code>) match YASA. Override them for higher frequency
-resolution or different smoothing:</p>
+<p>The defaults are those of <code>yasa.bandpower()</code>: a 4 s window
+(<code>win_sec = 4</code>), a periodic Hamming window
+(<code>window = "hamming"</code>), the bias-corrected median of the
+overlapping segments (<code>average = "median"</code>), an overlap of
+half a window (<code>noverlap = NULL</code>) and an FFT length equal to
+the window (<code>nfft = NULL</code>). Override them for higher
+frequency resolution or different smoothing:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Higher frequency resolution (longer window)</span></span>
-<span><span class="va">bp_hires</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_band_power.html">compute_band_power</a></span><span class="op">(</span><span class="va">psg</span>, win_sec <span class="op">=</span> <span class="fl">8</span>, noverlap <span class="op">=</span> <span class="fl">400L</span>, nfft <span class="op">=</span> <span class="fl">2048L</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">bp_hires</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_band_power.html">compute_band_power</a></span><span class="op">(</span><span class="va">psg</span>, win_sec <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Mean of Hann-windowed segments instead of YASA's median of Hamming-windowed ones</span></span>
+<span><span class="va">bp_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_band_power.html">compute_band_power</a></span><span class="op">(</span><span class="va">psg</span>, window <span class="op">=</span> <span class="st">"hann"</span>, average <span class="op">=</span> <span class="st">"mean"</span><span class="op">)</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -332,6 +350,9 @@ and the cyclic appearance of REM-associated theta and alpha.</p>
 <span><span class="co">#&gt; ...</span></span></code></pre></div>
 <p>Each row represents one (window, band) combination. By default
 windows are 10 epochs (5 minutes) wide with 50 % overlap.</p>
+<p>Unlike <code><a href="../reference/compute_band_power.html">compute_band_power()</a></code>, this function does not
+follow YASA’s defaults (it has no YASA counterpart): it uses the mean of
+Hann-windowed segments and, by default, a gamma band of 30–45 Hz.</p>
 <div class="section level3">
 <h3 id="customising-the-window">Customising the window<a class="anchor" aria-label="anchor" href="#customising-the-window"></a>
 </h3>
@@ -433,52 +454,55 @@ fit a linear model to test how it relates to clinical variables.</p>
 <div class="section level2">
 <h2 id="parity-with-yasa">Parity with YASA<a class="anchor" aria-label="anchor" href="#parity-with-yasa"></a>
 </h2>
-<p><code><a href="../reference/compute_band_power.html">compute_band_power()</a></code> was validated against YASA’s
-<code>bandpower()</code> on SC4001E0-PSG.edf (2,650 epochs, channel
-<code>EEG Fpz-Cz</code>):</p>
+<p><code><a href="../reference/compute_band_power.html">compute_band_power()</a></code> with its default arguments
+reproduces <code>yasa.bandpower()</code> (YASA 0.8.1, default
+arguments). Measured on SC4001E0-PSG.edf (2,650 epochs, channel
+<code>EEG Fpz-Cz</code>, 100 Hz), the largest relative difference over
+all epochs is:</p>
 <table class="table">
 <thead><tr class="header">
 <th>Band</th>
-<th>Abs. MARE</th>
-<th>Rel. MARE</th>
+<th>Absolute power</th>
+<th>Relative power</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td>delta</td>
-<td>0.079 %</td>
-<td>0.771 %</td>
+<td>5.0e-15</td>
+<td>2.0e-15</td>
 </tr>
 <tr class="even">
 <td>theta</td>
-<td>0.059 %</td>
-<td>0.750 %</td>
+<td>4.8e-15</td>
+<td>5.8e-15</td>
 </tr>
 <tr class="odd">
 <td>alpha</td>
-<td>0.048 %</td>
-<td>0.519 %</td>
+<td>5.5e-15</td>
+<td>2.2e-14</td>
 </tr>
 <tr class="even">
 <td>sigma</td>
-<td>0.054 %</td>
-<td>0.747 %</td>
+<td>4.7e-15</td>
+<td>1.0e-13</td>
 </tr>
 <tr class="odd">
 <td>beta</td>
-<td>0.032 %</td>
-<td>0.748 %</td>
+<td>7.8e-15</td>
+<td>2.2e-13</td>
 </tr>
 <tr class="even">
 <td>gamma</td>
-<td>0.034 %</td>
-<td>0.748 %</td>
+<td>5.8e-15</td>
+<td>9.6e-13</td>
 </tr>
 </tbody>
 </table>
-<p>The residual ~0.75 % relative error is due to floating-point
-accumulation across six bands in two different language runtimes and is
-not fixable without artificial precision alignment. It is scientifically
-negligible for any EEG analysis.</p>
+<p>These are floating-point differences. The same agreement is checked
+in the test suite
+(<code>tests/testthat/test-yasa-bandpower-parity.R</code>) against a
+stored YASA reference, and it holds at other sampling rates (checked at
+256 Hz).</p>
 <hr>
 </div>
 <div class="section level2">

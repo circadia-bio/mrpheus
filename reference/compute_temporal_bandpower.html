@@ -196,8 +196,9 @@ which sets the step to <code>window_epochs %/% 2</code> (50 % overlap).</p></dd>
 
 
 <dt id="arg-bands">bands<a class="anchor" aria-label="anchor" href="#arg-bands"></a></dt>
-<dd><p>Named list of length-2 numeric vectors (Hz). Default matches
-<code><a href="compute_band_power.html">compute_band_power()</a></code>:</p>
+<dd><p>Named list of length-2 numeric vectors (Hz). Default follows the
+companion notebook, with gamma at 30-45 Hz (the default of
+<code><a href="compute_band_power.html">compute_band_power()</a></code> is YASA's 30-40 Hz):</p>
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">list</span>(<span class="at">delta =</span> <span class="fu">c</span>(<span class="fl">0.5</span>, <span class="dv">4</span>), <span class="at">theta =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">8</span>), <span class="at">alpha =</span> <span class="fu">c</span>(<span class="dv">8</span>, <span class="dv">12</span>),</span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>     <span class="at">sigma =</span> <span class="fu">c</span>(<span class="dv">12</span>, <span class="dv">16</span>), <span class="at">beta =</span> <span class="fu">c</span>(<span class="dv">16</span>, <span class="dv">30</span>), <span class="at">gamma =</span> <span class="fu">c</span>(<span class="dv">30</span>, <span class="dv">45</span>))</span></code></pre><p></p></div></dd>
 

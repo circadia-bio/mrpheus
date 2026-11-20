@@ -198,7 +198,7 @@
 <li>🔊 <strong>Signal filters</strong> — <code><a href="reference/remove_dc.html">remove_dc()</a></code>, <code><a href="reference/detect_powerline.html">detect_powerline()</a></code>, <code><a href="reference/notch_filter.html">notch_filter()</a></code>, <code><a href="reference/bandpass_filter.html">bandpass_filter()</a></code>: exported functions that work on any plain numeric vector</li>
 <li>👁️ <strong>EOG artefact correction</strong> — <code><a href="reference/correct_eog_regression.html">correct_eog_regression()</a></code> (linear regression, no blink detection required), <code><a href="reference/correct_eog_ica.html">correct_eog_ica()</a></code> (FastICA, threshold-based component rejection)</li>
 <li>🚫 <strong>Artefact detection</strong> — <code><a href="reference/detect_artifacts.html">detect_artifacts()</a></code>: amplitude and muscle contamination flagging</li>
-<li>📊 <strong>Spectral analysis</strong> — <code><a href="reference/compute_band_power.html">compute_band_power()</a></code> (δ/θ/α/σ/β/γ per epoch, YASA-validated Welch PSD), <code><a href="reference/compute_temporal_bandpower.html">compute_temporal_bandpower()</a></code> (sliding-window band power across the full night), <code><a href="reference/compute_spectrogram.html">compute_spectrogram()</a></code>
+<li>📊 <strong>Spectral analysis</strong> — <code><a href="reference/compute_band_power.html">compute_band_power()</a></code> (δ/θ/α/σ/β/γ per epoch; reproduces YASA’s <code>bandpower()</code>), <code><a href="reference/compute_temporal_bandpower.html">compute_temporal_bandpower()</a></code> (sliding-window band power across the full night), <code><a href="reference/compute_spectrogram.html">compute_spectrogram()</a></code>
 </li>
 <li>🔁 <strong>Sleep event detection</strong> — <code><a href="reference/compute_spindles.html">compute_spindles()</a></code>, <code><a href="reference/compute_slow_oscillations.html">compute_slow_oscillations()</a></code>
 </li>
@@ -240,8 +240,7 @@
 │   ├── detect_apneas.R             # detect_apneas(), compute_ahi(), compute_odi()
 │   └── read_philips_physlog.R      # read_philips_physlog()
 ├── src/
-│   ├── staging_features.cpp        # Rcpp hot paths: staging pipeline
-│   └── event_detection.cpp         # Rcpp hot paths: spindles, slow oscillations
+│   └── staging_features.cpp        # Rcpp hot paths: staging pipeline
 ├── inst/
 │   ├── extdata/                    # example_physlog.log
 │   ├── filters/                    # MNE FIR + resample poly coefficients
