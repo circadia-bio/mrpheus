@@ -1,6 +1,6 @@
 # Changelog
 
-## mrpheus 0.1.4.9000 (development)
+## mrpheus 0.2.0 (2026-11)
 
 ### 🛏️ `stage_epochs()`: now reproduces YASA (results change)
 
@@ -352,6 +352,22 @@ on the 468,700-sample recording above now completes in 0.97 seconds
   path, and implausible-RR-interval filtering.
 
 All fixtures are fully synthetic — no participant-derived data.
+
+### 🔧 Other changes
+
+- [`compute_hrv_freq_windowed()`](https://mrpheus.circadia-lab.uk/reference/compute_hrv_freq_windowed.md)
+  is now exported and has a help page (sliding-window respiration-locked
+  HF power; it was in the source without an export).
+- `stats` and `utils` are declared in Imports, as `NAMESPACE` already
+  imported from them.
+- `%||%` is defined inside the package: base R has it only from 4.4.0,
+  and the package declares R \>= 4.1.0.
+- The package build ignores compiled objects in `src/`, `.zenodo.json`
+  and `CITATION.cff`.
+- README: the pipeline stages before preprocessing,
+  [`compute_temporal_bandpower()`](https://mrpheus.circadia-lab.uk/reference/compute_temporal_bandpower.md)
+  is shown with integer stage codes, and the unsourced staging accuracy
+  figure is replaced by the measured agreement with YASA.
 
 ## mrpheus 0.1.4 (2026-07)
 

@@ -6,18 +6,14 @@ are supplied: EEG only, EEG + EOG, EEG + EMG or EEG + EOG + EMG, each with or
 without the demographic features (age, male). Features are computed in R
 to match the Python feature extraction and are rounded to single precision
 before prediction, as YASA does. See the NEWS.md entry for the agreement
-that was measured against YASA and for its limits.
-Stages returned follow standard AASM nomenclature:
-W (wake), N1, N2, N3, REM."><meta property="og:description" content="Stages each 30-second epoch with the pre-trained LightGBM classifiers that
+that was measured against YASA and for its limits."><meta property="og:description" content="Stages each 30-second epoch with the pre-trained LightGBM classifiers that
 ship with YASA (Vallat &amp;amp; Walker, 2021), converted to LightGBM text files in
 inst/models/. As in YASA, the classifier is chosen from the channels that
 are supplied: EEG only, EEG + EOG, EEG + EMG or EEG + EOG + EMG, each with or
 without the demographic features (age, male). Features are computed in R
 to match the Python feature extraction and are rounded to single precision
 before prediction, as YASA does. See the NEWS.md entry for the agreement
-that was measured against YASA and for its limits.
-Stages returned follow standard AASM nomenclature:
-W (wake), N1, N2, N3, REM."><meta property="og:image" content="https://mrpheus.circadia-lab.uk/logo.svg"><meta property="og:image" content="https://mrpheus.circadia-lab.uk/logo.png"><meta property="og:image:width" content="1080"><meta property="og:image:height" content="1080"><meta property="og:image:type" content="image/png"><meta name="twitter:card" content="summary"><meta name="twitter:image" content="https://mrpheus.circadia-lab.uk/logo.png"><!-- Fathom - beautiful, simple website analytics --><script src="https://cdn.usefathom.com/script.js" data-site="NKUSHGRU" defer></script><!-- / Fathom --><link rel="mask-icon" href="/safari-pinned-tab.svg" color="#B83E2C"><meta name="msapplication-TileColor" content="#6A7840"><meta name="theme-color" content="#6A7840"><style>
+that was measured against YASA and for its limits."><meta property="og:image" content="https://mrpheus.circadia-lab.uk/logo.svg"><meta property="og:image" content="https://mrpheus.circadia-lab.uk/logo.png"><meta property="og:image:width" content="1080"><meta property="og:image:height" content="1080"><meta property="og:image:type" content="image/png"><meta name="twitter:card" content="summary"><meta name="twitter:image" content="https://mrpheus.circadia-lab.uk/logo.png"><!-- Fathom - beautiful, simple website analytics --><script src="https://cdn.usefathom.com/script.js" data-site="NKUSHGRU" defer></script><!-- / Fathom --><link rel="mask-icon" href="/safari-pinned-tab.svg" color="#B83E2C"><meta name="msapplication-TileColor" content="#6A7840"><meta name="theme-color" content="#6A7840"><style>
   /* ── Navbar ── */
   .navbar {
     background-color: #6A7840 !important;
@@ -113,7 +109,7 @@ W (wake), N1, N2, N3, REM."><meta property="og:image" content="https://mrpheus.c
 
     <a class="navbar-brand me-2" href="../index.html">mrpheus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -163,8 +159,6 @@ without the demographic features (<code>age</code>, <code>male</code>). Features
 to match the Python feature extraction and are rounded to single precision
 before prediction, as YASA does. See the <code>NEWS.md</code> entry for the agreement
 that was measured against YASA and for its limits.</p>
-<p>Stages returned follow standard AASM nomenclature:
-<code>W</code> (wake), <code>N1</code>, <code>N2</code>, <code>N3</code>, <code>REM</code>.</p>
     </div>
 
     <div class="section level2">
@@ -245,6 +239,11 @@ class probabilities from the LightGBM model.</p></dd>
 
 
 </dl><p>The classifier that was used is attached as the attribute <code>"classifier"</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Stages returned follow standard AASM nomenclature:
+<code>W</code> (wake), <code>N1</code>, <code>N2</code>, <code>N3</code>, <code>REM</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

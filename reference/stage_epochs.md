@@ -10,9 +10,6 @@ extraction and are rounded to single precision before prediction, as
 YASA does. See the `NEWS.md` entry for the agreement that was measured
 against YASA and for its limits.
 
-Stages returned follow standard AASM nomenclature: `W` (wake), `N1`,
-`N2`, `N3`, `REM`.
-
 ## Usage
 
 ``` r
@@ -96,6 +93,11 @@ A tibble with one row per epoch:
 
 The classifier that was used is attached as the attribute
 `"classifier"`.
+
+## Details
+
+Stages returned follow standard AASM nomenclature: `W` (wake), `N1`,
+`N2`, `N3`, `REM`.
 
 ## References
 

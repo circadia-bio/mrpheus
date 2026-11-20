@@ -95,7 +95,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mrpheus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -136,9 +136,9 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.1.4.9000" id="mrpheus-0149000-development">mrpheus 0.1.4.9000 (development)<a class="anchor" aria-label="anchor" href="#mrpheus-0149000-development"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.2.0" id="mrpheus-020-2026-11">mrpheus 0.2.0 (2026-11)<a class="anchor" aria-label="anchor" href="#mrpheus-020-2026-11"></a></h2>
 <div class="section level3">
-<h3 id="bed-stage_epochs-now-reproduces-yasa-results-change-0-1-4-9000">🛏️ <code>stage_epochs()</code>: now reproduces YASA (results change)<a class="anchor" aria-label="anchor" href="#bed-stage_epochs-now-reproduces-yasa-results-change-0-1-4-9000"></a></h3>
+<h3 id="bed-stage_epochs-now-reproduces-yasa-results-change-0-2-0">🛏️ <code>stage_epochs()</code>: now reproduces YASA (results change)<a class="anchor" aria-label="anchor" href="#bed-stage_epochs-now-reproduces-yasa-results-change-0-2-0"></a></h3>
 <p><code><a href="../reference/stage_epochs.html">stage_epochs()</a></code> is checked against <code>yasa.SleepStaging</code> (YASA 0.8.1, scipy 1.18.1) feature by feature and probability by probability. Three errors in the feature code, a missing model selection and a missing precision step are fixed; on the public night used to check this, the stage is now the same as YASA’s in every epoch.</p>
 <ul><li>
 <strong>Channel-specific classifiers.</strong> YASA picks one of eight classifiers from the channels given (EEG, EEG + EOG, EEG + EMG, EEG + EOG + EMG, each with or without demographics). mrpheus shipped only the EEG + EOG + EMG model and filled missing channels with NA. With EOG absent that gave 50% accuracy against manual scoring on the test night (YASA: 83%); with EMG absent it differed from YASA’s EEG + EOG model in 91 of 780 epochs. All eight are now bundled as <code>inst/models/yasa_&lt;channels&gt;[_demo].txt.gz</code> (about 3.3 MB each) and chosen automatically. New arguments <code>age</code> and <code>male</code> select the <code>+demo</code> classifiers; <code>model_path</code> now defaults to <code>NULL</code> (automatic) and accepts <code>.gz</code> files. The result carries the classifier as <code>attr(, "classifier")</code>. Run <code>data-raw/fetch_yasa_models.py</code> to create the model files; the old <code>inst/models/yasa_staging.txt</code> is byte-identical to <code>yasa_eeg_eog_emg</code> and can be deleted.</li>
@@ -154,7 +154,7 @@
 <p><em>Caveats.</em> YASA 0.8.1 requires scipy &gt;= 1.15 (its PyPI metadata). Measured with YASA 0.8.1 on a synthetic 2 h recording (240 epochs) under scipy 1.13.1, 1.14.1, 1.15.0, 1.16.3, 1.17.1 and 1.18.1 (numpy 2.5, pandas 2.3.3; 1.13.1 and 1.14.1 are below YASA’s own requirement and were run anyway): features and class probabilities are identical on 1.13.1 to 1.17.1; 1.18.1 differs in one zero crossing count in the first epoch (EMG channel: 577 against 578; the EOG channel also changes), which moves one probability by up to 1.1e-3 and no stage; band power agrees to 1e-13 and the events of <code>sw_detect</code> and <code>spindles_detect</code> to 6e-14. Versions before 1.13 were not tested (YASA 0.8.1 needs numpy &gt;= 2.2.2, which scipy 1.12 and older do not support), so nothing is claimed for them. Preprocessing with <code><a href="../reference/preprocess_psg.html">preprocess_psg()</a></code> before staging is not what YASA does and changes the result (84 of 780 epochs on the test night, mostly through the EOG band-pass); stage from unpreprocessed signals to reproduce YASA.</p>
 </div>
 <div class="section level3">
-<h3 id="bar_chart-compute_band_power-now-follows-yasabandpower-results-change-0-1-4-9000">📊 <code>compute_band_power()</code>: now follows <code>yasa.bandpower()</code> (results change)<a class="anchor" aria-label="anchor" href="#bar_chart-compute_band_power-now-follows-yasabandpower-results-change-0-1-4-9000"></a></h3>
+<h3 id="bar_chart-compute_band_power-now-follows-yasabandpower-results-change-0-2-0">📊 <code>compute_band_power()</code>: now follows <code>yasa.bandpower()</code> (results change)<a class="anchor" aria-label="anchor" href="#bar_chart-compute_band_power-now-follows-yasabandpower-results-change-0-2-0"></a></h3>
 <p>The defaults did not match YASA’s, although the help page said they did. On Sleep-EDF <code>SC4001E0</code> (780 epochs, two channels, at 100 and 256 Hz; YASA 0.8.1) the old defaults differed from <code>yasa.bandpower()</code> by a median of 6 to 12% per band and epoch in absolute power (and in relative power), with a few epochs far larger. The defaults are now YASA’s, and the result agrees with <code>yasa.bandpower()</code> to about 1e-14 relative in absolute power and about 1e-12 in relative power (maximum over all epochs, channels and both sampling rates; also checked against <code>yasa.bandpower()</code> itself on ten epochs).</p>
 <ul><li>
 <strong>Segment averaging:</strong> the bias-corrected median of scipy (<code>average = "median"</code>), not the mean. This is the largest single difference, about 10% of band power at the median and more than 200% at the 99th percentile of epochs.</li>
@@ -174,7 +174,7 @@
 <p>The “Parity with YASA” section of the spectral-analysis vignette and the README wording are rewritten. They described the old settings as validated, and put the ~0.75% relative-power gap down to floating-point accumulation; it was the relative-power definition. The vignette now reports the measured agreement on SC4001E0 (2,650 epochs): at most 8e-15 relative in absolute power and 1e-12 in relative power. The old validation scripts <code>data-raw/validate_band_power_parity.R</code> and <code>data-raw/generate_bandpower_reference.py</code>, which used the old settings, and their reference and report files (<code>yasa_reference_bandpower.csv</code>, <code>parity_report_bandpower.csv</code>, <code>parity_bandpower.png</code>) are removed.</p>
 </div>
 <div class="section level3">
-<h3 id="ocean-compute_slow_oscillations-now-reproduces-yasasw_detect-results-change-0-1-4-9000">🌊 <code>compute_slow_oscillations()</code>: now reproduces <code>yasa.sw_detect()</code> (results change)<a class="anchor" aria-label="anchor" href="#ocean-compute_slow_oscillations-now-reproduces-yasasw_detect-results-change-0-1-4-9000"></a></h3>
+<h3 id="ocean-compute_slow_oscillations-now-reproduces-yasasw_detect-results-change-0-2-0">🌊 <code>compute_slow_oscillations()</code>: now reproduces <code>yasa.sw_detect()</code> (results change)<a class="anchor" aria-label="anchor" href="#ocean-compute_slow_oscillations-now-reproduces-yasasw_detect-results-change-0-2-0"></a></h3>
 <p>The detector is a port of <code>yasa.sw_detect()</code> (YASA 0.8.1). On the Sleep-EDF night <code>SC4001E0</code> (Fpz-Cz; 8.8 h at 100 Hz, and a 6.5 h version at 256 Hz), with a stage mask that cuts through events, it finds the same events as YASA: the same numbers (2,236 and 1,000), event times identical to the sample, and amplitudes within about 1e-12 uV. The previous version, which paired zero crossings, found about 20% fewer events than YASA on one night (4.7 against 5.9 per NREM minute, from a Python mirror of it).</p>
 <ul><li>
 <strong>Filter.</strong> An FIR band-pass equivalent to <code>mne.filter.filter_data()</code> (Hamming window, zero phase, 0.3-1.5 Hz with 0.2 Hz transition bands) is applied to the whole continuous signal, not epoch by epoch, instead of a Butterworth cascade. The design equals <code>mne.filter.create_filter</code> to about 1e-16 (checked at 100, 125, 128, 200, 250, 256, 500 and 512 Hz) and the filtered signal equals <code>filter_data</code> to about 5e-13 uV. This also removes the old failure at 256 Hz (“system is computationally singular”) and the sample-rate limit of the cascade.</li>
@@ -192,7 +192,7 @@
 <strong>Tests.</strong> <code>tests/testthat/test-yasa-slow-oscillation-parity.R</code> compares the result with stored <code>yasa.sw_detect()</code> output on a synthetic EEG at 100 and 256 Hz, the filter taps with <code>mne.filter.create_filter</code>, and the detection with YASA’s own code on a crafted signal that reaches its edge cases (plateaus, double-humped waves, limits exactly on the boundary, exact zeros) (<code>data-raw/generate_yasa_slow_oscillation_parity_fixture.py</code>). Putting each deviation back one at a time, 11 of 13 make the tests fail; the other two change nothing (removing only the shared-end check, and the wrap-around of the previous zero crossing before the first one).</li>
 </ul></div>
 <div class="section level3">
-<h3 id="zzz-compute_spindles-now-reproduces-yasaspindles_detect-results-change-0-1-4-9000">💤 <code>compute_spindles()</code>: now reproduces <code>yasa.spindles_detect()</code> (results change)<a class="anchor" aria-label="anchor" href="#zzz-compute_spindles-now-reproduces-yasaspindles_detect-results-change-0-1-4-9000"></a></h3>
+<h3 id="zzz-compute_spindles-now-reproduces-yasaspindles_detect-results-change-0-2-0">💤 <code>compute_spindles()</code>: now reproduces <code>yasa.spindles_detect()</code> (results change)<a class="anchor" aria-label="anchor" href="#zzz-compute_spindles-now-reproduces-yasaspindles_detect-results-change-0-2-0"></a></h3>
 <p>The detector is a port of <code>yasa.spindles_detect()</code> (YASA 0.8.1). On the Sleep-EDF night <code>SC4001E0</code> (Fpz-Cz; 8.8 h at 100 Hz, and a 6.5 h version at 256 Hz), with a stage mask that cuts through events, it finds the same spindles as YASA: the same numbers (73 and 78), start and end times identical to the sample, and every property within about 1e-11. The previous version (a 11-16 Hz Butterworth band-pass and an RMS threshold of 1.5 standard deviations, both per epoch, and a Welch peak frequency) was a different method and had not been compared with YASA.</p>
 <ul><li>
 <strong>Algorithm.</strong> Two MNE-equivalent FIR filters are applied to the whole continuous signal: a broadband (1-30 Hz) and a sigma (12-15 Hz, 1.5 Hz transition bands). Three criteria are evaluated at every sample: the relative sigma power of a short-time Fourier transform (2 s windows every 0.2 s), the moving correlation between the sigma and the broadband signal (0.3 s windows) and the moving RMS of the sigma signal (threshold: mean plus 1.5 trimmed standard deviations within the accepted epochs, at most 10 uV). The number of criteria met is smoothed over 0.1 s, events where all are met are kept, events closer than 500 ms are merged, and durations of 0.5-2 s are accepted.</li>
@@ -208,15 +208,15 @@
 <strong>Tests.</strong> <code>tests/testthat/test-yasa-spindle-parity.R</code> compares the result with stored <code>yasa.spindles_detect()</code> output on a synthetic EEG with spindles at 100 and 256 Hz, and at 100 Hz on two variants (strong sigma activity in an excluded epoch; the signal times 4), plus YASA’s intermediate features (STFT relative power, moving correlation and RMS) (<code>data-raw/generate_yasa_spindle_parity_fixture.py</code>); <code>test-compute_spindles.R</code> tests the helpers against scipy and YASA values. Putting each of 19 deviations back one at a time makes the tests fail in every case; the cap of 10 uV on the RMS threshold is caught only by its direct unit test.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="wrench-resampler-and-spectrogram-fixes-0-1-4-9000">🔧 Resampler and spectrogram fixes<a class="anchor" aria-label="anchor" href="#wrench-resampler-and-spectrogram-fixes-0-1-4-9000"></a></h3>
+<h3 id="wrench-resampler-and-spectrogram-fixes-0-2-0">🔧 Resampler and spectrogram fixes<a class="anchor" aria-label="anchor" href="#wrench-resampler-and-spectrogram-fixes-0-2-0"></a></h3>
 <ul><li>
 <strong><code>.mne_fft_resample()</code> now downsamples.</strong> Staging resamples every channel to 100 Hz, so 256 Hz input (a common PSG rate) stopped with <code>only 0's may be mixed with negative subscripts</code>: the function only implemented the upsampling path, and the Sleep-EDF data used so far is already at 100 Hz. For a shorter output it now truncates the spectrum as MNE’s <code>_fft_resample</code> does (Nyquist bin doubled for an even new length, bins scaled by <code>new_len / orig_len</code>). A Python mirror of the new logic differs from <code>mne.filter.resample</code> (MNE 1.13.2) by about 5e-14 on four lengths (7,680 to 460,800 samples). The upsampling code is unchanged. Tests: <code>tests/testthat/test-mne-fft-resample.R</code>.</li>
 <li>
 <strong><code><a href="../reference/compute_spectrogram.html">compute_spectrogram()</a></code> overlap.</strong> The function passed <code>noverlap</code> to <code><a href="https://rdrr.io/pkg/gsignal/man/pwelch.html" class="external-link">gsignal::pwelch()</a></code>, which has no such argument (it takes <code>overlap</code>, a fraction), so the call stopped with “unused argument”. It now passes its own <code>overlap</code> argument (default <code>0.5</code>) straight through. The function had no tests; <code>tests/testthat/test-compute_spectrogram.R</code> adds a synthetic 10 Hz check (it runs, returns one row per epoch, and peaks within 0.5 Hz of 10 Hz).</li>
 </ul></div>
 <div class="section level3">
-<h3 id="rocket-performance-fixes-in-detect_qrs-0-1-4-9000">🚀 Performance fixes in <code>detect_qrs()</code>
-<a class="anchor" aria-label="anchor" href="#rocket-performance-fixes-in-detect_qrs-0-1-4-9000"></a></h3>
+<h3 id="rocket-performance-fixes-in-detect_qrs-0-2-0">🚀 Performance fixes in <code>detect_qrs()</code>
+<a class="anchor" aria-label="anchor" href="#rocket-performance-fixes-in-detect_qrs-0-2-0"></a></h3>
 <p><code><a href="../reference/detect_qrs.html">detect_qrs()</a></code> was hanging indefinitely on real recordings (unbounded on a 468,700-sample / ~15.7 min recording at ~500 Hz). Two separate O(n²) bottlenecks were found and fixed:</p>
 <ul><li>
 <strong>Peak selection</strong> (<code>.find_peaks_min_dist()</code>): was checking every candidate peak against every other accepted peak on each iteration — fine on toy data, unusable once candidate counts reach the hundreds of thousands. Replaced with a binary search (<code><a href="https://rdrr.io/r/base/findInterval.html" class="external-link">findInterval()</a></code>) against a pre-allocated, sorted buffer of accepted peak locations. Note this is O(n_candidates log k
@@ -227,14 +227,14 @@
 </ul><p>Combined effect: <code><a href="../reference/detect_qrs.html">detect_qrs()</a></code> on the 468,700-sample recording above now completes in 0.97 seconds (1855 R-peaks detected, mean HR 118 bpm).</p>
 </div>
 <div class="section level3">
-<h3 id="sparkles-new-function-compute_hrv_freq-0-1-4-9000">✨ New function: <code>compute_hrv_freq()</code>
-<a class="anchor" aria-label="anchor" href="#sparkles-new-function-compute_hrv_freq-0-1-4-9000"></a></h3>
+<h3 id="sparkles-new-function-compute_hrv_freq-0-2-0">✨ New function: <code>compute_hrv_freq()</code>
+<a class="anchor" aria-label="anchor" href="#sparkles-new-function-compute_hrv_freq-0-2-0"></a></h3>
 <ul><li>
 <code><a href="../reference/compute_hrv_freq.html">compute_hrv_freq()</a></code> — frequency-domain HRV (HF power) locked to each infant’s own respiratory rate, rather than the fixed adult-derived HF band (0.15–0.4 Hz) that doesn’t apply to neonatal breathing rates (~40–70 breaths/min at rest). Detects the dominant respiratory frequency directly from the physlog’s <code>resp</code> channel, resamples the RR-interval series via cubic spline, and integrates Welch PSD power in a band centered on that detected frequency. Verified against synthetic data: exact frequency recovery and correct amplitude-scaling of integrated power.</li>
 <li>Fills the gap left by <code><a href="../reference/compute_hrv_sleep.html">compute_hrv_sleep()</a></code>, which remains a stub expecting staged PSG input (wrong shape for physlog data) with its RR-to-HRV step never wired in — <code><a href="../reference/compute_hrv_freq.html">compute_hrv_freq()</a></code> is a separate, physlog-shaped path rather than a completion of that stub.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="test_tube-tests-0-1-4-9000">🧪 Tests<a class="anchor" aria-label="anchor" href="#test_tube-tests-0-1-4-9000"></a></h3>
+<h3 id="test_tube-tests-0-2-0">🧪 Tests<a class="anchor" aria-label="anchor" href="#test_tube-tests-0-2-0"></a></h3>
 <ul><li>
 <code>test-find-peaks-min-dist.R</code>: <code>.find_peaks_min_dist()</code> against a brute-force reference on random and periodic synthetic signals, the minimum-distance constraint, tallest-peak-wins tie-breaking (including the all-tied flat-signal edge case), and a timing regression guard on a large, realistically-smoothed candidate set.</li>
 <li>
@@ -243,6 +243,17 @@
 <code>test-compute_hrv_freq.R</code>: synthetic QRS/respiration generators injecting a known respiratory frequency via RSA-modulated RR intervals — frequency recovery at two different frequencies, HF power scaling with RSA amplitude, band-bounds correctness, the too-few-beats <code>NA</code> path, and implausible-RR-interval filtering.</li>
 </ul><p>All fixtures are fully synthetic — no participant-derived data.</p>
 </div>
+<div class="section level3">
+<h3 id="wrench-other-changes-0-2-0">🔧 Other changes<a class="anchor" aria-label="anchor" href="#wrench-other-changes-0-2-0"></a></h3>
+<ul><li>
+<code><a href="../reference/compute_hrv_freq_windowed.html">compute_hrv_freq_windowed()</a></code> is now exported and has a help page (sliding-window respiration-locked HF power; it was in the source without an export).</li>
+<li>
+<code>stats</code> and <code>utils</code> are declared in Imports, as <code>NAMESPACE</code> already imported from them.</li>
+<li>
+<code>%||%</code> is defined inside the package: base R has it only from 4.4.0, and the package declares R &gt;= 4.1.0.</li>
+<li>The package build ignores compiled objects in <code>src/</code>, <code>.zenodo.json</code> and <code>CITATION.cff</code>.</li>
+<li>README: the pipeline stages before preprocessing, <code><a href="../reference/compute_temporal_bandpower.html">compute_temporal_bandpower()</a></code> is shown with integer stage codes, and the unsourced staging accuracy figure is replaced by the measured agreement with YASA.</li>
+</ul></div>
 </div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.4" id="mrpheus-014-2026-07">mrpheus 0.1.4 (2026-07)<a class="anchor" aria-label="anchor" href="#mrpheus-014-2026-07"></a></h2>
