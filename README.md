@@ -30,7 +30,7 @@ The name is spelled as *Mrpheus* but carries a silent **m**, pronounced as *Orph
 - 🔊 **Signal filters** — `remove_dc()`, `detect_powerline()`, `notch_filter()`, `bandpass_filter()`: exported functions that work on any plain numeric vector
 - 👁️ **EOG artefact correction** — `correct_eog_regression()` (linear regression, no blink detection required), `correct_eog_ica()` (FastICA, threshold-based component rejection)
 - 🚫 **Artefact detection** — `detect_artifacts()`: amplitude and muscle contamination flagging
-- 📊 **Spectral analysis** — `compute_band_power()` (δ/θ/α/σ/β/γ per epoch, YASA-validated Welch PSD), `compute_temporal_bandpower()` (sliding-window band power across the full night), `compute_spectrogram()`
+- 📊 **Spectral analysis** — `compute_band_power()` (δ/θ/α/σ/β/γ per epoch; reproduces YASA's `bandpower()`), `compute_temporal_bandpower()` (sliding-window band power across the full night), `compute_spectrogram()`
 - 🔁 **Sleep event detection** — `compute_spindles()`, `compute_slow_oscillations()`
 - 🛏️ **Automatic AASM staging** — `stage_epochs()`: pre-trained LightGBM model ported from [YASA](https://github.com/raphaelvallat/yasa) (Vallat & Walker, 2021); 77.8 % epoch accuracy on Sleep-EDF Cassette
 - 🫁 **Respiratory metrics** — `detect_apneas()`, `compute_ahi()`, `compute_odi()`

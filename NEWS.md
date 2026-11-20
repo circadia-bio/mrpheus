@@ -58,6 +58,60 @@ Preprocessing with `preprocess_psg()` before staging is not what YASA does and
 changes the result (84 of 780 epochs on the test night, mostly through the EOG
 band-pass); stage from unpreprocessed signals to reproduce YASA.
 
+### 📊 `compute_band_power()`: now follows `yasa.bandpower()` (results change)
+
+The defaults did not match YASA's, although the help page said they did. On
+Sleep-EDF `SC4001E0` (780 epochs, two channels, at 100 and 256 Hz; YASA 0.8.1)
+the old defaults differed from `yasa.bandpower()` by a median of 6 to 12% per
+band and epoch in absolute power (and in relative power), with a few epochs far
+larger. The defaults are now YASA's, and the result agrees with
+`yasa.bandpower()` to about 1e-14 relative in absolute power and about 1e-12 in
+relative power (maximum over all epochs, channels and both sampling rates; also
+checked against `yasa.bandpower()` itself on ten epochs).
+
+* **Segment averaging:** the bias-corrected median of scipy (`average = "median"`),
+  not the mean. This is the largest single difference, about 10% of band power
+  at the median and more than 200% at the 99th percentile of epochs.
+* **Window:** Hamming, not Hann (about 2%), and the periodic form that
+  `scipy.signal.welch` uses. mrpheus built the symmetric form, which alone gave up
+  to 0.8% in absolute band power with every other setting matched. New argument
+  `window` (`"hamming"` or `"hann"`).
+* **`nfft` and `noverlap`** default to `NULL`: the window length (YASA's, scipy's)
+  and half a window. The old defaults of 1024 and 200 samples differed from that
+  by about 3% (nfft, at 100 Hz) and 7% (overlap, at 256 Hz); 200 samples is half a
+  window only at 100 Hz.
+* **Gamma** is 30-40 Hz (YASA's default bands), not 30-45 Hz.
+* **Relative power** is a band's Simpson integral divided by the PSD integral
+  between the lowest and highest band edge, as in YASA, and no longer divided by
+  the sum of the band powers. The two are equal when the bands tile that range
+  and their edges fall on FFT bins (the new defaults), but differed by a median
+  of 0.7% and up to 5.7% at 100 Hz with `nfft = 1024`. `total_power` is now that
+  integral (YASA's `TotalAbsPow`), not the sum of the band powers.
+* `relative` still defaults to `FALSE`; YASA's default is `TRUE`.
+* The old estimate can be requested with `window = "hann", average = "mean",
+  noverlap = 200L, nfft = 1024L` and `bands` with gamma `c(30, 45)`, except that
+  the window is now the periodic form.
+
+`compute_temporal_bandpower()` is unchanged (its output is identical to before):
+it has no YASA counterpart, it keeps its own settings (symmetric Hann window,
+mean, gamma 30-45 Hz) and agrees with an independent scipy implementation of
+the same method to about 1e-13. Its help page no longer says that its default
+bands match `compute_band_power()`.
+
+`tests/testthat/test-yasa-bandpower-parity.R` compares `compute_band_power()`
+with a stored `yasa.bandpower()` reference (`data-raw/generate_yasa_bandpower_parity_fixture.py`);
+each of the old settings above makes it fail, apart from the relative-power
+definition, which `test-compute_band_power.R` checks with bands that leave a gap.
+
+The "Parity with YASA" section of the spectral-analysis vignette and the README
+wording are rewritten. They described the old settings as validated, and put the
+~0.75% relative-power gap down to floating-point accumulation; it was the
+relative-power definition. The vignette now reports the measured agreement on
+SC4001E0 (2,650 epochs): at most 8e-15 relative in absolute power and 1e-12 in
+relative power. The old validation scripts `data-raw/validate_band_power_parity.R`
+and `data-raw/generate_bandpower_reference.py`, which used the old settings, are
+removed.
+
 ### ⚠️ `compute_slow_oscillations()`: fixes and new defaults (results change)
 
 * **Polarity bug fixed.** `detect_so_candidates_cpp()` paired zero crossings
@@ -88,6 +142,24 @@ band-pass); stage from unpreprocessed signals to reproduce YASA.
   defaults gave 4.7 per minute, with 90% matching a YASA event and 72% of
   YASA's events found. This is one night, one channel and a Python mirror,
   not a validation.
+
+### 🔧 Resampler and spectrogram fixes
+
+* **`.mne_fft_resample()` now downsamples.** Staging resamples every channel to
+  100 Hz, so 256 Hz input (a common PSG rate) stopped with `only 0's may be
+  mixed with negative subscripts`: the function only implemented the upsampling
+  path, and the Sleep-EDF data used so far is already at 100 Hz. For a shorter
+  output it now truncates the spectrum as MNE's `_fft_resample` does (Nyquist
+  bin doubled for an even new length, bins scaled by `new_len / orig_len`).
+  A Python mirror of the new logic differs from `mne.filter.resample` (MNE
+  1.13.2) by about 5e-14 on four lengths (7,680 to 460,800 samples). The
+  upsampling code is unchanged. Tests: `tests/testthat/test-mne-fft-resample.R`.
+* **`compute_spectrogram()` overlap.** The function passed `noverlap` to
+  `gsignal::pwelch()`, which has no such argument (it takes `overlap`, a
+  fraction), so the call stopped with "unused argument". It now passes its own
+  `overlap` argument (default `0.5`) straight through. The function had no
+  tests; `tests/testthat/test-compute_spectrogram.R` adds a synthetic 10 Hz
+  check (it runs, returns one row per epoch, and peaks within 0.5 Hz of 10 Hz).
 
 ### 🚀 Performance fixes in `detect_qrs()`
 
