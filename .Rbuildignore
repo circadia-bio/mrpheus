@@ -10,3 +10,5 @@
 ^vignettes/articles$
 ^src/.*\.o$
 ^src/.*\.so$
+^\.zenodo\.json$
+^CITATION\.cff$
