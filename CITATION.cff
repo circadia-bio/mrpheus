@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 title: "mrpheus: Raw Physiological Signal Analysis for Biological Rhythms Research"
 type: software
-version: 0.1.4.9000
+version: 0.2.0
 authors:
   - family-names: "França"
     given-names: "Lucas"
