@@ -112,36 +112,57 @@ relative power. The old validation scripts `data-raw/validate_band_power_parity.
 and `data-raw/generate_bandpower_reference.py`, which used the old settings, are
 removed.
 
-### ⚠️ `compute_slow_oscillations()`: fixes and new defaults (results change)
+### 🌊 `compute_slow_oscillations()`: now reproduces `yasa.sw_detect()` (results change)
 
-* **Polarity bug fixed.** `detect_so_candidates_cpp()` paired zero crossings
-  in steps of two starting from the first crossing in the epoch, whatever its
-  direction. In an epoch whose filtered signal started negative every pair was
-  half a cycle out of phase and the epoch returned no slow oscillations, so
-  roughly half the epochs could be lost. The walk now starts at a crossing
-  after which the signal is negative. Existing tests passed because their
-  signals started at exactly 0.
-* **Filter fixed at higher sample rates.** The single 8th-order band-pass was
-  numerically singular at 256 Hz (`gsignal::filter_zi()` failed with
-  "system is computationally singular"). It is now a zero-phase high-pass /
-  low-pass cascade, designed once rather than per epoch.
-* **New defaults, taken from `yasa.sw_detect()`:** `freq_so = c(0.3, 1.5)`
-  (was `c(0.5, 2)`), `duration_neg_s = c(0.3, 1.5)` (was `c(0.1, 1.5)`),
-  `amp_ptp_threshold_uv = c(75, 350)` (was `c(75, 500)`). New arguments
-  `amp_neg_uv = c(40, 200)` and `amp_pos_uv = c(10, 150)` (trough and peak
-  limits; `NULL` switches them off) and `transition_hz = 0.2`, which places
-  the filter's -6 dB points at 0.2 and 1.6 Hz as YASA's FIR does. The old
-  behaviour can be requested with `freq_so = c(0.5, 2)`,
-  `duration_neg_s = c(0.1, 1.5)`, `amp_ptp_threshold_uv = c(75, 500)`,
-  `amp_neg_uv = NULL`, `amp_pos_uv = NULL`, `transition_hz = 0`.
-* **Not identical to YASA.** The pairing is still zero-crossing based, and
-  epochs are filtered one at a time. In a Python comparison on one Sleep-EDF
-  night (SC4001E0, Fpz-Cz, N2 + N3), a mirror of the old defaults gave 8.7
-  events per NREM minute against 5.9 for YASA, with 53% of its events
-  matching a YASA event (negative peaks within 0.5 s). A mirror of the new
-  defaults gave 4.7 per minute, with 90% matching a YASA event and 72% of
-  YASA's events found. This is one night, one channel and a Python mirror,
-  not a validation.
+The detector is a port of `yasa.sw_detect()` (YASA 0.8.1). On the Sleep-EDF
+night `SC4001E0` (Fpz-Cz; 8.8 h at 100 Hz, and a 6.5 h version at 256 Hz), with a
+stage mask that cuts through events, it finds the same events as YASA: the same
+numbers (2,236 and 1,000), event times identical to the sample, and amplitudes
+within about 1e-12 uV. The previous version, which paired zero crossings, found
+about 20% fewer events than YASA on one night (4.7 against 5.9 per NREM minute,
+from a Python mirror of it).
+
+* **Filter.** An FIR band-pass equivalent to `mne.filter.filter_data()` (Hamming
+  window, zero phase, 0.3-1.5 Hz with 0.2 Hz transition bands) is applied to the
+  whole continuous signal, not epoch by epoch, instead of a Butterworth cascade.
+  The design equals `mne.filter.create_filter` to about 1e-16 (checked at 100,
+  128, 200, 256 and 500 Hz) and the filtered signal equals `filter_data` to about
+  5e-13 uV. This also removes the old failure at 256 Hz ("system is
+  computationally singular") and the sample-rate limit of the cascade.
+* **Detection.** Peaks of the filtered signal are found as `scipy.signal.find_peaks`
+  does (negative peaks with a trough of 40-200 uV, positive peaks of 10-150 uV)
+  and kept if they lie in the accepted epochs. Each negative peak is paired with
+  the closest following positive peak, the peak-to-peak amplitude must be 75-350
+  uV, and the durations of the two phases, taken from the zero crossings around
+  the peaks, must be 0.3-1.5 s and 0.1-1.0 s. Events that share their start, and
+  then their end, with another event are dropped, as in YASA (so two negative
+  peaks paired with the same positive peak are both lost). The zero-crossing
+  pairing of the old version, and its polarity bug (an epoch whose filtered
+  signal started negative returned no events), are gone;
+  `detect_so_candidates_cpp()` is no longer used by this function and remains in
+  the package.
+* **`stages`** are the epochs in which the peaks must lie. As in YASA, an event
+  can start or end outside them.
+* **Output.** `epoch` is the epoch of the negative peak, and `start_s` and
+  `end_s`, relative to it, can lie outside 0-30 s for an event that crosses an
+  epoch boundary. New columns: `neg_peak_s`, `mid_crossing_s`, `pos_peak_s`
+  (seconds from the start of the first epoch) and `slope_uv_s`.
+* **Arguments.** `transition_hz` is now the width of both transition bands of the
+  FIR filter (default 0.2, as YASA); zero is rejected, so the old behaviour can no
+  longer be requested through it. The other defaults are YASA's, as before.
+* A channel whose trimmed standard deviation (central 90% of samples) is outside
+  0.1-1000 uV is skipped with a warning, as in YASA.
+* Not implemented: YASA's slow oscillation - spindle coupling and
+  `remove_outliers`.
+* **Tests.** `tests/testthat/test-yasa-slow-oscillation-parity.R` compares the
+  result with stored `yasa.sw_detect()` output on a synthetic EEG at 100 and
+  256 Hz, the filter taps with `mne.filter.create_filter`, and the detection with
+  YASA's own code on a crafted signal that reaches its edge cases (plateaus,
+  double-humped waves, limits exactly on the boundary, exact zeros)
+  (`data-raw/generate_yasa_slow_oscillation_parity_fixture.py`). Putting each
+  deviation back one at a time, 11 of 13 make the tests fail; the other two
+  change nothing (removing only the shared-end check, and the wrap-around of the
+  previous zero crossing before the first one).
 
 ### 🔧 Resampler and spectrogram fixes
 
