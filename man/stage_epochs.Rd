@@ -59,13 +59,14 @@ The classifier that was used is attached as the attribute \code{"classifier"}.
 \description{
 Stages each 30-second epoch with the pre-trained LightGBM classifiers that
 ship with YASA (Vallat & Walker, 2021), converted to LightGBM text files in
-\code{inst/models/}. As in YASA, the classifier is chosen from the channels that
+\verb{inst/models/}. As in YASA, the classifier is chosen from the channels that
 are supplied: EEG only, EEG + EOG, EEG + EMG or EEG + EOG + EMG, each with or
 without the demographic features (\code{age}, \code{male}). Features are computed in R
 to match the Python feature extraction and are rounded to single precision
 before prediction, as YASA does. See the \code{NEWS.md} entry for the agreement
 that was measured against YASA and for its limits.
-
+}
+\details{
 Stages returned follow standard AASM nomenclature:
 \code{W} (wake), \code{N1}, \code{N2}, \code{N3}, \code{REM}.
 }
