@@ -68,8 +68,7 @@ mrpheus/
 │   ├── detect_apneas.R             # detect_apneas(), compute_ahi(), compute_odi()
 │   └── read_philips_physlog.R      # read_philips_physlog()
 ├── src/
-│   ├── staging_features.cpp        # Rcpp hot paths: staging pipeline
-│   └── event_detection.cpp         # Rcpp hot paths: spindles, slow oscillations
+│   └── staging_features.cpp        # Rcpp hot paths: staging pipeline
 ├── inst/
 │   ├── extdata/                    # example_physlog.log
 │   ├── filters/                    # MNE FIR + resample poly coefficients

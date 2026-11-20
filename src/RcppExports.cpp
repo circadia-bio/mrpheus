@@ -10,36 +10,6 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// roll_rms_cpp
-NumericVector roll_rms_cpp(NumericVector x, int k);
-RcppExport SEXP _mrpheus_roll_rms_cpp(SEXP xSEXP, SEXP kSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    rcpp_result_gen = Rcpp::wrap(roll_rms_cpp(x, k));
-    return rcpp_result_gen;
-END_RCPP
-}
-// detect_so_candidates_cpp
-NumericMatrix detect_so_candidates_cpp(NumericVector sig, double sr, double dur_neg_min, double dur_neg_max, double dur_pos_min, double dur_pos_max, double amp_min, double amp_max);
-RcppExport SEXP _mrpheus_detect_so_candidates_cpp(SEXP sigSEXP, SEXP srSEXP, SEXP dur_neg_minSEXP, SEXP dur_neg_maxSEXP, SEXP dur_pos_minSEXP, SEXP dur_pos_maxSEXP, SEXP amp_minSEXP, SEXP amp_maxSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type sig(sigSEXP);
-    Rcpp::traits::input_parameter< double >::type sr(srSEXP);
-    Rcpp::traits::input_parameter< double >::type dur_neg_min(dur_neg_minSEXP);
-    Rcpp::traits::input_parameter< double >::type dur_neg_max(dur_neg_maxSEXP);
-    Rcpp::traits::input_parameter< double >::type dur_pos_min(dur_pos_minSEXP);
-    Rcpp::traits::input_parameter< double >::type dur_pos_max(dur_pos_maxSEXP);
-    Rcpp::traits::input_parameter< double >::type amp_min(amp_minSEXP);
-    Rcpp::traits::input_parameter< double >::type amp_max(amp_maxSEXP);
-    rcpp_result_gen = Rcpp::wrap(detect_so_candidates_cpp(sig, sr, dur_neg_min, dur_neg_max, dur_pos_min, dur_pos_max, amp_min, amp_max));
-    return rcpp_result_gen;
-END_RCPP
-}
 // resample_poly_cpp
 NumericVector resample_poly_cpp(NumericVector x, NumericVector h, int up);
 RcppExport SEXP _mrpheus_resample_poly_cpp(SEXP xSEXP, SEXP hSEXP, SEXP upSEXP) {
@@ -172,8 +142,6 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_mrpheus_roll_rms_cpp", (DL_FUNC) &_mrpheus_roll_rms_cpp, 2},
-    {"_mrpheus_detect_so_candidates_cpp", (DL_FUNC) &_mrpheus_detect_so_candidates_cpp, 8},
     {"_mrpheus_resample_poly_cpp", (DL_FUNC) &_mrpheus_resample_poly_cpp, 3},
     {"_mrpheus_perm_entropy_cpp", (DL_FUNC) &_mrpheus_perm_entropy_cpp, 3},
     {"_mrpheus_higuchi_fd_cpp", (DL_FUNC) &_mrpheus_higuchi_fd_cpp, 2},

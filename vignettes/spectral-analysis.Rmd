@@ -57,10 +57,12 @@ stages <- stage_epochs(psg)   # data frame with columns: epoch, stage, ...
 ## Band power per epoch
 
 `compute_band_power()` estimates the Welch PSD for each epoch and integrates
-power within six standard EEG bands.
+power within six standard EEG bands. As in YASA's `bandpower()`, the default
+(`relative = TRUE`) returns each band as a fraction of the total power;
+`relative = FALSE` returns absolute power, as in the example below.
 
 ```r
-bp <- compute_band_power(psg)
+bp <- compute_band_power(psg, relative = FALSE)
 bp
 #> # A tibble: 2,650 × 9
 #>   epoch channel    delta theta alpha sigma  beta gamma total_power
@@ -84,10 +86,10 @@ Default band definitions match YASA's `bandpower()`:
 
 ### Relative power
 
-Set `relative = TRUE` to express each band as a fraction of the total power
-between the lowest and highest band edge (0.5–40 Hz with the default bands), as
-YASA does. This is the standard for between-subject comparisons as it removes
-the effect of overall signal amplitude.
+With `relative = TRUE` (the default, as in YASA) each band is a fraction of the
+total power between the lowest and highest band edge (0.5–40 Hz with the
+default bands). This is the standard for between-subject comparisons as it
+removes the effect of overall signal amplitude.
 
 ```r
 bp_rel <- compute_band_power(psg, relative = TRUE)
