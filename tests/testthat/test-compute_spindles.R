@@ -138,3 +138,20 @@ test_that(".mne_auto_trans follows MNE's automatic transition bands", {
   expect_equal(mrpheus:::.mne_auto_trans(256, 1, 30), c(l = 1, h = 7.5))
   expect_equal(mrpheus:::.mne_auto_trans(100, 12, 15), c(l = 3, h = 3.75))
 })
+
+test_that(".sp_crit counts a non-finite value as not met, as YASA's astype(int) does", {
+  expect_equal(mrpheus:::.sp_crit(c(0.1, NA, 0.9, NaN, 0.5), 0.5), c(0, 0, 1, 0, 1))
+})
+
+test_that("a flat stretch does not remove the spindles after it", {
+  # A moving correlation over a window without variance is NaN (YASA returns NaN there and counts it
+  # as 0). As NA it turned the cumulative sum of the smoothing into NA, and no spindle after the
+  # first such sample was returned.
+  psg  <- .make_sp_psg()
+  base <- suppressMessages(compute_spindles(psg))
+  psg$epochs[[2]]$C3[2201:2800] <- 0            # 52-58 s, between the bursts at 40 s and 70 s
+  gap  <- suppressMessages(compute_spindles(psg))
+  expect_equal(nrow(gap), nrow(base))
+  expect_equal(gap$epoch, base$epoch)
+  expect_equal(gap$start_s, base$start_s, tolerance = 0.05)
+})

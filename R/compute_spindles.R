@@ -340,6 +340,16 @@ compute_spindles <- function(psg,
   list(peaks = pk, prom = prom)
 }
 
+# One spindle criterion as 0/1 per sample. A non-finite value (NaN or NA, e.g. a
+# moving correlation over a flat stretch) counts as 0, as in YASA's
+# `(x >= thresh).astype(int)`; left as NA it would turn the cumulative sum below
+# into NA for every later sample.
+.sp_crit <- function(v, thr) {
+  r <- v >= thr
+  r[is.na(r)] <- FALSE
+  as.numeric(r)
+}
+
 .yasa_spindles_detect <- function(x, sf, mask, freq_sp, freq_broad, duration, min_distance,
                                   thresh_rel_pow, thresh_corr, thresh_rms) {
   n <- length(x)
@@ -357,11 +367,11 @@ compute_spindles <- function(psg,
   do_rel <- !is.null(thresh_rel_pow); do_corr <- !is.null(thresh_corr); do_rms <- !is.null(thresh_rms)
   n_thresh <- do_rel + do_corr + do_rms
   idx_sum <- numeric(n)
-  if (do_rel)  idx_sum <- idx_sum + (.lin_interp0(st$t, st$rel, (0:(n - 1L)) / sf) >= thresh_rel_pow)
-  if (do_corr) idx_sum <- idx_sum + (.moving_transform(xs, xb, sf, "corr") >= thresh_corr)
+  if (do_rel)  idx_sum <- idx_sum + .sp_crit(.lin_interp0(st$t, st$rel, (0:(n - 1L)) / sf), thresh_rel_pow)
+  if (do_corr) idx_sum <- idx_sum + .sp_crit(.moving_transform(xs, xb, sf, "corr"), thresh_corr)
   if (do_rms) {
     mrms <- .moving_transform(xs, NULL, sf, "rms")
-    idx_sum <- idx_sum + (mrms >= .sp_rms_threshold(mrms, mask, thresh_rms))
+    idx_sum <- idx_sum + .sp_crit(mrms, .sp_rms_threshold(mrms, mask, thresh_rms))
   }
   idx_sum[!mask] <- 0
 
