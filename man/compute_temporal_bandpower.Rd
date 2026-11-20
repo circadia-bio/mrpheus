@@ -34,8 +34,9 @@ If \code{NULL} (default), all non-bad EEG channels are used.}
 \item{step_epochs}{Integer. Window step size in epochs. Default \code{NULL},
 which sets the step to \code{window_epochs \%/\% 2} (50 \% overlap).}
 
-\item{bands}{Named list of length-2 numeric vectors (Hz). Default matches
-\code{\link[=compute_band_power]{compute_band_power()}}:
+\item{bands}{Named list of length-2 numeric vectors (Hz). Default follows the
+companion notebook, with gamma at 30-45 Hz (the default of
+\code{\link[=compute_band_power]{compute_band_power()}} is YASA's 30-40 Hz):
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{list(delta = c(0.5, 4), theta = c(4, 8), alpha = c(8, 12),
      sigma = c(12, 16), beta = c(16, 30), gamma = c(30, 45))

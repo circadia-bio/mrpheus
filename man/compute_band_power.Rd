@@ -8,11 +8,13 @@ compute_band_power(
   psg,
   channels = NULL,
   bands = list(delta = c(0.5, 4), theta = c(4, 8), alpha = c(8, 12), sigma = c(12, 16),
-    beta = c(16, 30), gamma = c(30, 45)),
+    beta = c(16, 30), gamma = c(30, 40)),
   relative = FALSE,
   win_sec = 4,
-  noverlap = 200L,
-  nfft = 1024L
+  noverlap = NULL,
+  nfft = NULL,
+  window = c("hamming", "hann"),
+  average = c("median", "mean")
 )
 }
 \arguments{
@@ -25,36 +27,52 @@ compute_band_power(
 in Hz. Default matches YASA's \code{bandpower()}:
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{list(delta = c(0.5, 4), theta = c(4, 8), alpha = c(8, 12),
-     sigma = c(12, 16), beta = c(16, 30), gamma = c(30, 45))
+     sigma = c(12, 16), beta = c(16, 30), gamma = c(30, 40))
 }\if{html}{\out{</div>}}}
 
-\item{relative}{Logical. If \code{TRUE}, each band power is divided by the sum
-of all band powers (dimensionless). Matches YASA \code{relative = True}.
-Default \code{FALSE}.}
+\item{relative}{Logical. If \code{TRUE}, each band power is divided by the PSD
+integral between the lowest and highest band edge (dimensionless). Matches
+YASA \code{relative = True}. Default \code{FALSE}; note that YASA's default is \code{TRUE}.}
 
 \item{win_sec}{Numeric. Welch window length in seconds. Default \code{4}.}
 
-\item{noverlap}{Integer. Number of overlapping samples between Welch windows.
-Default \code{200}. Must be less than \code{win_sec * sample_rate}.}
+\item{noverlap}{Integer or \code{NULL}. Number of overlapping samples between
+Welch windows. \code{NULL} (default) uses half the window, as \code{scipy.signal.welch}
+does. Must be less than \code{win_sec * sample_rate}.}
 
-\item{nfft}{Integer. FFT length. Default \code{1024}. If smaller than the window
-length in samples it is automatically raised to the next power of 2.}
+\item{nfft}{Integer or \code{NULL}. FFT length. \code{NULL} (default) uses the window
+length in samples. If smaller than the window length it is automatically
+raised to the next power of 2.}
+
+\item{window}{Character. Welch window, \code{"hamming"} (default, YASA's) or
+\code{"hann"}. Both are the periodic form that \code{scipy.signal.welch} uses.}
+
+\item{average}{Character. How the segment periodograms are combined:
+\code{"median"} (default, YASA's; bias-corrected as in scipy) or \code{"mean"}.}
 }
 \value{
 A tibble with columns \code{epoch}, \code{channel}, one column per named band,
-and \code{total_power} (sum of all band powers, in V^2/Hz units before any
-relative scaling).
+and \code{total_power} (the PSD integral between the lowest and highest band
+edge, in V^2 units before any relative scaling; YASA's \code{TotalAbsPow}).
 }
 \description{
 Estimates power spectral density (PSD) using Welch's method and integrates
 power within standard EEG frequency bands for each epoch and channel.
 }
 \details{
-The Welch implementation matches \code{scipy.signal.welch} with YASA's default
-parameters (\code{win_sec = 4}, \code{noverlap = 200}, \code{nfft = 1024}, Hann window,
-constant detrend, mean averaging). Relative power matches YASA's
-\code{relative = True} behaviour: each band is divided by the sum of all band
-powers (not the total PSD integral).
+The defaults follow \code{yasa.bandpower()} (YASA 0.8.1): the PSD is
+\code{scipy.signal.welch()} with a 4 s window (\code{win_sec = 4}), a periodic Hamming
+window, median averaging over the overlapping segments (scipy's bias-corrected
+median), an overlap of half a window, an FFT length equal to the window
+length, and constant detrending. Band power is the Simpson integral of the
+PSD, and the default bands are YASA's, including gamma at 30-40 Hz.
+Relative power matches YASA's \code{relative = True}: each band is divided by the
+integral of the PSD between the lowest and the highest band edge (0.5-40 Hz
+by default). With bands that tile that range and edges on FFT bins this equals
+the sum of the band powers; otherwise it is larger.
+
+To use another estimate, change \code{window} (\code{"hann"}), \code{average} (\code{"mean"}),
+\code{noverlap} or \code{nfft}.
 }
 \examples{
 \dontrun{
@@ -66,5 +84,8 @@ bp <- compute_band_power(
   psg,
   bands = list(slow = c(0.5, 1), delta = c(1, 4), theta = c(4, 8))
 )
+
+# The mean of Hann-windowed segments instead of YASA's defaults
+bp <- compute_band_power(psg, window = "hann", average = "mean")
 }
 }

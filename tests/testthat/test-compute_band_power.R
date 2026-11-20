@@ -3,7 +3,8 @@
 # Unit tests for compute_band_power() and the internal .welch_psd_bp().
 #
 # Approach: synthetic signals with known spectral properties so expected
-# values can be derived analytically without external fixtures.
+# values can be derived analytically without external fixtures. Agreement with
+# yasa.bandpower() is tested in test-yasa-bandpower-parity.R.
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,40 @@ test_that(".welch_psd_bp raises nfft silently when nfft < nperseg", {
   )
 })
 
+test_that(".welch_psd_bp periodic window differs from the symmetric one, as scipy's welch does", {
+  set.seed(4)
+  sig <- rnorm(3000)
+  sym <- mrpheus:::.welch_psd_bp(sig, fs = 100, win_sec = 4, noverlap = 200L, nfft = 400L,
+                                 periodic = FALSE)
+  per <- mrpheus:::.welch_psd_bp(sig, fs = 100, win_sec = 4, noverlap = 200L, nfft = 400L,
+                                 periodic = TRUE)
+  expect_false(isTRUE(all.equal(sym$spec, per$spec, tolerance = 1e-8)))
+  expect_equal(sym$spec, per$spec, tolerance = 0.2)   # but only slightly
+})
+
+test_that(".welch_psd_bp defaults to half-window overlap and nfft = window", {
+  set.seed(5)
+  sig <- rnorm(3000)
+  a <- mrpheus:::.welch_psd_bp(sig, fs = 100, win_sec = 4)
+  b <- mrpheus:::.welch_psd_bp(sig, fs = 100, win_sec = 4, noverlap = 200L, nfft = 400L)
+  expect_equal(a, b)
+  expect_length(a$freq, 201L)
+})
+
+test_that(".welch_psd_bp median average is the bias-corrected median of the segment periodograms", {
+  set.seed(6)
+  sig <- rnorm(3000)
+  m   <- mrpheus:::.welch_psd_bp(sig, fs = 100, win_sec = 4, average = "median", periodic = TRUE)
+  mn  <- mrpheus:::.welch_psd_bp(sig, fs = 100, win_sec = 4, average = "mean",   periodic = TRUE)
+  expect_true(all(m$spec >= 0))
+  # 14 segments: scipy's bias for n = 14 (computed from its definition)
+  ii_2 <- 2 * (1:6)
+  bias <- 1 + sum(1 / (ii_2 + 1) - 1 / ii_2)
+  expect_equal(mrpheus:::.median_bias(14L), bias)
+  # for Gaussian noise the corrected median estimates the same PSD as the mean
+  expect_equal(mean(m$spec[-c(1, 201)]), mean(mn$spec[-c(1, 201)]), tolerance = 0.1)
+})
+
 # ── compute_band_power ────────────────────────────────────────────────────────
 
 test_that("compute_band_power returns a tibble with correct columns", {
@@ -111,7 +146,9 @@ test_that("compute_band_power band powers are non-negative", {
   expect_true(all(bp[band_cols] >= 0, na.rm = TRUE))
 })
 
-test_that("compute_band_power relative = TRUE sums bands to 1", {
+test_that("compute_band_power relative = TRUE sums bands to 1 for the default bands", {
+  # The default bands tile 0.5-40 Hz with their edges on the 0.25 Hz bins of a
+  # 4 s window, so the sum of the band powers equals the PSD integral over the range.
   psg <- make_bp_psg()
   bp  <- compute_band_power(psg, relative = TRUE)
   band_cols <- c("delta", "theta", "alpha", "sigma", "beta", "gamma")
@@ -122,10 +159,43 @@ test_that("compute_band_power relative = TRUE sums bands to 1", {
 test_that("compute_band_power relative = FALSE preserves absolute units", {
   psg <- make_bp_psg()
   bp  <- compute_band_power(psg, relative = FALSE)
-  # total_power should equal sum of bands
+  # total_power is the PSD integral between the lowest and highest band edge;
+  # for the default bands (which tile that range) it equals the sum of the bands
   band_cols <- c("delta", "theta", "alpha", "sigma", "beta", "gamma")
   band_sums <- rowSums(bp[band_cols], na.rm = TRUE)
   expect_equal(bp$total_power, band_sums, tolerance = 1e-10)
+})
+
+test_that("compute_band_power relative power is the band over total_power (YASA)", {
+  # Bands with a gap: the total still covers 0.5-40 Hz, so relative power is not
+  # band / sum(bands) here, and the bands do not sum to 1
+  psg  <- make_bp_psg()
+  bands <- list(slow = c(0.5, 2), fast = c(20, 40))
+  abs_ <- compute_band_power(psg, bands = bands, relative = FALSE)
+  rel_ <- compute_band_power(psg, bands = bands, relative = TRUE)
+  expect_equal(rel_$slow, abs_$slow / abs_$total_power, tolerance = 1e-12)
+  expect_equal(rel_$fast, abs_$fast / abs_$total_power, tolerance = 1e-12)
+  expect_true(all(rel_$slow + rel_$fast < 1))
+  expect_true(all(abs_$total_power > abs_$slow + abs_$fast))
+})
+
+test_that("compute_band_power defaults are YASA's: hamming, median, nfft = window, half-window overlap", {
+  psg <- make_bp_psg()
+  expect_equal(compute_band_power(psg),
+               compute_band_power(psg, window = "hamming", average = "median",
+                                  noverlap = 200L, nfft = 400L))
+  # and each of these settings matters
+  base <- compute_band_power(psg)$delta
+  expect_false(isTRUE(all.equal(base, compute_band_power(psg, average = "mean")$delta)))
+  expect_false(isTRUE(all.equal(base, compute_band_power(psg, window  = "hann")$delta)))
+  expect_false(isTRUE(all.equal(base, compute_band_power(psg, nfft = 1024L)$delta)))
+  expect_false(isTRUE(all.equal(base, compute_band_power(psg, noverlap = 100L)$delta)))
+})
+
+test_that("compute_band_power rejects unknown window and average", {
+  psg <- make_bp_psg()
+  expect_error(compute_band_power(psg, window  = "blackman"))
+  expect_error(compute_band_power(psg, average = "max"))
 })
 
 test_that("compute_band_power custom bands are respected", {
