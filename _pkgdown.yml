@@ -241,6 +241,7 @@ reference:
       - detect_qrs
       - compute_hr_signal
       - compute_hrv_freq
+      - compute_hrv_freq_windowed
 
   - title: "Data"
     desc: "Bundled datasets and palettes."
