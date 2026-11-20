@@ -8,7 +8,7 @@ mrpheus reproduces the same features as the Python reference implementation.
 
 Usage
 -----
-    source /tmp/yasa_env/bin/activate      # same env as fetch_yasa_model.py
+    source /tmp/yasa_env/bin/activate      # same env as fetch_yasa_models.py
 
     # With the YASA example file (downloads automatically):
     python3 data-raw/generate_yasa_reference.py --download-example
