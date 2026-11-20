@@ -8,3 +8,5 @@
 ^pkgdown$
 ^docs$
 ^vignettes/articles$
+^src/.*\.o$
+^src/.*\.so$

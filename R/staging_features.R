@@ -174,8 +174,8 @@
 
 # ── Spectral helpers ──────────────────────────────────────────────────────────
 
-# Composite Simpson's rule matching scipy.integrate.simpson (scipy >= 1.11;
-# checked against scipy 1.14.1 and 1.18.1, the versions YASA >= 0.7 can run on).
+# Composite Simpson's rule matching scipy.integrate.simpson (checked on scipy
+# 1.13.1 to 1.18.1; YASA 0.8.1 requires scipy >= 1.15, see NEWS.md).
 #
 # scipy: Simpson panels (y[i], y[i+1], y[i+2]) for i = 0, 2, ... over the first
 # N - 2 (odd N) or N - 3 (even N) points, then, for even N only, Cartwright's

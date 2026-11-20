@@ -15,6 +15,9 @@ NULL
 # Suppress R CMD check NOTE for dplyr NSE column names
 utils::globalVariables(c("epoch", "channel", "total_power"))
 
+# `%||%` is in base R only from 4.4.0; the package declares R >= 4.1.0
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
 #' Orpheus mosaic palette
 #'
 #' An 8-colour palette extracted from the Roman mosaic *Orpheus Charming the

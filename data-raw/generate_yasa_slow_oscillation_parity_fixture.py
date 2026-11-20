@@ -9,7 +9,10 @@ Writes fixtures from YASA on synthetic data (no participant data):
         excludes some epochs and cuts through events
   tests/testthat/fixtures/yasa_sw_filter.csv   taps of the FIR band-pass that
         sw_detect applies (mne.filter.create_filter, 0.3-1.5 Hz, 0.2 Hz
-        transition bands) at 100 and 256 Hz, every 25th tap
+        transition bands) at 75, 100, 127 and 256 Hz, every 25th tap. The filter
+        length is 16.5 s times the rate (rounded up, made odd); 100 and 256 Hz
+        give whole numbers, 75 and 127 Hz are rates at which rounding up and
+        rounding to the nearest differ (1239 and 2097 taps, against 1237 and 2095)
   tests/testthat/fixtures/yasa_sw_crafted_signal.csv   a crafted, already
         band-passed signal (integer uV, 100 Hz) and a stage mask, built to reach
         the rules of sw_detect that a smooth signal does not: peak plateaus,
@@ -50,6 +53,7 @@ mne.set_log_level("ERROR")
 
 N_EPOCHS = 10
 RATES = (100, 256)
+FILTER_RATES = (75, 100, 127, 256)
 COLS = ["Start", "NegPeak", "MidCrossing", "PosPeak", "End", "Duration",
         "ValNegPeak", "ValPosPeak", "PTP", "Slope", "Frequency"]
 
@@ -148,6 +152,7 @@ if __name__ == "__main__":
         ev.insert(0, "fs", fs)
         events.append(ev)
         print(f"fs {fs}: {len(ev)} events")
+    for fs in FILTER_RATES:
         h = mne.filter.create_filter(None, fs, 0.3, 1.5, l_trans_bandwidth=0.2,
                                      h_trans_bandwidth=0.2, method="fir",
                                      fir_design="firwin", fir_window="hamming",
